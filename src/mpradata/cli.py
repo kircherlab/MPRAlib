@@ -92,15 +92,19 @@ def filter_outliers(input_file, rna_zscore_times, bc_threshold, output_file):
     mpradata = MPRAdata.from_file(input_file)
 
 
-    # mpradata.filter_outlier(OutlierFilter.MAD, {})
+    mpradata.filter_outlier(OutlierFilter.MAD, {})
 
     # mpradata.filter_outlier(OutlierFilter.RNA_ZSCORE, {"times_zscore": rna_zscore_times})
 
     
     
     data = mpradata.grouped_data
+    print(data.layers["log2FoldChange"].shape)
+    print(data.layers["log2FoldChange"][:,~np.isnan(data.layers["log2FoldChange"]).any(axis=0)].shape)
+    print(np.corrcoef(data.layers["log2FoldChange"][:,~np.isnan(data.layers["log2FoldChange"]).any(axis=0)], rowvar=True))
 
     print(data.layers['barcodes'].sum())
+    print((data.layers['barcodes'] == 0).sum())
 
     output = pd.DataFrame()
     

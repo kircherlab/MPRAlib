@@ -109,7 +109,7 @@ class MPRAdata:
 
         adata.uns["normalized"] = False
               
-        adata.varm["filter"] = pd.DataFrame(np.full((adata.X.shape[1], adata.X.shape[0]), False), index=adata.var_names, columns=adata.obs_names)
+        adata.varm["filter"] = pd.DataFrame(np.full((adata.n_vars, adata.n_obs), False), index=adata.var_names, columns=adata.obs_names)
 
         adata.uns["filter"] = []
     
@@ -210,10 +210,10 @@ class MPRAdata:
         RNA_sum = pd.DataFrame(self.data.layers["dna"] , index=self.data.obs_names, columns=self.data.var_names).T.sum(axis=1)
         df_sums = pd.DataFrame({"DNA_sum": DNA_sum, "RNA_sum": RNA_sum}).fillna(0)
         # removing all barcodes with 0 counts in RNA an more DNA count than number of replicates/observations
-        df_sums = df_sums[(df_sums["DNA_sum"] > len(self.data.obs_names)) & (df_sums["RNA_sum"] > 0)]
+        df_sums = df_sums[(df_sums["DNA_sum"] > self.data.n_obs) & (df_sums["RNA_sum"] > 0)]
         
         # remove all barcodes where oligo has less barcodes as the number of replicates/observations
-        df_sums = df_sums.groupby(self.data.var['oligo'], observed=True).filter(lambda x: len(x) >= len(self.data.obs_names))
+        df_sums = df_sums.groupby(self.data.var['oligo'], observed=True).filter(lambda x: len(x) >= self.data.n_obs)
 
         # Calculate ratio, ratio_med, ratio_diff, and mad
         df_sums['ratio'] = np.log2(df_sums["DNA_sum"] / df_sums["RNA_sum"])
