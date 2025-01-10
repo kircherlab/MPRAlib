@@ -4,9 +4,11 @@ import numpy as np
 from mpradata import MPRAdata
 from mpradata import OutlierFilter
 
+
 @click.group()
 def cli():
     pass
+
 
 @cli.command()
 @click.option(
@@ -35,27 +37,27 @@ def activities(input_file, bc_threshold, output_file):
     """Reads a file and generates an MPRAdata object."""
     mpradata = MPRAdata.from_file(input_file)
 
-    
     data = mpradata.get_grouped_data()
 
     output = pd.DataFrame()
     
     for replicate in data.obs['replicate']:
-        replicate_data = data[replicate,:]
-        replicate_data = replicate_data[:,replicate_data.layers['barcodes'] >= bc_threshold]
+        replicate_data = data[replicate, :]
+        replicate_data = replicate_data[:, replicate_data.layers['barcodes'] >= bc_threshold]
         df = {
             "replicate": np.repeat(replicate, replicate_data.var_names.size),
             "oligo_name": replicate_data.var_names.values,
-            "dna_counts": replicate_data.layers["dna"][0,:],
-            "rna_counts": replicate_data.layers["rna"][0,:],
-            "dna_normalized": np.round(replicate_data.layers["dna_normalized"][0,:], 4),
-            "rna_normalized": np.round(replicate_data.layers["rna_normalized"][0,:], 4),
-            "log2FoldChange": np.round(replicate_data.layers["log2FoldChange"][0,:], 4),
-            "n_bc": replicate_data.layers["barcodes"][0,:],
+            "dna_counts": replicate_data.layers["dna"][0, :],
+            "rna_counts": replicate_data.layers["rna"][0, :],
+            "dna_normalized": np.round(replicate_data.layers["dna_normalized"][0, :], 4),
+            "rna_normalized": np.round(replicate_data.layers["rna_normalized"][0, :], 4),
+            "log2FoldChange": np.round(replicate_data.layers["log2FoldChange"][0, :], 4),
+            "n_bc": replicate_data.layers["barcodes"][0, :],
         }
         output = pd.concat([output, pd.DataFrame(df)], axis=0)
     
     output.to_csv(output_file, sep='\t', index=False)
+
 
 @cli.command()
 @click.option(
@@ -68,7 +70,7 @@ def activities(input_file, bc_threshold, output_file):
 @click.option(
     "--outlier-rna-zscore-times",
     "rna_zscore_times",
-    default = 3,
+    default=3,
     type=float,
     help="Absolute rna z_score is not allowed to be larger than this value.",
 )
@@ -97,8 +99,8 @@ def filter_outliers(input_file, rna_zscore_times, bc_threshold, output_file):
     
     data = mpradata.grouped_data
     print(data.layers["log2FoldChange"].shape)
-    print(data.layers["log2FoldChange"][:,~np.isnan(data.layers["log2FoldChange"]).any(axis=0)].shape)
-    print(np.corrcoef(data.layers["log2FoldChange"][:,~np.isnan(data.layers["log2FoldChange"]).any(axis=0)], rowvar=True))
+    print(data.layers["log2FoldChange"][:, ~np.isnan(data.layers["log2FoldChange"]).any(axis=0)].shape)
+    print(np.corrcoef(data.layers["log2FoldChange"][:, ~np.isnan(data.layers["log2FoldChange"]).any(axis=0)], rowvar=True))
 
     print(data.layers['barcodes'].sum())
     print((data.layers['barcodes'] == 0).sum())
@@ -106,21 +108,22 @@ def filter_outliers(input_file, rna_zscore_times, bc_threshold, output_file):
     output = pd.DataFrame()
     
     for replicate in data.obs['replicate']:
-        replicate_data = data[replicate,:]
-        replicate_data = replicate_data[:,replicate_data.layers['barcodes'] >= bc_threshold]
+        replicate_data = data[replicate, :]
+        replicate_data = replicate_data[:, replicate_data.layers['barcodes'] >= bc_threshold]
         df = {
             "replicate": np.repeat(replicate, replicate_data.var_names.size),
             "oligo_name": replicate_data.var_names.values,
-            "dna_counts": replicate_data.layers["dna"][0,:],
-            "rna_counts": replicate_data.layers["rna"][0,:],
-            "dna_normalized": np.round(replicate_data.layers["dna_normalized"][0,:], 4),
-            "rna_normalized": np.round(replicate_data.layers["rna_normalized"][0,:], 4),
-            "log2FoldChange": np.round(replicate_data.layers["log2FoldChange"][0,:], 4),
-            "n_bc": replicate_data.layers["barcodes"][0,:],
+            "dna_counts": replicate_data.layers["dna"][0, :],
+            "rna_counts": replicate_data.layers["rna"][0, :],
+            "dna_normalized": np.round(replicate_data.layers["dna_normalized"][0, :], 4),
+            "rna_normalized": np.round(replicate_data.layers["rna_normalized"][0, :], 4),
+            "log2FoldChange": np.round(replicate_data.layers["log2FoldChange"][0, :], 4),
+            "n_bc": replicate_data.layers["barcodes"][0, :],
         }
         output = pd.concat([output, pd.DataFrame(df)], axis=0)
     
     output.to_csv(output_file, sep='\t', index=False)
+
 
 @cli.command()
 @click.option(
@@ -173,12 +176,11 @@ def get_variant_map(input_file, metadata_file, output_file):
         df["ref"].append(refs)
         df["alt"].append(alts)
     for key in ["ref", "alt"]:
-        df[key] = [",".join(i) for i in df[key] ]
-    
+        df[key] = [",".join(i) for i in df[key]]
+
     output = pd.DataFrame(df)
     output.to_csv(output_file, sep='\t', index=False)
-    
-        
+         
 
 if __name__ == '__main__':
     cli()

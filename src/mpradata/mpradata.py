@@ -2,9 +2,8 @@ import numpy as np
 import ast
 import pandas as pd
 import anndata as ad
-
-from anndata.experimental.multi_files import AnnCollection
 from enum import Enum
+
 
 class OutlierFilter(Enum):
     RNA_ZSCORE = "RNA_ZSCORE"
@@ -37,7 +36,6 @@ class MPRAdata:
     def grouped_data(self, new_data):
         self._grouped_data = new_data
 
-
     def get_rna_data(self):
         return self.data.X
 
@@ -52,8 +50,6 @@ class MPRAdata:
     
     def get_total_barcodes_per_oligo(self):
         return self.data.var["oligo"].value_counts()
-    
-    
     
     def add_metadata_file(self, metadata_file):
         metadata = pd.read_csv(metadata_file, sep='\t', header=0, na_values=['NA']).drop_duplicates()
@@ -80,7 +76,6 @@ class MPRAdata:
 
         self.data.uns["metadata_file"] = metadata_file
 
-
     @classmethod
     def from_file(cls, file_path):
         data = pd.read_csv(file_path, sep='\t', header=0, index_col=0)
@@ -90,33 +85,33 @@ class MPRAdata:
         replicate_columns_dna = data.columns[1::2]
         
         anndata_replicate_rna = data.loc[:, replicate_columns_rna].transpose().astype(int)
-        anndata_replicate_dna =  data.loc[:, replicate_columns_dna].transpose().astype(int)
+        anndata_replicate_dna = data.loc[:, replicate_columns_dna].transpose().astype(int)
         
         anndata_replicate_rna.index = [replicate.split("_")[2] for replicate in replicate_columns_rna]
         anndata_replicate_dna.index = [replicate.split("_")[2] for replicate in replicate_columns_dna]
-        
         
         adata = ad.AnnData(anndata_replicate_rna)
         adata.layers["rna"] = adata.X.copy()
         adata.layers["dna"] = anndata_replicate_dna
         
-        adata.obs["replicate"] = [replicate.split("_")[2] for replicate in replicate_columns_rna] 
+        adata.obs["replicate"] = [replicate.split("_")[2] for replicate in replicate_columns_rna]
         
         adata.var["oligo"] = pd.Categorical(data['oligo_name'].values)
         
         adata.uns['file_path'] = file_path
-        adata.uns['date'] =  pd.to_datetime('today').strftime('%Y-%m-%d')
+        adata.uns['date'] = pd.to_datetime('today').strftime('%Y-%m-%d')
 
         adata.uns["normalized"] = False
               
-        adata.varm["filter"] = pd.DataFrame(np.full((adata.n_vars, adata.n_obs), False), index=adata.var_names, columns=adata.obs_names)
+        adata.varm["filter"] = pd.DataFrame(np.full((adata.n_vars, adata.n_obs), False), index=adata.var_names,
+                                            columns=adata.obs_names)
 
         adata.uns["filter"] = []
     
         return cls(adata)
 
     def _number_of_barcodes(self):
-        bdata = self.data[:,self.data.var.oligo == "A:HNF4A-ChMod_chr10:11917871-11917984__chr10:11917842-11918013_:015"]
+        bdata = self.data[:, self.data.var.oligo == "A:HNF4A-ChMod_chr10:11917871-11917984__chr10:11917842-11918013_:015"]
         print(bdata.var.rna)
         filter = (bdata.layers['rna'] > 0) & (bdata.layers['dna'] > 0)
         print(filter)
@@ -124,7 +119,7 @@ class MPRAdata:
         print(filtered_adata)
         barcode_counts = np.sum(bdata.X != 0, axis=1)
         print(barcode_counts)
-        #print(bdata)
+
         return bdata.X.shape[0]
     
     def _normalize(self):
@@ -132,11 +127,12 @@ class MPRAdata:
         self._normalize_layer("dna")
         self._normalize_layer("rna")
         
-    
     def _normalize_layer(self, layer_name):
-        total_counts = np.sum(self.data.layers[layer_name] * ~self.data.varm["filter"].T.values,axis=1)
+        total_counts = np.sum(self.data.layers[layer_name] * ~self.data.varm["filter"].T.values, axis=1)
         total_counts[total_counts == 0] = 1
-        self.data.layers[layer_name + "_normalized"] = self.data.layers[layer_name] / total_counts[:, np.newaxis] * self.SCALING
+        self.data.layers[layer_name + "_normalized"] = (
+            self.data.layers[layer_name] / total_counts[:, np.newaxis] * self.SCALING
+        )
         self.data.uns["normalized"] = True
 
     def _group_data(self):
@@ -150,13 +146,14 @@ class MPRAdata:
         self.grouped_data.layers["rna"] = self.grouped_data.X.copy()
         self.grouped_data.layers["dna"] = self._group_sum_data_layer("dna")
 
-
         self.grouped_data.layers["barcodes"] = self._compute_supporting_barcodes()
 
-
-        self.grouped_data.layers["rna_normalized"] = self._group_sum_data_layer("rna_normalized") /  self.grouped_data.layers["barcodes"]
-        self.grouped_data.layers["dna_normalized"] = self._group_sum_data_layer("dna_normalized") /  self.grouped_data.layers["barcodes"]
-
+        self.grouped_data.layers["rna_normalized"] = (
+            self._group_sum_data_layer("rna_normalized") / self.grouped_data.layers["barcodes"]
+        )
+        self.grouped_data.layers["dna_normalized"] = (
+            self._group_sum_data_layer("dna_normalized") / self.grouped_data.layers["barcodes"]
+        )
 
         self.grouped_data.obs_names = self.data.obs_names
         self.grouped_data.var_names = self.data.var['oligo'].unique().tolist()
@@ -168,7 +165,6 @@ class MPRAdata:
         for column in adata_filtered.var.columns:
             self.grouped_data.var[column] = adata_filtered.var[column].values
 
-
         self.grouped_data.obs = self.data.obs
 
         self.grouped_data.uns = self.data.uns
@@ -177,37 +173,48 @@ class MPRAdata:
 
     def _group_sum_data_layer(self, layer_name):
 
-        grouped = pd.DataFrame(self.data.layers[layer_name] * ~self.data.varm["filter"].T.values, index=self.data.obs_names, columns=self.data.var_names).T.groupby(self.data.var['oligo'], observed=True)
+        grouped = pd.DataFrame(
+            self.data.layers[layer_name] * ~self.data.varm["filter"].T.values,
+            index=self.data.obs_names,
+            columns=self.data.var_names
+        ).T.groupby(self.data.var['oligo'], observed=True)
 
         # Perform an operation on each group, e.g., mean
         return grouped.sum().T
 
     def _compute_supporting_barcodes(self):
 
-        grouped = pd.DataFrame((self.data.layers["dna"] + self.data.layers["rna"]) * ~self.data.varm["filter"].T.values, index=self.data.obs_names, columns=self.data.var_names).T.groupby(self.data.var['oligo'], observed=True)
+        grouped = pd.DataFrame(
+            (self.data.layers["dna"] + self.data.layers["rna"]) * ~self.data.varm["filter"].T.values,
+            index=self.data.obs_names,
+            columns=self.data.var_names
+        ).T.groupby(self.data.var['oligo'], observed=True)
+
         return grouped.apply(lambda x: (x != 0).sum()).T
 
     def _compute_activities(self):
-        self.grouped_data.layers["log2FoldChange"] = np.log2(self.grouped_data.layers["rna_normalized"] / self.grouped_data.layers["dna_normalized"])
+        self.grouped_data.layers["log2FoldChange"] = np.log2(
+            self.grouped_data.layers["rna_normalized"] / self.grouped_data.layers["dna_normalized"]
+        )
 
-    
-    def _filter_rna_zscore(self, times_zscore = 3):
+    def _filter_rna_zscore(self, times_zscore=3):
 
-        barcode_mask = pd.DataFrame(self.data.layers["dna"] + self.data.layers["rna"], index=self.data.obs_names, columns=self.data.var_names).T.apply(lambda x: (x != 0))
+        barcode_mask = pd.DataFrame(self.data.layers["dna"] + self.data.layers["rna"],
+                                    index=self.data.obs_names,
+                                    columns=self.data.var_names).T.apply(lambda x: (x != 0))
         
         df_rna = pd.DataFrame(self.data.layers["rna"], index=self.data.obs_names, columns=self.data.var_names).T
         grouped = df_rna.where(barcode_mask).groupby(self.data.var['oligo'], observed=True)
 
-        
         mask = ((df_rna - grouped.transform("mean")) / grouped.transform("std")).abs() > times_zscore
         
         self.data.varm["filter"] = self.data.varm["filter"] | mask
 
-    def _filter_mad(self, times_mad = 3, n_bins = 20):
+    def _filter_mad(self, times_mad=3, n_bins=20):
 
         # sum up DNA and RNA counts across replicates
-        DNA_sum = pd.DataFrame(self.data.layers["rna"] , index=self.data.obs_names, columns=self.data.var_names).T.sum(axis=1)
-        RNA_sum = pd.DataFrame(self.data.layers["dna"] , index=self.data.obs_names, columns=self.data.var_names).T.sum(axis=1)
+        DNA_sum = pd.DataFrame(self.data.layers["rna"], index=self.data.obs_names, columns=self.data.var_names).T.sum(axis=1)
+        RNA_sum = pd.DataFrame(self.data.layers["dna"], index=self.data.obs_names, columns=self.data.var_names).T.sum(axis=1)
         df_sums = pd.DataFrame({"DNA_sum": DNA_sum, "RNA_sum": RNA_sum}).fillna(0)
         # removing all barcodes with 0 counts in RNA an more DNA count than number of replicates/observations
         df_sums = df_sums[(df_sums["DNA_sum"] > self.data.n_obs) & (df_sums["RNA_sum"] > 0)]
@@ -224,9 +231,9 @@ class MPRAdata:
         # Calculate quantiles within  n_bins
         qs = np.unique(np.quantile(np.log10(df_sums['RNA_sum']), np.arange(0, n_bins) / n_bins))
 
-
         # Create bins based on rna_count
-        df_sums['bin'] = pd.cut(np.log10(df_sums['RNA_sum']), bins=qs, include_lowest=True, labels=[str(i) for i in range(0, len(qs)-1)])
+        df_sums['bin'] = pd.cut(np.log10(df_sums['RNA_sum']), bins=qs, include_lowest=True,
+                                labels=[str(i) for i in range(0, len(qs) - 1)])
         # Filter based on ratio_diff and mad
         df_sums['ratio_diff_med'] = df_sums.groupby('bin', observed=True)['ratio_diff'].transform('median')
         df_sums['ratio_diff_med_dist'] = np.abs(df_sums['ratio_diff'] - df_sums['ratio_diff_med'])
@@ -236,8 +243,9 @@ class MPRAdata:
         df_sums = df_sums[~m]
         
         # print(self.data.varm["filter"][~self.data.varm["filter"].index.isin(df_sums.index)])
-        self.data.varm["filter"] = self.data.varm["filter"].apply(lambda col: col | ~self.data.varm["filter"].index.isin(df_sums.index))
-
+        self.data.varm["filter"] = self.data.varm["filter"].apply(
+            lambda col: col | ~self.data.varm["filter"].index.isin(df_sums.index)
+        )
 
     def filter_outlier(self, outlier_filter, params):
         filter_switch = {
