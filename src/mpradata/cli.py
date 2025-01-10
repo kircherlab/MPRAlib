@@ -91,12 +91,9 @@ def filter_outliers(input_file, rna_zscore_times, bc_threshold, output_file):
     """Reads a file and generates an MPRAdata object."""
     mpradata = MPRAdata.from_file(input_file)
 
-
     mpradata.filter_outlier(OutlierFilter.MAD, {})
 
     # mpradata.filter_outlier(OutlierFilter.RNA_ZSCORE, {"times_zscore": rna_zscore_times})
-
-    
     
     data = mpradata.grouped_data
     print(data.layers["log2FoldChange"].shape)
