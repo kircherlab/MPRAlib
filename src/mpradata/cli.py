@@ -97,10 +97,10 @@ def filter_outliers(input_file, rna_zscore_times, bc_threshold, output_file):
 
     # mpradata.filter_outlier(OutlierFilter.RNA_ZSCORE, {"times_zscore": rna_zscore_times})
     
+    print(mpradata.spearman_correlation)
+    print(mpradata.pearson_correlation)
+
     data = mpradata.grouped_data
-    print(data.layers["log2FoldChange"].shape)
-    print(data.layers["log2FoldChange"][:, ~np.isnan(data.layers["log2FoldChange"]).any(axis=0)].shape)
-    print(np.corrcoef(data.layers["log2FoldChange"][:, ~np.isnan(data.layers["log2FoldChange"]).any(axis=0)], rowvar=True))
 
     print(data.layers['barcodes'].sum())
     print((data.layers['barcodes'] == 0).sum())
