@@ -93,9 +93,11 @@ def filter_outliers(input_file, rna_zscore_times, bc_threshold, output_file):
     """Reads a file and generates an MPRAdata object."""
     mpradata = MPRAdata.from_file(input_file)
 
-    mpradata.filter_outlier(OutlierFilter.MAD, {})
+    mpradata.barcode_threshold = bc_threshold
 
-    # mpradata.filter_outlier(OutlierFilter.RNA_ZSCORE, {"times_zscore": rna_zscore_times})
+    # mpradata.filter_outlier(OutlierFilter.MAD, {})
+
+    mpradata.filter_outlier(OutlierFilter.RNA_ZSCORE, {"times_zscore": rna_zscore_times})
     
     print(mpradata.spearman_correlation)
     print(mpradata.pearson_correlation)

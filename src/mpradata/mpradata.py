@@ -15,16 +15,16 @@ class MPRAdata:
 
     SCALING = 1e6
 
-    def __init__(self, data):
+    def __init__(self, data: ad.AnnData):
         self._data = data
         self._grouped_data = None
 
     @property
-    def data(self):
+    def data(self) -> ad.AnnData:
         return self._data
 
     @data.setter
-    def data(self, new_data):
+    def data(self, new_data: ad.AnnData) -> None:
         self._data = new_data
 
     @property
@@ -34,7 +34,7 @@ class MPRAdata:
         return self._grouped_data
     
     @grouped_data.setter
-    def grouped_data(self, new_data):
+    def grouped_data(self, new_data: ad.AnnData) -> None:
         self._grouped_data = new_data
 
     @property
@@ -50,11 +50,20 @@ class MPRAdata:
         return self.data.var["oligo"]
     
     @property
-    def filter(self):
+    def barcode_threshold(self) -> int:
+        return self.data.uns["barcode_threshold"]
+    
+    @barcode_threshold.setter
+    def barcode_threshold(self, barcode_threshold: int) -> None:
+        self.data.uns["barcode_threshold"] = barcode_threshold
+        self.grouped_data = None
+    
+    @property
+    def filter(self) -> pd.DataFrame:
         return self.data.varm["filter"]
     
     @filter.setter
-    def filter(self, new_data):
+    def filter(self, new_data: pd.DataFrame) -> None:
         if new_data is None:
             self.data.varm["filter"] = pd.DataFrame(np.full((self.data.n_vars, self.data.n_obs), False),
                                                     index=self.data.var_names, columns=self.data.obs_names)
@@ -65,7 +74,7 @@ class MPRAdata:
         self.data.uns["normalized"] = False
 
     @property
-    def spearman_correlation(self):
+    def spearman_correlation(self) -> np.ndarray:
         """
         Calculate and return the Spearman correlation for the grouped data.
 
@@ -75,14 +84,25 @@ class MPRAdata:
         from the `grouped_data.obsp` attribute.
 
         Returns:
-            pandas.DataFrame: The Spearman correlation matrix for the grouped data.
+            np.ndarray: The Spearman correlation matrix for the grouped data.
         """
         if not self.grouped_data.uns["correlation"]:
             self._correlation()
         return self.grouped_data.obsp["spearman_correlation"]
     
     @property
-    def pearson_correlation(self):
+    def pearson_correlation(self) -> np.ndarray:
+        """
+        Computes and returns the Pearson correlation matrix.
+
+        This property checks if the Pearson correlation matrix is already computed
+        and stored in the `grouped_data` attribute. If not, it calls the `_correlation`
+        method to compute it. The Pearson correlation matrix is then retrieved from
+        the `grouped_data` attribute.
+
+        Returns:
+            np.ndarray: The Pearson correlation matrix for the grouped data..
+        """
         if not self.grouped_data.uns["correlation"]:
             self._correlation()
         return self.grouped_data.obsp["pearson_correlation"]
@@ -113,7 +133,7 @@ class MPRAdata:
         self.data.uns["metadata_file"] = metadata_file
 
     @classmethod
-    def from_file(cls, file_path):
+    def from_file(cls, file_path: str):
         """
         Create an instance of the class from a file.
         This method reads data from a specified file, processes it, and returns an instance of the class containing the
@@ -156,6 +176,7 @@ class MPRAdata:
         adata.uns['date'] = pd.to_datetime('today').strftime('%Y-%m-%d')
 
         adata.uns["normalized"] = False
+        adata.uns["barcode_threshold"] = None
               
         adata.varm["filter"] = pd.DataFrame(np.full((adata.n_vars, adata.n_obs), False), index=adata.var_names,
                                             columns=adata.obs_names)
@@ -211,13 +232,18 @@ class MPRAdata:
         self.grouped_data.obs_names = self.data.obs_names
         self.grouped_data.var_names = self.data.var['oligo'].unique().tolist()
 
+        # Subset of vars using the firs occurence of oligo name
         indices = self.data.var['oligo'].drop_duplicates(keep='first').index
-        # Subset the AnnData object
-        adata_filtered = self.data[:, indices]
+        self.grouped_data.var = self.data.var.loc[indices]
 
-        for column in adata_filtered.var.columns:
-            self.grouped_data.var[column] = adata_filtered.var[column].values
-
+        if self.barcode_threshold is not None:
+            mask = self.grouped_data.layers['barcodes'] < self.barcode_threshold
+            self.grouped_data.X[mask] = 0
+            for layer_name in self.grouped_data.layers.keys():
+                if self.grouped_data.layers[layer_name].dtype.kind in {'i', 'u'}:
+                    self.grouped_data.layers[layer_name][mask] = 0
+                else:
+                    self.grouped_data.layers[layer_name][mask] = np.nan
         self.grouped_data.obs = self.data.obs
 
         self.grouped_data.uns = self.data.uns
