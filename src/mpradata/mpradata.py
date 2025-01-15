@@ -352,36 +352,19 @@ class MPRAdata:
 
     def _correlation(self):
         """
-        Compute the Spearman and Pearson correlation coefficients for the log2FoldChange data.
-
-        This method calculates the Spearman and Pearson correlation coefficients for the
-        log2FoldChange data in the grouped_data attribute. It updates the grouped_data
-        object with the computed correlation matrices and their corresponding p-values.
-
-        The method performs the following steps:
-        1. Identifies and removes columns with NaN values in the log2FoldChange data.
-        2. Computes the Spearman correlation coefficients and p-values for the filtered data.
-        3. Initializes matrices for Pearson correlation coefficients and p-values.
-        4. Computes the Pearson correlation coefficients and p-values for each pair of rows in the filtered data.
-        5. Updates the grouped_data object with the computed correlation matrices and sets
-           a flag indicating that the correlation has been computed.
-
-        Attributes:
-            grouped_data (AnnData): An AnnData object containing the log2FoldChange data and other related information.
-
-        Updates:
-            grouped_data.obsp["spearman_correlation"] (ndarray): Spearman correlation coefficients matrix.
-            grouped_data.obsp["spearman_correlation_pvalue"] (ndarray): Spearman correlation p-values matrix.
-            grouped_data.obsp["pearson_correlation"] (ndarray): Pearson correlation coefficients matrix.
-            grouped_data.obsp["pearson_correlation_pvalue"] (ndarray): Pearson correlation p-values matrix.
-            grouped_data.uns["correlation"] (bool): Flag indicating that the correlation has been computed.
+        Compute Pearson and Spearman correlation matrices for the log2FoldChange layer of grouped_data.
+        This method calculates both Pearson and Spearman correlation coefficients and their corresponding p-values
+        for each pair of rows in the log2FoldChange layer of the grouped_data attribute. The results are stored in
+        the obsp attribute of grouped_data with the following keys:
+        - "pearson_correlation": Pearson correlation coefficients matrix.
+        - "pearson_correlation_pvalue": p-values for the Pearson correlation coefficients.
+        - "spearman_correlation": Spearman correlation coefficients matrix.
+        - "spearman_correlation_pvalue": p-values for the Spearman correlation coefficients.
+        Additionally, a flag indicating that the correlation has been computed is stored in the uns attribute of
+        grouped_data with the key "correlation".
+        Returns:
+            None
         """
-        mask = np.isnan(self.grouped_data.layers["log2FoldChange"]).any(axis=0)
-        data = self.grouped_data.layers["log2FoldChange"][:, ~mask]
-        self.grouped_data.obsp["spearman_correlation"], self.grouped_data.obsp["spearman_correlation_pvalue"] = spearmanr(
-            data, axis=1
-        )
-        print(self.grouped_data.obsp["spearman_correlation"])
         num_columns = self.grouped_data.shape[0]
         self.grouped_data.obsp["pearson_correlation"] = np.zeros(
             (num_columns, num_columns)
@@ -389,9 +372,34 @@ class MPRAdata:
         self.grouped_data.obsp["pearson_correlation_pvalue"] = np.zeros(
             (num_columns, num_columns)
         )
+        self.grouped_data.obsp["spearman_correlation"] = np.zeros(
+            (num_columns, num_columns)
+        )
+        self.grouped_data.obsp["spearman_correlation_pvalue"] = np.zeros(
+            (num_columns, num_columns)
+        )
+        
         for i in range(num_columns):
-            for j in range(num_columns):
+            for j in range(i, num_columns):
+                mask = ~np.isnan(self.grouped_data.layers["log2FoldChange"][i, :]) & \
+                    ~np.isnan(self.grouped_data.layers["log2FoldChange"][j, :])
+                x = self.grouped_data.layers["log2FoldChange"][i, mask]
+                y = self.grouped_data.layers["log2FoldChange"][j, mask]
+
+                # Spearman correlation
+                self.grouped_data.obsp["spearman_correlation"][i, j], \
+                    self.grouped_data.obsp["spearman_correlation_pvalue"][i, j] = spearmanr(x, y)
+                self.grouped_data.obsp["spearman_correlation"][j, i] = self.grouped_data.obsp["spearman_correlation"][i, j]
+                self.grouped_data.obsp["spearman_correlation_pvalue"][j, i] = self.grouped_data.obsp[
+                    "spearman_correlation_pvalue"
+                ][i, j]
+
+                # Pearson correlation
                 self.grouped_data.obsp["pearson_correlation"][i, j], \
-                    self.grouped_data.obsp["pearson_correlation_pvalue"][i, j] = pearsonr(data[i, :], data[j, :])
+                    self.grouped_data.obsp["pearson_correlation_pvalue"][i, j] = pearsonr(x, y)
+                self.grouped_data.obsp["pearson_correlation"][j, i] = self.grouped_data.obsp["pearson_correlation"][i, j]
+                self.grouped_data.obsp["pearson_correlation_pvalue"][j, i] = self.grouped_data.obsp[
+                    "pearson_correlation_pvalue"
+                ][i, j]
 
         self.grouped_data.uns["correlation"] = True
