@@ -155,34 +155,64 @@ def get_variant_map(input_file, metadata_file, output_file):
 
     mpradata.add_metadata_file(metadata_file)
 
-    data = mpradata.get_grouped_data()
+    variant_map = mpradata.variant_map
+    for key in ["REF", "ALT"]:
+        variant_map[key] = [",".join(i) for i in variant_map[key]]
 
-    spdis = set([item for sublist in data.var['SPDI'].values for item in sublist])
+    variant_map.to_csv(output_file, sep='\t', index=True)
 
-    df = {
-        "SPDI": [],
-        "ref": [],
-        "alt": []
-    }
-    for spdi in spdis:
-        df["SPDI"].append(spdi)
-        spdi_data = data[:, data.var['SPDI'].apply(lambda x: spdi in x)]
-        spdi_idx = spdi_data.var['SPDI'].apply(lambda x: x.index(spdi))
-        refs = []
-        alts = []
-        for idx, value in spdi_data.var["allele"].items():
-            if "ref" == value[spdi_idx[idx]]:
-                refs.append(idx)
-            else:
-                alts.append(idx)
-        df["ref"].append(refs)
-        df["alt"].append(alts)
-    for key in ["ref", "alt"]:
-        df[key] = [",".join(i) for i in df[key]]
 
-    output = pd.DataFrame(df)
-    output.to_csv(output_file, sep='\t', index=False)
-         
+@cli.command()
+@click.option(
+    "--input",
+    "input_file",
+    required=True,
+    type=click.Path(exists=True, readable=True),
+    help="Input file path of MPRA results.",
+)
+@click.option(
+    "--metadata",
+    "metadata_file",
+    required=True,
+    type=click.Path(exists=True, readable=True),
+    help="Input file path of MPRA results.",
+)
+@click.option(
+    "--output-dna",
+    "output_dna_file",
+    required=True,
+    type=click.Path(writable=True),
+    help="Output file of dna counts.",
+)
+@click.option(
+    "--output-rna",
+    "output_rna_file",
+    required=True,
+    type=click.Path(writable=True),
+    help="Output file of rna counts.",
+)
+def get_variant_counts(input_file, metadata_file, output_dna_file, output_rna_file):
+    """Reads a file and generates an MPRAdata object."""
+    mpradata = MPRAdata.from_file(input_file)
+
+    mpradata.add_metadata_file(metadata_file)
+
+    click.echo("Initial Pearson correlation:")
+    click.echo(mpradata.pearson_correlation)
+
+    mpradata.barcode_threshold = 10
+
+    click.echo("After BC-threshold filtering:")
+    click.echo(mpradata.pearson_correlation)
+
+    mpradata.filter_outlier(OutlierFilter.RNA_ZSCORE, {"times_zscore": 3})
+
+    click.echo("After ZSCORE filtering:")
+    click.echo(mpradata.pearson_correlation)
+
+    mpradata.variant_dna_counts.to_csv(output_dna_file, sep='\t', index=True)
+    mpradata.variant_rna_counts.to_csv(output_rna_file, sep='\t', index=True)
+
 
 if __name__ == '__main__':
     cli()

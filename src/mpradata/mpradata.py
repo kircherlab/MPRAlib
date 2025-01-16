@@ -106,6 +106,68 @@ class MPRAdata:
         if not self.grouped_data.uns["correlation"]:
             self._correlation()
         return self.grouped_data.obsp["pearson_correlation"]
+    
+    @property
+    def variant_map(self) -> pd.DataFrame:
+        """
+        Generates a DataFrame mapping variant IDs to their reference and alternate alleles.
+        Returns:
+            pd.DataFrame: A DataFrame with columns 'REF' and 'ALT', indexed by variant IDs ('ID').
+                          'REF' contains lists of reference alleles, and 'ALT' contains lists of alternate alleles.
+        Raises:
+            ValueError: If the metadata file is not loaded in `self.data.uns`.
+        """
+        if "metadata_file" not in self.data.uns:
+            raise ValueError("Metadata file not loaded.")
+        
+        spdis = set([item for sublist in self.grouped_data.var['SPDI'].values for item in sublist])
+
+        df = {
+            "ID": [],
+            "REF": [],
+            "ALT": []
+        }
+        for spdi in spdis:
+            df["ID"].append(spdi)
+            spdi_data = self.grouped_data[:, self.grouped_data.var['SPDI'].apply(lambda x: spdi in x)]
+            spdi_idx = spdi_data.var['SPDI'].apply(lambda x: x.index(spdi))
+            refs = []
+            alts = []
+            for idx, value in spdi_data.var["allele"].items():
+                if "ref" == value[spdi_idx[idx]]:
+                    refs.append(self.oligos[idx])
+                else:
+                    alts.append(self.oligos[idx])
+            df["REF"].append(refs)
+            df["ALT"].append(alts)
+
+        return pd.DataFrame(df, index=df["ID"]).set_index("ID")
+    
+    @property
+    def variant_dna_counts(self) -> pd.DataFrame:
+        return self._variant_counts("dna")
+    
+    @property
+    def variant_rna_counts(self) -> pd.DataFrame:
+        return self._variant_counts("rna")
+    
+    def _variant_counts(self, layer: str) -> pd.DataFrame:
+        df = {"ID": []}
+        for replicate in self.grouped_data.obs_names:
+            df["counts_" + replicate + "_REF"] = []
+            df["counts_" + replicate + "_ALT"] = []
+
+        for spdi, row in self.variant_map.iterrows():
+            df["ID"].append(spdi)
+            counts_ref = self.grouped_data.layers[layer][:, self.grouped_data.var['oligo'].isin(row["REF"])].sum(axis=1)
+            counts_alt = self.grouped_data.layers[layer][:, self.grouped_data.var['oligo'].isin(row["ALT"])].sum(axis=1)
+            idx = 0
+            for replicate in self.grouped_data.obs_names:
+                df["counts_" + replicate + "_REF"].append(counts_ref[idx])
+                df["counts_" + replicate + "_ALT"].append(counts_alt[idx])
+                idx += 1
+        df = pd.DataFrame(df).set_index("ID")
+        return df[(df.T != 0).all()]
 
     def add_metadata_file(self, metadata_file):
         metadata = pd.read_csv(metadata_file, sep='\t', header=0, na_values=['NA']).drop_duplicates()
@@ -132,8 +194,11 @@ class MPRAdata:
 
         self.data.uns["metadata_file"] = metadata_file
 
+        # need to reset grouped data after adding metadata
+        self.grouped_data = None
+
     @classmethod
-    def from_file(cls, file_path: str):
+    def from_file(cls, file_path: str) -> "MPRAdata":
         """
         Create an instance of the class from a file.
         This method reads data from a specified file, processes it, and returns an instance of the class containing the
