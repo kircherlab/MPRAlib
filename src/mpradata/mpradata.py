@@ -144,6 +144,22 @@ class MPRAdata:
         return pd.DataFrame(df, index=df["ID"]).set_index("ID")
     
     @property
+    def element_dna_counts(self) -> pd.DataFrame:
+        return self._element_counts("dna")
+    
+    @property
+    def element_rna_counts(self) -> pd.DataFrame:
+        return self._element_counts("rna")
+    
+    def _element_counts(self, layer: str) -> pd.DataFrame:
+        df = {"ID": self.grouped_data.var['oligo']}
+        for replicate in self.grouped_data.obs_names:
+            df["counts_" + replicate] = self.grouped_data[replicate, :].layers[layer][0]
+
+        df = pd.DataFrame(df).set_index("ID")
+        return df[(df.T != 0).all()]
+
+    @property
     def variant_dna_counts(self) -> pd.DataFrame:
         return self._variant_counts("dna")
     

@@ -191,6 +191,56 @@ def get_variant_map(input_file, metadata_file, output_file):
     type=click.Path(writable=True),
     help="Output file of rna counts.",
 )
+def get_element_counts(input_file, metadata_file, output_dna_file, output_rna_file):
+
+    mpradata = MPRAdata.from_file(input_file)
+
+    mpradata.add_metadata_file(metadata_file)
+
+    mpradata.barcode_threshold = 10
+
+    mpradata.filter_outlier(OutlierFilter.RNA_ZSCORE, {"times_zscore": 3})
+
+    mask = mpradata.data.var["allele"].apply(lambda x: "ref" in x).values | (mpradata.data.var["category"] == "element")
+
+    mpradata.filter = (mpradata.filter | ~np.repeat(np.array(mask)[:, np.newaxis], 3, axis=1))
+
+    click.echo("After correlate filtering:")
+    click.echo(mpradata.pearson_correlation)
+
+    mpradata.element_dna_counts.to_csv(output_dna_file, sep='\t', index=True)
+    mpradata.element_rna_counts.to_csv(output_rna_file, sep='\t', index=True)
+
+
+@cli.command()
+@click.option(
+    "--input",
+    "input_file",
+    required=True,
+    type=click.Path(exists=True, readable=True),
+    help="Input file path of MPRA results.",
+)
+@click.option(
+    "--metadata",
+    "metadata_file",
+    required=True,
+    type=click.Path(exists=True, readable=True),
+    help="Input file path of MPRA results.",
+)
+@click.option(
+    "--output-dna",
+    "output_dna_file",
+    required=True,
+    type=click.Path(writable=True),
+    help="Output file of dna counts.",
+)
+@click.option(
+    "--output-rna",
+    "output_rna_file",
+    required=True,
+    type=click.Path(writable=True),
+    help="Output file of rna counts.",
+)
 def get_variant_counts(input_file, metadata_file, output_dna_file, output_rna_file):
     """Reads a file and generates an MPRAdata object."""
     mpradata = MPRAdata.from_file(input_file)
