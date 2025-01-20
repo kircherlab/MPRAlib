@@ -2,7 +2,6 @@ import click
 import pandas as pd
 import numpy as np
 import math
-import statistics
 from mpradata import MPRAdata
 from mpradata import OutlierFilter
 
@@ -418,6 +417,7 @@ def get_reporter_variants(input_file, metadata_file, mpralm_file, output_reporte
     df[['variant_id', 'log2FoldChange', 'inputCountRef', 'outputCountRef', 'inputCountAlt', 'outputCountAlt', 'minusLog10PValue', 'minusLog10QValue', 'postProbEffect', 'CI_lower_95', 'CI_upper_95', 'variantPos', 'refAllele', 'altAllele']].to_csv(
         output_reporter_variants_file, sep='\t', index=False
     )
+
 
 if __name__ == '__main__':
     cli()
