@@ -37,9 +37,9 @@ mpralm_allele_fit <- mpralm(
     plot = TRUE
 )
 
-toptab <- topTable(mpralm_allele_fit, coef = 2, number = Inf)
+toptab <- topTable(mpralm_allele_fit, coef = 2, number = Inf, confint = TRUE)
 
-tobtab %>% head()
+toptab %>% head()
 
 analyze_var <- function(var, A1, A2) {
     dna_exp <- assay(norm_counts, 1)[var, ]

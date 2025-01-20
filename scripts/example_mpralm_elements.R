@@ -75,6 +75,6 @@ points(mpra_element$logFC[idx], -log10(mpra_element$adj.P.Val[idx]),
 
 names <- c("ID", colnames(mpra_element))
 mpra_element$ID <- rownames(mpra_element)
-mpra_element <- toptab[, names]
+mpra_element <- mpra_element[, names]
 
 write.table(mpra_element, "test_mpralm_out.tsv.gz", row.names = FALSE, sep = "\t", quote = FALSE)

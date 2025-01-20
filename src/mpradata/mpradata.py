@@ -213,6 +213,12 @@ class MPRAdata:
         # need to reset grouped data after adding metadata
         self.grouped_data = None
 
+    def write(self, file_data_path: str, file_grouped_path: str = None) -> None:
+        self.data.write(file_data_path)
+    
+        if file_grouped_path and self.grouped_data:
+            self.grouped_data.write(file_grouped_path)
+
     @classmethod
     def from_file(cls, file_path: str) -> "MPRAdata":
         """
