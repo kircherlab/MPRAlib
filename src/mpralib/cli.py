@@ -6,7 +6,7 @@ import pysam
 from sklearn.preprocessing import MinMaxScaler
 from mpradata import MPRAdata
 from mpradata import OutlierFilter
-from utils import chromosome_map
+from utils import chromosome_map, export_activity_file
 
 
 @click.group()
@@ -41,34 +41,9 @@ def activities(input_file, bc_threshold, output_file):
     """Reads a file and generates an MPRAdata object."""
     mpradata = MPRAdata.from_file(input_file)
 
-    data = mpradata.get_grouped_data()
+    mpradata.barcode_threshold = bc_threshold
 
-    output = pd.DataFrame()
-
-    for replicate in data.obs["replicate"]:
-        replicate_data = data[replicate, :]
-        replicate_data = replicate_data[
-            :, replicate_data.layers["barcodes"] >= bc_threshold
-        ]
-        df = {
-            "replicate": np.repeat(replicate, replicate_data.var_names.size),
-            "oligo_name": replicate_data.var_names.values,
-            "dna_counts": replicate_data.layers["dna"][0, :],
-            "rna_counts": replicate_data.layers["rna"][0, :],
-            "dna_normalized": np.round(
-                replicate_data.layers["dna_normalized"][0, :], 4
-            ),
-            "rna_normalized": np.round(
-                replicate_data.layers["rna_normalized"][0, :], 4
-            ),
-            "log2FoldChange": np.round(
-                replicate_data.layers["log2FoldChange"][0, :], 4
-            ),
-            "n_bc": replicate_data.layers["barcodes"][0, :],
-        }
-        output = pd.concat([output, pd.DataFrame(df)], axis=0)
-
-    output.to_csv(output_file, sep="\t", index=False)
+    export_activity_file(mpradata.grouped_data, output_file)
 
 
 @cli.command()

@@ -9,6 +9,7 @@ from enum import Enum
 class OutlierFilter(Enum):
     RNA_ZSCORE = "RNA_ZSCORE"
     MAD = "MAD"
+    RANDOM = "RANDOM"
 
 
 class MPRAdata:
@@ -482,18 +483,41 @@ class MPRAdata:
             lambda col: col | ~self.filter.index.isin(df_sums.index)
         )
 
-    # def reset_outlier_filters(self):
+    def _filter_random(self, proportion=1.0, total=None, aggegate_over_obs=True):
 
-    #     self.grouped_data = None
-    #     self.data.filter = varm["filter"] = pd.DataFrame(np.full((adata.n_vars, adata.n_obs), False), index=adata.var_names,
-    #                                         columns=adata.obs_names)
-    #     self.data.uns["normalized"] = False
-    #     self.data.uns["filter"] = []
+        if aggegate_over_obs and total is None:
+            total = self.filter.shape[0]
+        elif total is None:
+            total = self.filter.size
+            
+        num_true_cells = int(total * (1.0-proportion))
+        true_indices = np.random.choice(total, num_true_cells, replace=False)
+
+        mask = pd.DataFrame(
+                np.full((self.data.n_vars, self.data.n_obs), False),
+                index=self.data.var_names,
+                columns=self.data.obs_names,
+        )
+        
+        if aggegate_over_obs:
+            mask.iloc[true_indices, :] = True
+        else:
+            flat_df = mask.values.flatten()
+        
+            flat_df[true_indices] = True
+        
+            mask = pd.DataFrame(
+                flat_df.reshape(self.filter.shape),
+                index=self.data.var_names,
+                columns=self.data.obs_names
+            )
+        return mask
 
     def filter_outlier(self, outlier_filter, params):
         filter_switch = {
             OutlierFilter.RNA_ZSCORE: self._filter_rna_zscore,
             OutlierFilter.MAD: self._filter_mad,
+            OutlierFilter.RANDOM: self._filter_random,
         }
 
         filter_func = filter_switch.get(outlier_filter)
