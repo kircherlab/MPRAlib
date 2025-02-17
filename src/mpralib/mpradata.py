@@ -489,27 +489,27 @@ class MPRAdata:
             total = self.filter.shape[0]
         elif total is None:
             total = self.filter.size
-            
-        num_true_cells = int(total * (1.0-proportion))
+
+        num_true_cells = int(total * (1.0 - proportion))
         true_indices = np.random.choice(total, num_true_cells, replace=False)
 
         mask = pd.DataFrame(
-                np.full((self.data.n_vars, self.data.n_obs), False),
-                index=self.data.var_names,
-                columns=self.data.obs_names,
+            np.full((self.data.n_vars, self.data.n_obs), False),
+            index=self.data.var_names,
+            columns=self.data.obs_names,
         )
-        
+
         if aggegate_over_obs:
             mask.iloc[true_indices, :] = True
         else:
             flat_df = mask.values.flatten()
-        
+
             flat_df[true_indices] = True
-        
+
             mask = pd.DataFrame(
                 flat_df.reshape(self.filter.shape),
                 index=self.data.var_names,
-                columns=self.data.obs_names
+                columns=self.data.obs_names,
             )
         return mask
 
