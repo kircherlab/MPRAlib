@@ -4,9 +4,9 @@ import numpy as np
 import math
 import pysam
 from sklearn.preprocessing import MinMaxScaler
-from mpradata import MPRAdata
-from mpradata import OutlierFilter
-from utils import chromosome_map, export_activity_file
+from mpralib.mpradata import MPRAdata
+from mpralib.mpradata import OutlierFilter
+from mpralib.utils import chromosome_map, export_activity_file
 
 
 @click.group()
