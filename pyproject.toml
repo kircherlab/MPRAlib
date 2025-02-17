@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "MPRAlib"
-version = "0.0.0"
-description = "Library to analyze count data of MPRA experiments."
+dynamic = ["version", "dependencies", "requires-python", "classifiers", "description"]
+readme = "README.md"
 authors = [
   { name="Max Schubach", email="max.schubach@bih-charite.de" }
 ]

@@ -402,11 +402,20 @@ def get_reporter_variants(input_file, metadata_file, mpralm_file, output_reporte
     
     for spdi, row in spdi_map.iterrows():
         if spdi in df.index:
-            df.loc[spdi, "inputCountRef"] = ((variant_dna_counts.loc[spdi][columns_ref] / dna_counts) * MPRAdata.SCALING).mean()
-            df.loc[spdi, "inputCountAlt"] = ((variant_dna_counts.loc[spdi][columns_alt] / dna_counts) * MPRAdata.SCALING).mean()
-            df.loc[spdi, "outputCountRef"] = ((variant_rna_counts.loc[spdi][columns_ref] / rna_counts) * MPRAdata.SCALING).mean()
-            df.loc[spdi, "outputCountAlt"] = ((variant_rna_counts.loc[spdi][columns_alt] / rna_counts) * MPRAdata.SCALING).mean()
-            df.loc[spdi, "variantPos"] = int(mpradata.grouped_data.var["variant_pos"][mpradata.oligos.isin(row["REF"])].values[0][0])
+            df.loc[spdi, "inputCountRef"] = (
+                (variant_dna_counts.loc[spdi][columns_ref] / dna_counts) * MPRAdata.SCALING
+                ).mean()
+            df.loc[spdi, "inputCountAlt"] = (
+                (variant_dna_counts.loc[spdi][columns_alt] / dna_counts) * MPRAdata.SCALING).mean()
+            df.loc[spdi, "outputCountRef"] = (
+                (variant_rna_counts.loc[spdi][columns_ref] / rna_counts) * MPRAdata.SCALING
+                ).mean()
+            df.loc[spdi, "outputCountAlt"] = (
+                (variant_rna_counts.loc[spdi][columns_alt] / rna_counts) * MPRAdata.SCALING
+                ).mean()
+            df.loc[spdi, "variantPos"] = int(mpradata.grouped_data.var["variant_pos"][
+                mpradata.oligos.isin(row["REF"])
+                ].values[0][0])
     
     df["minusLog10PValue"] = -np.log10(df["P.Value"])
     df["minusLog10QValue"] = -np.log10(df["adj.P.Val"])
@@ -417,7 +426,9 @@ def get_reporter_variants(input_file, metadata_file, mpralm_file, output_reporte
     df['altAllele'] = df["variant_id"].apply(lambda x: x.split(":")[3])
     df['variantPos'] = df['variantPos'].astype(int)
 
-    df[['variant_id', 'log2FoldChange', 'inputCountRef', 'outputCountRef', 'inputCountAlt', 'outputCountAlt', 'minusLog10PValue', 'minusLog10QValue', 'postProbEffect', 'CI_lower_95', 'CI_upper_95', 'variantPos', 'refAllele', 'altAllele']].to_csv(
+    df[['variant_id', 'log2FoldChange', 'inputCountRef', 'outputCountRef', 'inputCountAlt',
+        'outputCountAlt', 'minusLog10PValue', 'minusLog10QValue', 'postProbEffect',
+        'CI_lower_95', 'CI_upper_95', 'variantPos', 'refAllele', 'altAllele']].to_csv(
         output_reporter_variants_file, sep='\t', index=False
     )
 
@@ -491,7 +502,8 @@ def get_reporter_genomic_elements(input_file, metadata_file, mpralm_file, output
     out_df["minusLog10PValue"] = -np.log10(out_df["P.Value"])
     out_df["minusLog10QValue"] = -np.log10(out_df["adj.P.Val"])
     out_df.rename(columns={"oligo": "name", "logFC": "log2FoldChange"}, inplace=True)
-    out_df = out_df[["chr", "start", "end", "name", "score", "strand", "log2FoldChange", "inputCount", "outputCount", "minusLog10PValue", "minusLog10QValue"]].sort_values(by=['chr', 'start', 'end'])
+    out_df = out_df[["chr", "start", "end", "name", "score", "strand", "log2FoldChange", "inputCount", "outputCount",
+                     "minusLog10PValue", "minusLog10QValue"]].sort_values(by=['chr', 'start', 'end'])
     
     with pysam.BGZFile(output_reporter_genomic_elements_file, 'ab') as f:
         f.write(out_df.to_csv(sep='\t', index=False, header=False).encode())
@@ -528,7 +540,6 @@ def get_reporter_genomic_elements(input_file, metadata_file, mpralm_file, output
 )
 def get_reporter_genomic_variants(input_file, metadata_file, mpralm_file, output_reporter_genomic_variants_file):
 
-    
     mpradata = MPRAdata.from_file(input_file)
 
     mpradata.add_metadata_file(metadata_file)
@@ -555,11 +566,21 @@ def get_reporter_genomic_variants(input_file, metadata_file, mpralm_file, output
     
     for spdi, row in spdi_map.iterrows():
         if spdi in df.index:
-            df.loc[spdi, "inputCountRef"] = ((variant_dna_counts.loc[spdi][columns_ref] / dna_counts) * MPRAdata.SCALING).mean()
-            df.loc[spdi, "inputCountAlt"] = ((variant_dna_counts.loc[spdi][columns_alt] / dna_counts) * MPRAdata.SCALING).mean()
-            df.loc[spdi, "outputCountRef"] = ((variant_rna_counts.loc[spdi][columns_ref] / rna_counts) * MPRAdata.SCALING).mean()
-            df.loc[spdi, "outputCountAlt"] = ((variant_rna_counts.loc[spdi][columns_alt] / rna_counts) * MPRAdata.SCALING).mean()
-            df.loc[spdi, "variantPos"] = int(mpradata.grouped_data.var["variant_pos"][mpradata.oligos.isin(row["REF"])].values[0][0])
+            df.loc[spdi, "inputCountRef"] = (
+                (variant_dna_counts.loc[spdi][columns_ref] / dna_counts) * MPRAdata.SCALING
+                ).mean()
+            df.loc[spdi, "inputCountAlt"] = (
+                (variant_dna_counts.loc[spdi][columns_alt] / dna_counts) * MPRAdata.SCALING
+                ).mean()
+            df.loc[spdi, "outputCountRef"] = (
+                (variant_rna_counts.loc[spdi][columns_ref] / rna_counts) * MPRAdata.SCALING
+                ).mean()
+            df.loc[spdi, "outputCountAlt"] = (
+                (variant_rna_counts.loc[spdi][columns_alt] / rna_counts) * MPRAdata.SCALING
+                ).mean()
+            df.loc[spdi, "variantPos"] = int(mpradata.grouped_data.var["variant_pos"][
+                mpradata.oligos.isin(row["REF"])
+                ].values[0][0])
             df.loc[spdi, "strand"] = mpradata.grouped_data.var["strand"][mpradata.oligos.isin(row["REF"])].values[0]
     
     df['variantPos'] = df['variantPos'].astype(int)
@@ -581,7 +602,11 @@ def get_reporter_genomic_variants(input_file, metadata_file, mpralm_file, output
     scaler = MinMaxScaler(feature_range=(0, 1000))
     df["score"] = scaler.fit_transform(df[["log2FoldChange"]]).astype(int)
 
-    df = df[["chr", "start", "end", "variant_id", "score", "strand", "log2FoldChange", 'inputCountRef', 'outputCountRef', 'inputCountAlt', 'outputCountAlt', 'minusLog10PValue', 'minusLog10QValue', 'postProbEffect', 'CI_lower_95', 'CI_upper_95', 'variantPos', 'refAllele', 'altAllele']].sort_values(by=['chr', 'start', 'end'])
+    df = df[["chr", "start", "end", "variant_id", "score", "strand",
+             "log2FoldChange", 'inputCountRef', 'outputCountRef', 'inputCountAlt',
+             'outputCountAlt', 'minusLog10PValue', 'minusLog10QValue', 'postProbEffect',
+             'CI_lower_95', 'CI_upper_95', 'variantPos',
+             'refAllele', 'altAllele']].sort_values(by=['chr', 'start', 'end'])
 
     with pysam.BGZFile(output_reporter_genomic_variants_file, 'ab') as f:
         f.write(df.to_csv(sep='\t', index=False, header=False).encode())
