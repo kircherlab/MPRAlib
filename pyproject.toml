@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "MPRAlib"
+dynamic = ["version", "dependencies", "requires-python", "classifiers", "description"]
+readme = "README.md"
+authors = [
+  { name="Max Schubach", email="max.schubach@bih-charite.de" }
+]
+license = { text="MIT" }

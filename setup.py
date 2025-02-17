@@ -1,32 +1,36 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='MPRAdata',
-    version='0.1.0',
-    packages=find_packages(),
+    name='MPRAlib',
+    version='0.0.0',
+    packages=find_packages(where="src"),
+    package_dir={"": "src"},
     include_package_data=True,
     package_data={
-        'MPRAdata': ['data/*.txt'],
+        'MPRAlib': ['data/*.txt'],
     },
     install_requires=[
         'numpy',
         'pandas',
         'pysam',
         'click',
-        'sklearn',
+        'scikit-learn',
         'scipy',
         'anndata',
     ],
     author='Max Schubach',
     author_email='max.schubach@bih-charite.de',
-    description='A description of your project',
+    description='Library to analyze count data of MPRA experiments.',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
-    url='https://github.com/visze/MPRAdata',
+    url='https://github.com/kircherlab/MPRAlib',
     classifiers=[
         'Programming Language :: Python :: 3',
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.8',
+    entry_points={
+        "console_scripts": ["mpralib=mpralib.cli:main"]
+    },
 )
