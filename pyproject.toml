@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "MPRAlib"
+version = "0.0.0"
+description = "Library to analyze count data of MPRA experiments."
+authors = [
+  { name="Max Schubach", email="max.schubach@bih-charite.de" }
+]
+license = { text="MIT" }

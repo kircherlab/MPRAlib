@@ -1,12 +1,12 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='MPRAdata',
-    version='0.1.0',
+    name='MPRAlib',
+    version='0.0.0',
     packages=find_packages(),
     include_package_data=True,
     package_data={
-        'MPRAdata': ['data/*.txt'],
+        'MPRAlib': ['data/*.txt'],
     },
     install_requires=[
         'numpy',
@@ -19,10 +19,10 @@ setup(
     ],
     author='Max Schubach',
     author_email='max.schubach@bih-charite.de',
-    description='A description of your project',
+    description='Library to analyze count data of MPRA experiments.',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
-    url='https://github.com/visze/MPRAdata',
+    url='https://github.com/kircherlab/MPRAlib',
     classifiers=[
         'Programming Language :: Python :: 3',
         'License :: OSI Approved :: MIT License',
