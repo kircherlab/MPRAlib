@@ -4,6 +4,7 @@ import pandas as pd
 import anndata as ad
 from scipy.stats import spearmanr, pearsonr
 from enum import Enum
+import logging
 
 
 class CountSampling(Enum):
@@ -20,11 +21,14 @@ class BarcodeFilter(Enum):
 
 class MPRAdata:
 
+    LOGGER = logging.getLogger(__name__)
+
     SCALING = 1e6
 
     def __init__(self, data: ad.AnnData):
         self._data = data
         self._grouped_data = None
+        self.barcode_filter = None
 
     @property
     def data(self) -> ad.AnnData:
@@ -42,15 +46,37 @@ class MPRAdata:
 
     @grouped_data.setter
     def grouped_data(self, new_data: ad.AnnData) -> None:
+        if new_data is None:
+            self.LOGGER.info("Resetting grouped data")
         self._grouped_data = new_data
 
     @property
-    def rna_counts(self):
-        return self.data.layers[self._get_count_layer_name("rna")]
+    def raw_rna_counts(self):
+        return self.data.layers["rna"]
+    
+    @property
+    def filtered_rna_counts(self):
+        # TODO
+        return None
+    
+    @property
+    def latest_rna_counts(self):
+        # TODO
+        return None
 
     @property
-    def dna_counts(self):
-        return self.data.layers[self._get_count_layer_name("dna")]
+    def raw_dna_counts(self):
+        return self.data.layers["dna"]
+    
+    @property
+    def filtered_dna_counts(self):
+        # TODO
+        return None
+    
+    @property
+    def latest_dna_counts(self):
+        # TODO
+        return None
 
     @property
     def oligos(self):
@@ -61,7 +87,12 @@ class MPRAdata:
         return self.data.n_obs
 
     @property
-    def n_barcodes(self):
+    def n_raw_barcodes(self):
+        return self.data.n_vars
+
+    @property
+    def n_filter_barcodes(self):
+        # TODO
         return self.data.n_vars
 
     @property
@@ -85,7 +116,8 @@ class MPRAdata:
                 index=self.data.var_names,
                 columns=self.data.obs_names,
             )
-            del self.data.uns["barcode_filter"]
+            if "barcode_filter" in self.data.uns:
+                del self.data.uns["barcode_filter"]
         else:
             self.data.varm["barcode_filter"] = new_data
         self.grouped_data = None
@@ -407,7 +439,7 @@ class MPRAdata:
     def _compute_supporting_barcodes(self):
 
         grouped = pd.DataFrame(
-            (self.dna_counts + self.dna_counts) * ~self.barcode_filter.T.values,
+            (self.raw_rna_counts + self.raw_dna_counts) * ~self.barcode_filter.T.values,
             index=self.data.obs_names,
             columns=self.data.var_names,
         ).T.groupby(self.oligos, observed=True)
@@ -423,7 +455,7 @@ class MPRAdata:
     def _barcode_filter_rna_zscore(self, times_zscore=3):
 
         barcode_mask = pd.DataFrame(
-            self.dna_counts + self.rna_counts,
+            self.raw_dna_counts + self.raw_rna_counts,
             index=self.data.obs_names,
             columns=self.data.var_names,
         ).T.apply(lambda x: (x != 0))

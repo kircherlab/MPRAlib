@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 import pandas as pd
 import anndata as ad
+import copy
 from mpralib.mpradata import MPRAdata, CountSampling
 
 
@@ -11,12 +12,12 @@ class TestMPRAdata(unittest.TestCase):
         # Create a sample AnnData object for testing
         obs = pd.DataFrame(index=["rep1", "rep2", "rep3"])
         var = pd.DataFrame(
+            {"oligo": ["oligo1", "oligo1", "oligo2", "oligo3", "oligo3"]},
             index=["barcode1", "barcode2", "barcode3", "barcode4", "barcode5"]
         )
         X = np.array([[1, 2, 3, 1, 2], [4, 5, 6, 4, 5], [7, 8, 9, 10, 100]])
         layers = {"rna": X.copy(), "dna": X.copy()}
-        self.adata = ad.AnnData(X=X, obs=obs, var=var, layers=layers)
-        self.mpra_data = MPRAdata(self.adata)
+        self.mpra_data = MPRAdata(ad.AnnData(X=X, obs=obs, var=var, layers=layers))
 
     def test_apply_count_sampling_rna(self):
         np.random.seed(42)
@@ -79,6 +80,38 @@ class TestMPRAdata(unittest.TestCase):
         self.assertTrue(np.sum(rna_sampling) <= 10)
         dna_sampling = self.mpra_data.data.layers["dna_sampling"]
         self.assertTrue(np.sum(dna_sampling) <= 11)
+
+    def test_compute_supporting_barcodes(self):
+        # Manually set grouped_data for testing
+        supporting_barcodes = self.mpra_data._compute_supporting_barcodes()
+
+        expected_barcodes = np.array([[2, 1, 2], [2, 1, 2], [2, 1, 2]])
+
+        np.testing.assert_array_equal(supporting_barcodes.to_numpy(), expected_barcodes)
+
+    def test_compute_supporting_barcodes_with_filter(self):
+        # Manually set grouped_data for testing
+        mpra_data = copy.deepcopy(self.mpra_data)
+
+        mpra_data.barcode_filter = pd.DataFrame(
+            np.array(
+                [
+                    [False, True, False],
+                    [False, False, False],
+                    [True, False, False],
+                    [False, False, True],
+                    [False, False, True],
+                ]
+            ),
+            index=mpra_data.data.var_names,
+            columns=mpra_data.data.obs_names,
+        )
+        
+        supporting_barcodes = mpra_data._compute_supporting_barcodes()
+
+        expected_barcodes = np.array([[2, 0, 2], [1, 1, 2], [2, 1, 0]])
+
+        np.testing.assert_array_equal(supporting_barcodes.to_numpy(), expected_barcodes)
 
 
 if __name__ == "__main__":
