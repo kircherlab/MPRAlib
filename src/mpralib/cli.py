@@ -4,8 +4,7 @@ import numpy as np
 import math
 import pysam
 from sklearn.preprocessing import MinMaxScaler
-from mpralib.mpradata import MPRAdata
-from mpralib.mpradata import OutlierFilter
+from mpralib.mpradata import MPRAdata, BarcodeFilter
 from mpralib.utils import chromosome_map, export_activity_file
 
 
@@ -82,10 +81,10 @@ def filter_outliers(input_file, rna_zscore_times, bc_threshold, output_file):
 
     mpradata.barcode_threshold = bc_threshold
 
-    # mpradata.filter_outlier(OutlierFilter.MAD, {})
+    # mpradata.apply_barcode_filter(OutlierFilter.MAD, {})
 
-    mpradata.filter_outlier(
-        OutlierFilter.RNA_ZSCORE, {"times_zscore": rna_zscore_times}
+    mpradata.apply_barcode_filter(
+        BarcodeFilter.RNA_ZSCORE, {"times_zscore": rna_zscore_times}
     )
 
     print(mpradata.spearman_correlation)
@@ -205,13 +204,13 @@ def get_element_counts(
 
     mpradata.barcode_threshold = 10
 
-    mpradata.filter_outlier(OutlierFilter.RNA_ZSCORE, {"times_zscore": 3})
+    mpradata.apply_barcode_filter(BarcodeFilter.RNA_ZSCORE, {"times_zscore": 3})
 
     mask = mpradata.data.var["allele"].apply(lambda x: "ref" in x).values | (
         mpradata.data.var["category"] == "element"
     )
 
-    mpradata.filter = mpradata.filter | ~np.repeat(
+    mpradata.barcode_filter = mpradata.barcode_filter | ~np.repeat(
         np.array(mask)[:, np.newaxis], 3, axis=1
     )
 
@@ -268,7 +267,7 @@ def get_variant_counts(input_file, metadata_file, output_dna_file, output_rna_fi
     click.echo("After BC-threshold filtering:")
     click.echo(mpradata.pearson_correlation)
 
-    mpradata.filter_outlier(OutlierFilter.RNA_ZSCORE, {"times_zscore": 3})
+    mpradata.apply_barcode_filter(BarcodeFilter.RNA_ZSCORE, {"times_zscore": 3})
 
     click.echo("After ZSCORE filtering:")
     click.echo(mpradata.pearson_correlation)
@@ -316,13 +315,13 @@ def get_reporter_elements(
 
     mpradata.barcode_threshold = 10
 
-    mpradata.filter_outlier(OutlierFilter.RNA_ZSCORE, {"times_zscore": 3})
+    mpradata.apply_barcode_filter(BarcodeFilter.RNA_ZSCORE, {"times_zscore": 3})
 
     mask = mpradata.data.var["allele"].apply(lambda x: "ref" in x).values | (
         mpradata.data.var["category"] == "element"
     )
 
-    mpradata.filter = mpradata.filter | ~np.repeat(
+    mpradata.barcode_filter = mpradata.barcode_filter | ~np.repeat(
         np.array(mask)[:, np.newaxis], 3, axis=1
     )
 
@@ -403,7 +402,7 @@ def get_reporter_variants(
 
     mpradata.barcode_threshold = 10
 
-    mpradata.filter_outlier(OutlierFilter.RNA_ZSCORE, {"times_zscore": 3})
+    mpradata.apply_barcode_filter(BarcodeFilter.RNA_ZSCORE, {"times_zscore": 3})
 
     spdi_map = mpradata.variant_map
 
@@ -524,13 +523,13 @@ def get_reporter_genomic_elements(
 
     mpradata.barcode_threshold = 10
 
-    mpradata.filter_outlier(OutlierFilter.RNA_ZSCORE, {"times_zscore": 3})
+    mpradata.apply_barcode_filter(BarcodeFilter.RNA_ZSCORE, {"times_zscore": 3})
 
     mask = mpradata.data.var["allele"].apply(lambda x: "ref" in x).values | (
         mpradata.data.var["category"] == "element"
     )
 
-    mpradata.filter = mpradata.filter | ~np.repeat(
+    mpradata.barcode_filter = mpradata.barcode_filter | ~np.repeat(
         np.array(mask)[:, np.newaxis], 3, axis=1
     )
 
@@ -628,7 +627,7 @@ def get_reporter_genomic_variants(
 
     mpradata.barcode_threshold = 10
 
-    mpradata.filter_outlier(OutlierFilter.RNA_ZSCORE, {"times_zscore": 3})
+    mpradata.apply_barcode_filter(BarcodeFilter.RNA_ZSCORE, {"times_zscore": 3})
 
     spdi_map = mpradata.variant_map
 

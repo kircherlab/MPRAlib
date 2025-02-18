@@ -6,7 +6,13 @@ from scipy.stats import spearmanr, pearsonr
 from enum import Enum
 
 
-class OutlierFilter(Enum):
+class CountSampling(Enum):
+    RNA = "RNA"
+    DNA = "DNA"
+    RNA_AND_DNA = "RNA_AND_DNA"
+
+
+class BarcodeFilter(Enum):
     RNA_ZSCORE = "RNA_ZSCORE"
     MAD = "MAD"
     RANDOM = "RANDOM"
@@ -40,15 +46,23 @@ class MPRAdata:
 
     @property
     def rna_counts(self):
-        return self.data.layers["rna"]
+        return self.data.layers[self._get_count_layer_name("rna")]
 
     @property
     def dna_counts(self):
-        return self.data.layers["dna"]
+        return self.data.layers[self._get_count_layer_name("dna")]
 
     @property
     def oligos(self):
         return self.data.var["oligo"]
+
+    @property
+    def n_replicates(self):
+        return self.data.n_obs
+
+    @property
+    def n_barcodes(self):
+        return self.data.n_vars
 
     @property
     def barcode_threshold(self) -> int:
@@ -56,26 +70,26 @@ class MPRAdata:
 
     @barcode_threshold.setter
     def barcode_threshold(self, barcode_threshold: int) -> None:
-        self.data.uns["barcode_threshold"] = barcode_threshold
+        self.add_metadata("barcode_threshold", barcode_threshold)
         self.grouped_data = None
 
     @property
-    def filter(self) -> pd.DataFrame:
-        return self.data.varm["filter"]
+    def barcode_filter(self) -> pd.DataFrame:
+        return self.data.varm["barcode_filter"]
 
-    @filter.setter
-    def filter(self, new_data: pd.DataFrame) -> None:
+    @barcode_filter.setter
+    def barcode_filter(self, new_data: pd.DataFrame) -> None:
         if new_data is None:
-            self.data.varm["filter"] = pd.DataFrame(
+            self.data.varm["barcode_filter"] = pd.DataFrame(
                 np.full((self.data.n_vars, self.data.n_obs), False),
                 index=self.data.var_names,
                 columns=self.data.obs_names,
             )
-            self.data.uns["filter"] = []
+            del self.data.uns["barcode_filter"]
         else:
-            self.data.varm["filter"] = new_data
+            self.data.varm["barcode_filter"] = new_data
         self.grouped_data = None
-        self.data.uns["normalized"] = False
+        self.add_metadata("normalized", False)
 
     @property
     def spearman_correlation(self) -> np.ndarray:
@@ -226,7 +240,7 @@ class MPRAdata:
         self.data.var["SPDI"] = matched_metadata["SPDI"].values
         self.data.var["allele"] = matched_metadata["allele"].values
 
-        self.data.uns["metadata_file"] = metadata_file
+        self.add_metadata("metadata_file", metadata_file)
 
         # need to reset grouped data after adding metadata
         self.grouped_data = None
@@ -293,30 +307,20 @@ class MPRAdata:
         adata.uns["normalized"] = False
         adata.uns["barcode_threshold"] = None
 
-        adata.varm["filter"] = pd.DataFrame(
+        adata.varm["barcode_filter"] = pd.DataFrame(
             np.full((adata.n_vars, adata.n_obs), False),
             index=adata.var_names,
             columns=adata.obs_names,
         )
-        adata.uns["filter"] = []
 
         return cls(adata)
 
-    def _number_of_barcodes(self):
-        bdata = self.data[
-            :,
-            self.data.var.oligo
-            == "A:HNF4A-ChMod_chr10:11917871-11917984__chr10:11917842-11918013_:015",
-        ]
-        print(bdata.var.rna)
-        filter = (bdata.layers["rna"] > 0) & (bdata.layers["dna"] > 0)
-        print(filter)
-        filtered_adata = bdata[filter, :]
-        print(filtered_adata)
-        barcode_counts = np.sum(bdata.X != 0, axis=1)
-        print(barcode_counts)
-
-        return bdata.X.shape[0]
+    def _get_count_layer_name(self, rna_or_dna):
+        return (
+            rna_or_dna + "_sampling"
+            if rna_or_dna + "_sampling" in self.data.layers
+            else rna_or_dna
+        )
 
     def _normalize(self):
 
@@ -324,14 +328,21 @@ class MPRAdata:
         self._normalize_layer("rna")
 
     def _normalize_layer(self, layer_name):
+
+        # I do a pseudo count when normalizing to avoid division by zero when computing logfold ratios.
+
         total_counts = np.sum(
-            self.data.layers[layer_name] * ~self.data.varm["filter"].T.values, axis=1
+            (self.data.layers[self._get_count_layer_name(layer_name)] + 1)
+            * ~self.data.varm["barcode_filter"].T.values,
+            axis=1,
         )
         total_counts[total_counts == 0] = 1
         self.data.layers[layer_name + "_normalized"] = (
-            self.data.layers[layer_name] / total_counts[:, np.newaxis] * self.SCALING
+            (self.data.layers[self._get_count_layer_name(layer_name)] + 1)
+            / total_counts[:, np.newaxis]
+            * self.SCALING
         )
-        self.data.uns["normalized"] = True
+        self.add_metadata("normalized", True)
 
     def _group_data(self):
 
@@ -339,10 +350,14 @@ class MPRAdata:
             self._normalize()
 
         # Convert the result back to an AnnData object
-        self.grouped_data = ad.AnnData(self._group_sum_data_layer("rna"))
+        self.grouped_data = ad.AnnData(
+            self._group_sum_data_layer(self._get_count_layer_name("rna"))
+        )
 
         self.grouped_data.layers["rna"] = self.grouped_data.X.copy()
-        self.grouped_data.layers["dna"] = self._group_sum_data_layer("dna")
+        self.grouped_data.layers["dna"] = self._group_sum_data_layer(
+            self._get_count_layer_name("dna")
+        )
 
         self.grouped_data.layers["barcodes"] = self._compute_supporting_barcodes()
 
@@ -381,7 +396,7 @@ class MPRAdata:
     def _group_sum_data_layer(self, layer_name):
 
         grouped = pd.DataFrame(
-            self.data.layers[layer_name] * ~self.filter.T.values,
+            self.data.layers[layer_name] * ~self.barcode_filter.T.values,
             index=self.data.obs_names,
             columns=self.data.var_names,
         ).T.groupby(self.data.var["oligo"], observed=True)
@@ -392,7 +407,7 @@ class MPRAdata:
     def _compute_supporting_barcodes(self):
 
         grouped = pd.DataFrame(
-            (self.dna_counts + self.dna_counts) * ~self.filter.T.values,
+            (self.dna_counts + self.dna_counts) * ~self.barcode_filter.T.values,
             index=self.data.obs_names,
             columns=self.data.var_names,
         ).T.groupby(self.oligos, observed=True)
@@ -405,7 +420,7 @@ class MPRAdata:
             / self.grouped_data.layers["dna_normalized"]
         )
 
-    def _filter_rna_zscore(self, times_zscore=3):
+    def _barcode_filter_rna_zscore(self, times_zscore=3):
 
         barcode_mask = pd.DataFrame(
             self.dna_counts + self.rna_counts,
@@ -424,7 +439,7 @@ class MPRAdata:
 
         return mask
 
-    def _filter_mad(self, times_mad=3, n_bins=20):
+    def _barcode_filter_mad(self, times_mad=3, n_bins=20):
 
         # sum up DNA and RNA counts across replicates
         DNA_sum = pd.DataFrame(
@@ -478,17 +493,18 @@ class MPRAdata:
         m = df_sums.ratio_diff > times_mad * df_sums.mad
         df_sums = df_sums[~m]
 
-        # print(self.data.varm["filter"][~self.data.varm["filter"].index.isin(df_sums.index)])
-        return self.filter.apply(
-            lambda col: col | ~self.filter.index.isin(df_sums.index)
+        return self.barcode_filter.apply(
+            lambda col: col | ~self.barcode_filter.index.isin(df_sums.index)
         )
 
-    def _filter_random(self, proportion=1.0, total=None, aggegate_over_obs=True):
+    def _barcode_filter_random(
+        self, proportion=1.0, total=None, aggegate_over_replicates=True
+    ):
 
-        if aggegate_over_obs and total is None:
-            total = self.filter.shape[0]
+        if aggegate_over_replicates and total is None:
+            total = self.barcode_filter.shape[0]
         elif total is None:
-            total = self.filter.size
+            total = self.barcode_filter.size
 
         num_true_cells = int(total * (1.0 - proportion))
         true_indices = np.random.choice(total, num_true_cells, replace=False)
@@ -499,7 +515,7 @@ class MPRAdata:
             columns=self.data.obs_names,
         )
 
-        if aggegate_over_obs:
+        if aggegate_over_replicates:
             mask.iloc[true_indices, :] = True
         else:
             flat_df = mask.values.flatten()
@@ -507,26 +523,154 @@ class MPRAdata:
             flat_df[true_indices] = True
 
             mask = pd.DataFrame(
-                flat_df.reshape(self.filter.shape),
+                flat_df.reshape(self.barcode_filter.shape),
                 index=self.data.var_names,
                 columns=self.data.obs_names,
             )
         return mask
 
-    def filter_outlier(self, outlier_filter, params):
+    def apply_barcode_filter(self, barcode_filter: BarcodeFilter, params: dict = {}):
         filter_switch = {
-            OutlierFilter.RNA_ZSCORE: self._filter_rna_zscore,
-            OutlierFilter.MAD: self._filter_mad,
-            OutlierFilter.RANDOM: self._filter_random,
+            BarcodeFilter.RNA_ZSCORE: self._barcode_filter_rna_zscore,
+            BarcodeFilter.MAD: self._barcode_filter_mad,
+            BarcodeFilter.RANDOM: self._barcode_filter_random,
         }
 
-        filter_func = filter_switch.get(outlier_filter)
+        filter_func = filter_switch.get(barcode_filter)
         if filter_func:
-            self.filter = self.filter | filter_func(**params)
+            self.barcode_filter = self.barcode_filter | filter_func(**params)
         else:
-            raise ValueError(f"Unsupported outlier filter: {outlier_filter}")
+            raise ValueError(f"Unsupported barcode filter: {barcode_filter}")
 
-        self.data.uns["filter"].append(outlier_filter.value)
+        self.add_metadata("barcode_filter", [barcode_filter.value])
+
+    def reset_count_sampling(self):
+        del self.data.uns["count_sampling"]
+        self.data.layers.pop("rna_sampling", None)
+        self.data.layers.pop("dna_sampling", None)
+
+    def apply_count_sampling(
+        self,
+        count_type: CountSampling,
+        proportion: float = None,
+        total: int = None,
+        max_value: int = None,
+        aggregate_over_replicates: bool = False,
+    ) -> None:
+
+        def sample_individual_counts(x, proportion):
+            return int(
+                np.floor(x * proportion)
+                + (
+                    0.0
+                    if np.random.rand() > (x * proportion - np.floor(x * proportion))
+                    else 1.0
+                )
+            )
+
+        vectorized_sample_individual_counts = np.vectorize(sample_individual_counts)
+
+        if "rna_sampling" not in self.data.layers:
+            self.data.layers["rna_sampling"] = self.data.layers["rna"].copy()
+        if "dna_sampling" not in self.data.layers:
+            self.data.layers["dna_sampling"] = self.data.layers["dna"].copy()
+        if total is not None or proportion is not None:
+            # taking the smalles proportion when proportion and total given
+            pp_dna = pp_rna = [1.0] * self.n_replicates
+
+            if proportion is not None:
+                pp_dna = pp_rna = [proportion] * self.n_replicates
+            if total is not None:
+                if (
+                    count_type == CountSampling.RNA
+                    or count_type == CountSampling.RNA_AND_DNA
+                ):
+                    if aggregate_over_replicates:
+                        for i, pp in enumerate(pp_rna):
+                            pp_rna[i] = min(
+                                total / np.sum(self.data.layers["rna_sampling"]), pp
+                            )
+                    else:
+                        for i, pp in enumerate(pp_rna):
+                            pp_rna[i] = min(
+                                total / np.sum(self.data.layers["rna_sampling"][i, :]),
+                                pp,
+                            )
+                if (
+                    count_type == CountSampling.DNA
+                    or count_type == CountSampling.RNA_AND_DNA
+                ):
+                    if aggregate_over_replicates:
+                        for i, pp in enumerate(pp_dna):
+                            pp_dna[i] = min(
+                                total / np.sum(self.data.layers["dna_sampling"]), pp
+                            )
+                    else:
+                        for i, pp in enumerate(pp_dna):
+                            pp_dna[i] = min(
+                                total / np.sum(self.data.layers["dna_sampling"][i, :]),
+                                pp,
+                            )
+            if (
+                count_type == CountSampling.RNA
+                or count_type == CountSampling.RNA_AND_DNA
+            ):
+                for i, pp in enumerate(pp_rna):
+                    self.data.layers["rna_sampling"][i, :] = (
+                        vectorized_sample_individual_counts(
+                            self.data.layers["rna_sampling"][i, :], proportion=pp
+                        )
+                    )
+            if (
+                count_type == CountSampling.DNA
+                or count_type == CountSampling.RNA_AND_DNA
+            ):
+
+                for i, pp in enumerate(pp_dna):
+                    self.data.layers["dna_sampling"][i, :] = (
+                        vectorized_sample_individual_counts(
+                            self.data.layers["dna_sampling"][i, :], proportion=pp
+                        )
+                    )
+        if max_value is not None:
+            if (
+                count_type == CountSampling.RNA
+                or count_type == CountSampling.RNA_AND_DNA
+            ):
+                self.data.layers["rna_sampling"] = np.clip(
+                    self.data.layers["rna_sampling"], None, max_value
+                )
+            if (
+                count_type == CountSampling.DNA
+                or count_type == CountSampling.RNA_AND_DNA
+            ):
+                self.data.layers["dna_sampling"] = np.clip(
+                    self.data.layers["dna_sampling"], None, max_value
+                )
+        self.add_metadata(
+            "count_sampling",
+            [
+                {
+                    count_type.value: {
+                        "proportion": proportion,
+                        "total": total,
+                        "max_value": max_value,
+                        "aggregate_over_replicates": aggregate_over_replicates,
+                    }
+                }
+            ],
+        )
+        self.grouped_data = None
+        self.add_metadata("normalized", False)
+
+    def add_metadata(self, key, value):
+        if isinstance(value, list):
+            if key not in self.data.uns:
+                self.data.uns[key] = value
+            else:
+                self.data.uns[key] = self.data.uns[key] + value
+        else:
+            self.data.uns[key] = value
 
     def _correlation(self):
         """
