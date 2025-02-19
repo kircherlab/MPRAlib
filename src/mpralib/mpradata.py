@@ -596,83 +596,76 @@ class MPRAdata:
 
         vectorized_sample_individual_counts = np.vectorize(sample_individual_counts)
 
-        if "rna_sampling" not in self.data.layers:
-            self.data.layers["rna_sampling"] = self.raw_rna_counts.copy()
-        if "dna_sampling" not in self.data.layers:
-            self.data.layers["dna_sampling"] = self.raw_dna_counts.copy()
-        if total is not None or proportion is not None:
-            # taking the smalles proportion when proportion and total given
-            pp_dna = pp_rna = [1.0] * self.n_replicates
-
-            if proportion is not None:
-                pp_dna = pp_rna = [proportion] * self.n_replicates
-            if total is not None:
-                if (
-                    count_type == CountSampling.RNA
-                    or count_type == CountSampling.RNA_AND_DNA
-                ):
-                    if aggregate_over_replicates:
-                        for i, pp in enumerate(pp_rna):
-                            pp_rna[i] = min(
-                                total / np.sum(self.data.layers["rna_sampling"]), pp
-                            )
-                    else:
-                        for i, pp in enumerate(pp_rna):
-                            pp_rna[i] = min(
-                                total / np.sum(self.data.layers["rna_sampling"][i, :]),
-                                pp,
-                            )
-                if (
-                    count_type == CountSampling.DNA
-                    or count_type == CountSampling.RNA_AND_DNA
-                ):
-                    if aggregate_over_replicates:
-                        for i, pp in enumerate(pp_dna):
-                            pp_dna[i] = min(
-                                total / np.sum(self.data.layers["dna_sampling"]), pp
-                            )
-                    else:
-                        for i, pp in enumerate(pp_dna):
-                            pp_dna[i] = min(
-                                total / np.sum(self.data.layers["dna_sampling"][i, :]),
-                                pp,
-                            )
-            if (
+        if (
                 count_type == CountSampling.RNA
                 or count_type == CountSampling.RNA_AND_DNA
-            ):
+        ):
+            self.data.layers["rna_sampling"] = self.rna_counts.copy()
+
+            if total is not None or proportion is not None:
+                # taking the smalles proportion when proportion and total given
+                pp_rna = [1.0] * self.n_replicates
+
+                if proportion is not None:
+                    pp_rna = [proportion] * self.n_replicates
+            
+                if total is not None:
+                    if aggregate_over_replicates:
+                        for i, pp in enumerate(pp_rna):
+                            pp_rna[i] = min(
+                                total / np.sum(self.rna_counts), pp
+                            )
+                    else:
+                        for i, pp in enumerate(pp_rna):
+                            pp_rna[i] = min(
+                                total / np.sum(self.rna_counts[i, :]),
+                                pp,
+                            )
                 for i, pp in enumerate(pp_rna):
                     self.data.layers["rna_sampling"][i, :] = (
                         vectorized_sample_individual_counts(
-                            self.data.layers["rna_sampling"][i, :], proportion=pp
+                            self.rna_counts[i, :], proportion=pp
                         )
                     )
-            if (
-                count_type == CountSampling.DNA
-                or count_type == CountSampling.RNA_AND_DNA
-            ):
+            if max_value is not None:
+                self.data.layers["rna_sampling"] = np.clip(
+                    self.rna_counts, None, max_value
+                )
+        if (
+            count_type == CountSampling.DNA
+            or count_type == CountSampling.RNA_AND_DNA
+        ):
+            self.data.layers["dna_sampling"] = self.dna_counts.copy()
+            if total is not None or proportion is not None:
+                # taking the smalles proportion when proportion and total given
+                pp_dna = [1.0] * self.n_replicates
+
+                if proportion is not None:
+                    pp_dna = [proportion] * self.n_replicates
+                if total is not None:
+                    if aggregate_over_replicates:
+                        for i, pp in enumerate(pp_dna):
+                            pp_dna[i] = min(
+                                total / np.sum(self.dna_counts), pp
+                            )
+                    else:
+                        for i, pp in enumerate(pp_dna):
+                            pp_dna[i] = min(
+                                total / np.sum(self.dna_counts[i, :]),
+                                pp,
+                            )
 
                 for i, pp in enumerate(pp_dna):
                     self.data.layers["dna_sampling"][i, :] = (
                         vectorized_sample_individual_counts(
-                            self.data.layers["dna_sampling"][i, :], proportion=pp
+                            self.dna_counts[i, :], proportion=pp
                         )
                     )
-        if max_value is not None:
-            if (
-                count_type == CountSampling.RNA
-                or count_type == CountSampling.RNA_AND_DNA
-            ):
-                self.data.layers["rna_sampling"] = np.clip(
-                    self.data.layers["rna_sampling"], None, max_value
-                )
-            if (
-                count_type == CountSampling.DNA
-                or count_type == CountSampling.RNA_AND_DNA
-            ):
+            if max_value is not None:
                 self.data.layers["dna_sampling"] = np.clip(
-                    self.data.layers["dna_sampling"], None, max_value
+                    self.dna_counts, None, max_value
                 )
+
         self._add_metadata(
             "count_sampling",
             [
