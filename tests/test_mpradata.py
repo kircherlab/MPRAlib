@@ -19,6 +19,22 @@ class TestMPRAdata(unittest.TestCase):
         layers = {"rna": X.copy(), "dna": X.copy()}
         self.mpra_data = MPRAdata(ad.AnnData(X=X, obs=obs, var=var, layers=layers))
 
+        self.mpra_data_with_bc_filter = copy.deepcopy(self.mpra_data)
+        
+        self.mpra_data_with_bc_filter.barcode_filter = pd.DataFrame(
+            np.array(
+                [
+                    [False, True, False],
+                    [False, False, False],
+                    [True, False, False],
+                    [False, False, True],
+                    [False, False, True],
+                ]
+            ),
+            index=self.mpra_data.data.var_names,
+            columns=self.mpra_data.data.obs_names,
+        )
+
     def test_apply_count_sampling_rna(self):
         np.random.seed(42)
         self.mpra_data.apply_count_sampling(CountSampling.RNA, proportion=0.5)
@@ -90,28 +106,47 @@ class TestMPRAdata(unittest.TestCase):
         np.testing.assert_array_equal(supporting_barcodes.to_numpy(), expected_barcodes)
 
     def test_compute_supporting_barcodes_with_filter(self):
-        # Manually set grouped_data for testing
-        mpra_data = copy.deepcopy(self.mpra_data)
 
-        mpra_data.barcode_filter = pd.DataFrame(
-            np.array(
-                [
-                    [False, True, False],
-                    [False, False, False],
-                    [True, False, False],
-                    [False, False, True],
-                    [False, False, True],
-                ]
-            ),
-            index=mpra_data.data.var_names,
-            columns=mpra_data.data.obs_names,
-        )
-        
-        supporting_barcodes = mpra_data._compute_supporting_barcodes()
+        supporting_barcodes = self.mpra_data_with_bc_filter._compute_supporting_barcodes()
 
         expected_barcodes = np.array([[2, 0, 2], [1, 1, 2], [2, 1, 0]])
 
         np.testing.assert_array_equal(supporting_barcodes.to_numpy(), expected_barcodes)
+    
+    def test_raw_dna_counts(self):
+        expected_dna_counts = np.array([[1, 2, 3, 1, 2], [4, 5, 6, 4, 5], [7, 8, 9, 10, 100]])
+        np.testing.assert_array_equal(self.mpra_data.raw_dna_counts, expected_dna_counts)
+
+    def test_raw_dna_counts_with_modification(self):
+        self.mpra_data.data.layers["dna"] = np.array([[10, 20, 30, 10, 20], [40, 50, 60, 40, 50], [70, 80, 90, 100, 1000]])
+        expected_dna_counts = np.array([[10, 20, 30, 10, 20], [40, 50, 60, 40, 50], [70, 80, 90, 100, 1000]])
+        np.testing.assert_array_equal(self.mpra_data.raw_dna_counts, expected_dna_counts)
+
+    def test_filtered_dna_counts(self):
+        # Test without barcode filter
+        expected_dna_counts = np.array([[1, 2, 3, 1, 2], [4, 5, 6, 4, 5], [7, 8, 9, 10, 100]])
+        np.testing.assert_array_equal(self.mpra_data.dna_counts, expected_dna_counts)
+
+        # Test with barcode filter
+        expected_filtered_dna_counts = np.array([[1, 2, 0, 1, 2], [0, 5, 6, 4, 5], [7, 8, 9, 0, 0]])
+        np.testing.assert_array_equal(self.mpra_data_with_bc_filter.dna_counts, expected_filtered_dna_counts)
+
+    def test_dna_counts_with_sampling(self):
+        np.random.seed(42)
+        self.mpra_data.apply_count_sampling(CountSampling.DNA, proportion=0.5)
+        dna_sampling = self.mpra_data.data.layers["dna_sampling"]
+        np.testing.assert_array_equal(self.mpra_data.dna_counts, dna_sampling)
+
+    def test_dna_counts_with_filter(self):
+        np.random.seed(42)
+        self.mpra_data.apply_count_sampling(CountSampling.DNA, proportion=0.5)
+        dna_sampling = self.mpra_data.data.layers["dna_sampling"]
+        expected_filtered_dna_counts = np.array([[1, 2, 0, 1, 2], [0, 5, 6, 4, 5], [7, 8, 9, 0, 0]])
+        np.testing.assert_array_equal(self.mpra_data_with_bc_filter.dna_counts, expected_filtered_dna_counts)
+        np.random.seed(42)
+        self.mpra_data_with_bc_filter.apply_count_sampling(CountSampling.DNA, proportion=0.5)
+        dna_sampling = dna_sampling * self.mpra_data_with_bc_filter.barcode_filter.T.values
+        np.testing.assert_array_equal(self.mpra_data_with_bc_filter.dna_counts, dna_sampling)
 
 
 if __name__ == "__main__":

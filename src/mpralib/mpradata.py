@@ -55,28 +55,22 @@ class MPRAdata:
         return self.data.layers["rna"]
     
     @property
-    def filtered_rna_counts(self):
-        # TODO
-        return None
-    
-    @property
-    def latest_rna_counts(self):
-        # TODO
-        return None
+    def rna_counts(self):
+        if "rna_sampling" in self.data.layers:
+            return self.data.layers["rna_sampling"] * ~self.barcode_filter.T.values
+        else:
+            return self.raw_rna_counts * ~self.barcode_filter.T.values
 
     @property
     def raw_dna_counts(self):
         return self.data.layers["dna"]
     
     @property
-    def filtered_dna_counts(self):
-        # TODO
-        return None
-    
-    @property
-    def latest_dna_counts(self):
-        # TODO
-        return None
+    def dna_counts(self):
+        if "dna_sampling" in self.data.layers:
+            return self.data.layers["dna_sampling"] * ~self.barcode_filter.T.values
+        else:
+            return self.raw_rna_counts * ~self.barcode_filter.T.values
 
     @property
     def oligos(self):
@@ -101,7 +95,7 @@ class MPRAdata:
 
     @barcode_threshold.setter
     def barcode_threshold(self, barcode_threshold: int) -> None:
-        self.add_metadata("barcode_threshold", barcode_threshold)
+        self._add_metadata("barcode_threshold", barcode_threshold)
         self.grouped_data = None
 
     @property
@@ -121,7 +115,7 @@ class MPRAdata:
         else:
             self.data.varm["barcode_filter"] = new_data
         self.grouped_data = None
-        self.add_metadata("normalized", False)
+        self._add_metadata("normalized", False)
 
     @property
     def spearman_correlation(self) -> np.ndarray:
@@ -272,7 +266,7 @@ class MPRAdata:
         self.data.var["SPDI"] = matched_metadata["SPDI"].values
         self.data.var["allele"] = matched_metadata["allele"].values
 
-        self.add_metadata("metadata_file", metadata_file)
+        self._add_metadata("metadata_file", metadata_file)
 
         # need to reset grouped data after adding metadata
         self.grouped_data = None
@@ -374,7 +368,7 @@ class MPRAdata:
             / total_counts[:, np.newaxis]
             * self.SCALING
         )
-        self.add_metadata("normalized", True)
+        self._add_metadata("normalized", True)
 
     def _group_data(self):
 
@@ -574,7 +568,7 @@ class MPRAdata:
         else:
             raise ValueError(f"Unsupported barcode filter: {barcode_filter}")
 
-        self.add_metadata("barcode_filter", [barcode_filter.value])
+        self._add_metadata("barcode_filter", [barcode_filter.value])
 
     def reset_count_sampling(self):
         del self.data.uns["count_sampling"]
@@ -595,7 +589,7 @@ class MPRAdata:
                 np.floor(x * proportion)
                 + (
                     0.0
-                    if np.random.rand() > (x * proportion - np.floor(x * proportion))
+                    if x != 0 and np.random.rand() > (x * proportion - np.floor(x * proportion))
                     else 1.0
                 )
             )
@@ -603,9 +597,9 @@ class MPRAdata:
         vectorized_sample_individual_counts = np.vectorize(sample_individual_counts)
 
         if "rna_sampling" not in self.data.layers:
-            self.data.layers["rna_sampling"] = self.data.layers["rna"].copy()
+            self.data.layers["rna_sampling"] = self.raw_rna_counts.copy()
         if "dna_sampling" not in self.data.layers:
-            self.data.layers["dna_sampling"] = self.data.layers["dna"].copy()
+            self.data.layers["dna_sampling"] = self.raw_dna_counts.copy()
         if total is not None or proportion is not None:
             # taking the smalles proportion when proportion and total given
             pp_dna = pp_rna = [1.0] * self.n_replicates
@@ -679,7 +673,7 @@ class MPRAdata:
                 self.data.layers["dna_sampling"] = np.clip(
                     self.data.layers["dna_sampling"], None, max_value
                 )
-        self.add_metadata(
+        self._add_metadata(
             "count_sampling",
             [
                 {
@@ -693,9 +687,9 @@ class MPRAdata:
             ],
         )
         self.grouped_data = None
-        self.add_metadata("normalized", False)
+        self._add_metadata("normalized", False)
 
-    def add_metadata(self, key, value):
+    def _add_metadata(self, key, value):
         if isinstance(value, list):
             if key not in self.data.uns:
                 self.data.uns[key] = value
