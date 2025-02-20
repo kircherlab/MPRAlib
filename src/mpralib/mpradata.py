@@ -17,6 +17,8 @@ class BarcodeFilter(Enum):
     RNA_ZSCORE = "RNA_ZSCORE"
     MAD = "MAD"
     RANDOM = "RANDOM"
+    MIN_COUNT = "MIN_COUNT"
+    MAX_COUNT = "MAX_COUNT"
 
 
 class MPRAdata:
@@ -129,7 +131,6 @@ class MPRAdata:
             self.data.varm["barcode_filter"] = new_data
 
         self.grouped_data = None
-
         self.drop_normalized()
 
     def drop_normalized(self):
@@ -439,7 +440,7 @@ class MPRAdata:
             columns=self.data.var_names,
         ).T.apply(lambda x: (x != 0))
 
-        df_rna = pd.DataFrame(self.rna_counts, index=self.data.obs_names, columns=self.data.var_names).T
+        df_rna = pd.DataFrame(self.raw_rna_counts, index=self.data.obs_names, columns=self.data.var_names).T
         grouped = df_rna.where(barcode_mask).groupby(self.oligos, observed=True)
 
         mask = ((df_rna - grouped.transform("mean")) / grouped.transform("std")).abs() > times_zscore
@@ -449,8 +450,8 @@ class MPRAdata:
     def _barcode_filter_mad(self, times_mad=3, n_bins=20):
 
         # sum up DNA and RNA counts across replicates
-        DNA_sum = pd.DataFrame(self.rna_counts, index=self.data.obs_names, columns=self.data.var_names).T.sum(axis=1)
-        RNA_sum = pd.DataFrame(self.rna_counts, index=self.data.obs_names, columns=self.data.var_names).T.sum(axis=1)
+        DNA_sum = pd.DataFrame(self.raw_dna_counts, index=self.data.obs_names, columns=self.data.var_names).T.sum(axis=1)
+        RNA_sum = pd.DataFrame(self.raw_rna_counts, index=self.data.obs_names, columns=self.data.var_names).T.sum(axis=1)
         df_sums = pd.DataFrame({"DNA_sum": DNA_sum, "RNA_sum": RNA_sum}).fillna(0)
         # removing all barcodes with 0 counts in RNA an more DNA count than number of replicates/observations
         df_sums = df_sums[(df_sums["DNA_sum"] > self.data.n_obs) & (df_sums["RNA_sum"] > 0)]
@@ -514,11 +515,40 @@ class MPRAdata:
             )
         return mask
 
+    def _barcode_filter_min_count(self, rna_min_count=None, dna_min_count=None):
+
+        return self._barcode_filter_min_max_count(BarcodeFilter.MIN_COUNT, rna_min_count, dna_min_count)
+
+    def _barcode_filter_max_count(self, rna_max_count=None, dna_max_count=None):
+
+        return self._barcode_filter_min_max_count(BarcodeFilter.MAX_COUNT, rna_max_count, dna_max_count)
+
+    def _barcode_filter_min_max_counts(self, barcode_filter, counts, count_threshold):
+        if barcode_filter == BarcodeFilter.MIN_COUNT:
+            return (counts < count_threshold).T
+        elif barcode_filter == BarcodeFilter.MAX_COUNT:
+            return (counts > count_threshold).T
+
+    def _barcode_filter_min_max_count(self, barcode_filter, rna_count=None, dna_count=None):
+        mask = pd.DataFrame(
+            np.full((self.n_raw_barcodes, self.n_replicates), False),
+            index=self.data.var_names,
+            columns=self.data.obs_names,
+        )
+        if rna_count is not None:
+            mask = mask | self._barcode_filter_min_max_counts(barcode_filter, self.raw_rna_counts, rna_count)
+        if dna_count is not None:
+            mask = mask | self._barcode_filter_min_max_counts(barcode_filter, self.raw_dna_counts, dna_count)
+
+        return mask
+
     def apply_barcode_filter(self, barcode_filter: BarcodeFilter, params: dict = {}):
         filter_switch = {
             BarcodeFilter.RNA_ZSCORE: self._barcode_filter_rna_zscore,
             BarcodeFilter.MAD: self._barcode_filter_mad,
             BarcodeFilter.RANDOM: self._barcode_filter_random,
+            BarcodeFilter.MIN_COUNT: self._barcode_filter_min_count,
+            BarcodeFilter.MAX_COUNT: self._barcode_filter_max_count,
         }
 
         filter_func = filter_switch.get(barcode_filter)

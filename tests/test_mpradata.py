@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import anndata as ad
 import copy
-from mpralib.mpradata import MPRAdata, CountSampling
+from mpralib.mpradata import MPRAdata, CountSampling, BarcodeFilter
 
 
 OBS = pd.DataFrame(index=["rep1", "rep2", "rep3"])
@@ -148,6 +148,54 @@ class TestMPRAdataSampling(unittest.TestCase):
         self.mpra_data_with_bc_filter.apply_count_sampling(CountSampling.DNA, max_value=2)
         expected_filtered_dna_counts = np.array([[1, 2, 0, 1, 2], [0, 2, 2, 2, 2], [2, 2, 2, 0, 0]])
         np.testing.assert_array_equal(self.mpra_data_with_bc_filter.dna_counts, expected_filtered_dna_counts)
+
+
+class TestMPRAdataBarcodeFilter(unittest.TestCase):
+
+    def setUp(self):
+        # Create a sample AnnData object for testing
+        layers = {"rna": COUNTS_RNA.copy(), "dna": COUNTS_DNA.copy()}
+        self.mpra_data = MPRAdata(ad.AnnData(X=COUNTS_RNA.copy(), obs=OBS.copy(), var=VAR.copy(), layers=layers))
+
+    def test_apply_barcode_filter_min_count(self):
+        self.mpra_data.apply_barcode_filter(BarcodeFilter.MIN_COUNT, params={"rna_min_count": 4, "dna_min_count": 3})
+        expected_filter = np.array(
+            [
+                [True, False, False],
+                [True, False, False],
+                [False, False, False],
+                [True, False, False],
+                [True, False, False],
+            ]
+        )
+        np.testing.assert_array_equal(self.mpra_data.barcode_filter.values, expected_filter)
+
+    def test_apply_barcode_filter_max_count(self):
+        self.mpra_data.apply_barcode_filter(BarcodeFilter.MAX_COUNT, params={"rna_max_count": 9, "dna_max_count": 100})
+        expected_filter = np.array(
+            [
+                [False, False, False],
+                [False, False, False],
+                [False, False, False],
+                [False, False, True],
+                [False, False, True],
+            ]
+        )
+        np.testing.assert_array_equal(self.mpra_data.barcode_filter.values, expected_filter)
+
+        self.mpra_data.barcode_filter = None
+
+        self.mpra_data.apply_barcode_filter(BarcodeFilter.MAX_COUNT, params={"dna_max_count": 99})
+        expected_filter = np.array(
+            [
+                [False, False, False],
+                [False, False, False],
+                [False, False, False],
+                [False, False, False],
+                [False, False, True],
+            ]
+        )
+        np.testing.assert_array_equal(self.mpra_data.barcode_filter.values, expected_filter)
 
 
 class TestMPRAdataNormalization(unittest.TestCase):
