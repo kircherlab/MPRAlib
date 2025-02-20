@@ -18,7 +18,7 @@ class BarcodeFilter(Enum):
     MAD = "MAD"
     RANDOM = "RANDOM"
     MIN_COUNT = "MIN_COUNT"
-    MAX_COUNT = "MIN_COUNT"
+    MAX_COUNT = "MAX_COUNT"
 
 
 class MPRAdata:
@@ -26,6 +26,7 @@ class MPRAdata:
     LOGGER = logging.getLogger(__name__)
 
     SCALING = 1e6
+    PSEUDOCOUNT = 1
 
     def __init__(self, data: ad.AnnData):
         self._data = data
@@ -48,9 +49,15 @@ class MPRAdata:
 
     @grouped_data.setter
     def grouped_data(self, new_data: ad.AnnData) -> None:
-        if new_data is None:
-            self.LOGGER.info("Resetting grouped data")
+        if new_data is None and self._grouped_data is not None:
+            self.LOGGER.info("Dropping grouped data")
         self._grouped_data = new_data
+
+    @property
+    def normalized_dna_counts(self):
+        if "dna_normalized" not in self.data.layers:
+            self._normalize()
+        return self.data.layers["dna_normalized"]
 
     @property
     def raw_rna_counts(self):
@@ -72,7 +79,13 @@ class MPRAdata:
         if "dna_sampling" in self.data.layers:
             return self.data.layers["dna_sampling"] * ~self.barcode_filter.T.values
         else:
-            return self.raw_rna_counts * ~self.barcode_filter.T.values
+            return self.raw_dna_counts * ~self.barcode_filter.T.values
+
+    @property
+    def normalized_rna_counts(self):
+        if "rna_normalized" not in self.data.layers:
+            self._normalize()
+        return self.data.layers["rna_normalized"]
 
     @property
     def oligos(self):
@@ -116,8 +129,19 @@ class MPRAdata:
                 del self.data.uns["barcode_filter"]
         else:
             self.data.varm["barcode_filter"] = new_data
+
         self.grouped_data = None
         self.drop_normalized()
+
+    def drop_normalized(self):
+
+        self.grouped_data = None
+
+        self.LOGGER.info("Dropping normalized data")
+
+        self.data.layers.pop("rna_normalized", None)
+        self.data.layers.pop("dna_normalized", None)
+        self.data.uns["normalized"] = False
 
     @property
     def spearman_correlation(self) -> np.ndarray:
@@ -315,27 +339,29 @@ class MPRAdata:
 
         return cls(adata)
 
-    def _get_count_layer_name(self, rna_or_dna):
-        return rna_or_dna + "_sampling" if rna_or_dna + "_sampling" in self.data.layers else rna_or_dna
-
     def _normalize(self):
 
-        self._normalize_layer("dna")
-        self._normalize_layer("rna")
+        self.LOGGER.info("Normalizing data")
 
-    def _normalize_layer(self, layer_name):
-
-        # I do a pseudo count when normalizing to avoid division by zero when computing logfold ratios.
-
-        total_counts = np.sum(
-            (self.data.layers[self._get_count_layer_name(layer_name)] + 1) * ~self.data.varm["barcode_filter"].T.values,
-            axis=1,
+        self.data.layers["dna_normalized"] = self._normalize_layer(
+            self.dna_counts, ~self.barcode_filter.T.values, self.SCALING, self.PSEUDOCOUNT
         )
-        total_counts[total_counts == 0] = 1
-        self.data.layers[layer_name + "_normalized"] = (
-            (self.data.layers[self._get_count_layer_name(layer_name)] + 1) / total_counts[:, np.newaxis] * self.SCALING
+        self.data.layers["rna_normalized"] = self._normalize_layer(
+            self.rna_counts, ~self.barcode_filter.T.values, self.SCALING, self.PSEUDOCOUNT
         )
         self._add_metadata("normalized", True)
+
+    def _normalize_layer(
+        self, counts: np.ndarray, not_barcode_filter: np.ndarray, scaling: float, pseudocount: int
+    ) -> np.ndarray:
+
+        # I do a pseudo count when normalizing to avoid division by zero when computing logfold ratios.
+        # barcode filter has to be used again because we want to have a zero on filtered values.
+        total_counts = np.sum((counts + pseudocount) * not_barcode_filter, axis=1)
+
+        # Avoid division by zero when pseudocount is set to 0
+        total_counts[total_counts == 0] = 1
+        return ((counts + pseudocount) / total_counts[:, np.newaxis] * scaling) * not_barcode_filter
 
     def _group_data(self):
 
@@ -343,18 +369,18 @@ class MPRAdata:
             self._normalize()
 
         # Convert the result back to an AnnData object
-        self.grouped_data = ad.AnnData(self._group_sum_data_layer(self._get_count_layer_name("rna")))
+        self.grouped_data = ad.AnnData(self._sum_counts_by_oligo(self.rna_counts))
 
         self.grouped_data.layers["rna"] = self.grouped_data.X.copy()
-        self.grouped_data.layers["dna"] = self._group_sum_data_layer(self._get_count_layer_name("dna"))
+        self.grouped_data.layers["dna"] = self._sum_counts_by_oligo(self.dna_counts)
 
         self.grouped_data.layers["barcodes"] = self._compute_supporting_barcodes()
 
         self.grouped_data.layers["rna_normalized"] = (
-            self._group_sum_data_layer("rna_normalized") / self.grouped_data.layers["barcodes"]
+            self._sum_counts_by_oligo(self.normalized_rna_counts) / self.grouped_data.layers["barcodes"]
         )
         self.grouped_data.layers["dna_normalized"] = (
-            self._group_sum_data_layer("dna_normalized") / self.grouped_data.layers["barcodes"]
+            self._sum_counts_by_oligo(self.normalized_dna_counts) / self.grouped_data.layers["barcodes"]
         )
 
         self.grouped_data.obs_names = self.data.obs_names
@@ -380,10 +406,10 @@ class MPRAdata:
 
         self._compute_activities()
 
-    def _group_sum_data_layer(self, layer_name):
+    def _sum_counts_by_oligo(self, counts):
 
         grouped = pd.DataFrame(
-            self.data.layers[layer_name] * ~self.barcode_filter.T.values,
+            counts,
             index=self.data.obs_names,
             columns=self.data.var_names,
         ).T.groupby(self.data.var["oligo"], observed=True)
@@ -499,9 +525,9 @@ class MPRAdata:
 
     def _barcode_filter_min_max_counts(self, barcode_filter, counts, count_threshold):
         if barcode_filter == BarcodeFilter.MIN_COUNT:
-            return counts < count_threshold
+            return (counts < count_threshold).T
         elif barcode_filter == BarcodeFilter.MAX_COUNT:
-            return counts > count_threshold
+            return (counts > count_threshold).T
 
     def _barcode_filter_min_max_count(self, barcode_filter, rna_count=None, dna_count=None):
         mask = pd.DataFrame(
@@ -533,12 +559,17 @@ class MPRAdata:
 
         self._add_metadata("barcode_filter", [barcode_filter.value])
 
-    def reset_count_sampling(self):
+    def drop_count_sampling(self):
+
+        self.drop_normalized()
+
+        self.LOGGER.info("Dropping count sampling")
+
         del self.data.uns["count_sampling"]
         self.data.layers.pop("rna_sampling", None)
         self.data.layers.pop("dna_sampling", None)
 
-    def _calculate_proportions(proportion, total, aggregate_over_replicates, counts, replicates):
+    def _calculate_proportions(self, proportion, total, aggregate_over_replicates, counts, replicates):
         pp = [1.0] * replicates
 
         if proportion is not None:
@@ -553,7 +584,7 @@ class MPRAdata:
                     pp[i] = min(total / np.sum(counts[i, :]), p)
         return pp
 
-    def _sample_individual_counts(x, proportion):
+    def _sample_individual_counts(self, x, proportion):
         return int(
             np.floor(x * proportion)
             + (0.0 if x != 0 and np.random.rand() > (x * proportion - np.floor(x * proportion)) else 1.0)
@@ -606,8 +637,10 @@ class MPRAdata:
                 }
             ],
         )
+
         self.grouped_data = None
-        self._add_metadata("normalized", False)
+
+        self.drop_normalized()
 
     def _add_metadata(self, key, value):
         if isinstance(value, list):
