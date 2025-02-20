@@ -44,9 +44,7 @@ class TestMPRlibCLI(unittest.TestCase):
         with open(output_file, "r") as f:
             output_content = f.read()
 
-        expected_output_file = os.path.join(
-            os.path.dirname(__file__), "data", "reporter_activity.bc1.output.tsv.gz"
-        )
+        expected_output_file = os.path.join(os.path.dirname(__file__), "data", "reporter_activity.bc1.output.tsv.gz")
 
         with gzip.open(expected_output_file, "rt") as f:
             expected_content = f.read()
@@ -80,9 +78,7 @@ class TestMPRlibCLI(unittest.TestCase):
         with open(output_file, "r") as f:
             output_content = f.read()
 
-        expected_output_file = os.path.join(
-            os.path.dirname(__file__), "data", "reporter_activity.bc10.output.tsv.gz"
-        )
+        expected_output_file = os.path.join(os.path.dirname(__file__), "data", "reporter_activity.bc10.output.tsv.gz")
 
         with gzip.open(expected_output_file, "rt") as f:
             expected_content = f.read()
@@ -116,9 +112,7 @@ class TestMPRlibCLI(unittest.TestCase):
         with open(output_file, "r") as f:
             output_content = f.read()
 
-        expected_output_file = os.path.join(
-            os.path.dirname(__file__), "data", "reporter_activity.bc100.output.tsv.gz"
-        )
+        expected_output_file = os.path.join(os.path.dirname(__file__), "data", "reporter_activity.bc100.output.tsv.gz")
 
         with gzip.open(expected_output_file, "rt") as f:
             expected_content = f.read()

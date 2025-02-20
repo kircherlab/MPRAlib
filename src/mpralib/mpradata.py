@@ -53,7 +53,7 @@ class MPRAdata:
     @property
     def raw_rna_counts(self):
         return self.data.layers["rna"]
-    
+
     @property
     def rna_counts(self):
         if "rna_sampling" in self.data.layers:
@@ -64,7 +64,7 @@ class MPRAdata:
     @property
     def raw_dna_counts(self):
         return self.data.layers["dna"]
-    
+
     @property
     def dna_counts(self):
         if "dna_sampling" in self.data.layers:
@@ -164,20 +164,12 @@ class MPRAdata:
         if "metadata_file" not in self.data.uns:
             raise ValueError("Metadata file not loaded.")
 
-        spdis = set(
-            [
-                item
-                for sublist in self.grouped_data.var["SPDI"].values
-                for item in sublist
-            ]
-        )
+        spdis = set([item for sublist in self.grouped_data.var["SPDI"].values for item in sublist])
 
         df = {"ID": [], "REF": [], "ALT": []}
         for spdi in spdis:
             df["ID"].append(spdi)
-            spdi_data = self.grouped_data[
-                :, self.grouped_data.var["SPDI"].apply(lambda x: spdi in x)
-            ]
+            spdi_data = self.grouped_data[:, self.grouped_data.var["SPDI"].apply(lambda x: spdi in x)]
             spdi_idx = spdi_data.var["SPDI"].apply(lambda x: x.index(spdi))
             refs = []
             alts = []
@@ -223,12 +215,8 @@ class MPRAdata:
 
         for spdi, row in self.variant_map.iterrows():
             df["ID"].append(spdi)
-            counts_ref = self.grouped_data.layers[layer][
-                :, self.grouped_data.var["oligo"].isin(row["REF"])
-            ].sum(axis=1)
-            counts_alt = self.grouped_data.layers[layer][
-                :, self.grouped_data.var["oligo"].isin(row["ALT"])
-            ].sum(axis=1)
+            counts_ref = self.grouped_data.layers[layer][:, self.grouped_data.var["oligo"].isin(row["REF"])].sum(axis=1)
+            counts_alt = self.grouped_data.layers[layer][:, self.grouped_data.var["oligo"].isin(row["ALT"])].sum(axis=1)
             idx = 0
             for replicate in self.grouped_data.obs_names:
                 df["counts_" + replicate + "_REF"].append(counts_ref[idx])
@@ -238,17 +226,11 @@ class MPRAdata:
         return df[(df.T != 0).all()]
 
     def add_metadata_file(self, metadata_file):
-        metadata = pd.read_csv(
-            metadata_file, sep="\t", header=0, na_values=["NA"]
-        ).drop_duplicates()
+        metadata = pd.read_csv(metadata_file, sep="\t", header=0, na_values=["NA"]).drop_duplicates()
         metadata["name"] = pd.Categorical(metadata["name"].str.replace(" ", "_"))
         metadata.set_index("name", inplace=True)
-        metadata["variant_class"] = (
-            metadata["variant_class"].fillna("[]").apply(ast.literal_eval)
-        )
-        metadata["variant_pos"] = (
-            metadata["variant_pos"].fillna("[]").apply(ast.literal_eval)
-        )
+        metadata["variant_class"] = metadata["variant_class"].fillna("[]").apply(ast.literal_eval)
+        metadata["variant_pos"] = metadata["variant_pos"].fillna("[]").apply(ast.literal_eval)
         metadata["SPDI"] = metadata["SPDI"].fillna("[]").apply(ast.literal_eval)
         metadata["allele"] = metadata["allele"].fillna("[]").apply(ast.literal_eval)
 
@@ -303,27 +285,17 @@ class MPRAdata:
         replicate_columns_rna = data.columns[2::2]
         replicate_columns_dna = data.columns[1::2]
 
-        anndata_replicate_rna = (
-            data.loc[:, replicate_columns_rna].transpose().astype(int)
-        )
-        anndata_replicate_dna = (
-            data.loc[:, replicate_columns_dna].transpose().astype(int)
-        )
+        anndata_replicate_rna = data.loc[:, replicate_columns_rna].transpose().astype(int)
+        anndata_replicate_dna = data.loc[:, replicate_columns_dna].transpose().astype(int)
 
-        anndata_replicate_rna.index = [
-            replicate.split("_")[2] for replicate in replicate_columns_rna
-        ]
-        anndata_replicate_dna.index = [
-            replicate.split("_")[2] for replicate in replicate_columns_dna
-        ]
+        anndata_replicate_rna.index = [replicate.split("_")[2] for replicate in replicate_columns_rna]
+        anndata_replicate_dna.index = [replicate.split("_")[2] for replicate in replicate_columns_dna]
 
         adata = ad.AnnData(anndata_replicate_rna)
         adata.layers["rna"] = adata.X.copy()
         adata.layers["dna"] = anndata_replicate_dna
 
-        adata.obs["replicate"] = [
-            replicate.split("_")[2] for replicate in replicate_columns_rna
-        ]
+        adata.obs["replicate"] = [replicate.split("_")[2] for replicate in replicate_columns_rna]
 
         adata.var["oligo"] = pd.Categorical(data["oligo_name"].values)
 
@@ -342,11 +314,7 @@ class MPRAdata:
         return cls(adata)
 
     def _get_count_layer_name(self, rna_or_dna):
-        return (
-            rna_or_dna + "_sampling"
-            if rna_or_dna + "_sampling" in self.data.layers
-            else rna_or_dna
-        )
+        return rna_or_dna + "_sampling" if rna_or_dna + "_sampling" in self.data.layers else rna_or_dna
 
     def _normalize(self):
 
@@ -358,15 +326,12 @@ class MPRAdata:
         # I do a pseudo count when normalizing to avoid division by zero when computing logfold ratios.
 
         total_counts = np.sum(
-            (self.data.layers[self._get_count_layer_name(layer_name)] + 1)
-            * ~self.data.varm["barcode_filter"].T.values,
+            (self.data.layers[self._get_count_layer_name(layer_name)] + 1) * ~self.data.varm["barcode_filter"].T.values,
             axis=1,
         )
         total_counts[total_counts == 0] = 1
         self.data.layers[layer_name + "_normalized"] = (
-            (self.data.layers[self._get_count_layer_name(layer_name)] + 1)
-            / total_counts[:, np.newaxis]
-            * self.SCALING
+            (self.data.layers[self._get_count_layer_name(layer_name)] + 1) / total_counts[:, np.newaxis] * self.SCALING
         )
         self._add_metadata("normalized", True)
 
@@ -376,24 +341,18 @@ class MPRAdata:
             self._normalize()
 
         # Convert the result back to an AnnData object
-        self.grouped_data = ad.AnnData(
-            self._group_sum_data_layer(self._get_count_layer_name("rna"))
-        )
+        self.grouped_data = ad.AnnData(self._group_sum_data_layer(self._get_count_layer_name("rna")))
 
         self.grouped_data.layers["rna"] = self.grouped_data.X.copy()
-        self.grouped_data.layers["dna"] = self._group_sum_data_layer(
-            self._get_count_layer_name("dna")
-        )
+        self.grouped_data.layers["dna"] = self._group_sum_data_layer(self._get_count_layer_name("dna"))
 
         self.grouped_data.layers["barcodes"] = self._compute_supporting_barcodes()
 
         self.grouped_data.layers["rna_normalized"] = (
-            self._group_sum_data_layer("rna_normalized")
-            / self.grouped_data.layers["barcodes"]
+            self._group_sum_data_layer("rna_normalized") / self.grouped_data.layers["barcodes"]
         )
         self.grouped_data.layers["dna_normalized"] = (
-            self._group_sum_data_layer("dna_normalized")
-            / self.grouped_data.layers["barcodes"]
+            self._group_sum_data_layer("dna_normalized") / self.grouped_data.layers["barcodes"]
         )
 
         self.grouped_data.obs_names = self.data.obs_names
@@ -442,8 +401,7 @@ class MPRAdata:
 
     def _compute_activities(self):
         self.grouped_data.layers["log2FoldChange"] = np.log2(
-            self.grouped_data.layers["rna_normalized"]
-            / self.grouped_data.layers["dna_normalized"]
+            self.grouped_data.layers["rna_normalized"] / self.grouped_data.layers["dna_normalized"]
         )
 
     def _barcode_filter_rna_zscore(self, times_zscore=3):
@@ -454,49 +412,33 @@ class MPRAdata:
             columns=self.data.var_names,
         ).T.apply(lambda x: (x != 0))
 
-        df_rna = pd.DataFrame(
-            self.rna_counts, index=self.data.obs_names, columns=self.data.var_names
-        ).T
+        df_rna = pd.DataFrame(self.rna_counts, index=self.data.obs_names, columns=self.data.var_names).T
         grouped = df_rna.where(barcode_mask).groupby(self.oligos, observed=True)
 
-        mask = (
-            (df_rna - grouped.transform("mean")) / grouped.transform("std")
-        ).abs() > times_zscore
+        mask = ((df_rna - grouped.transform("mean")) / grouped.transform("std")).abs() > times_zscore
 
         return mask
 
     def _barcode_filter_mad(self, times_mad=3, n_bins=20):
 
         # sum up DNA and RNA counts across replicates
-        DNA_sum = pd.DataFrame(
-            self.rna_counts, index=self.data.obs_names, columns=self.data.var_names
-        ).T.sum(axis=1)
-        RNA_sum = pd.DataFrame(
-            self.rna_counts, index=self.data.obs_names, columns=self.data.var_names
-        ).T.sum(axis=1)
+        DNA_sum = pd.DataFrame(self.rna_counts, index=self.data.obs_names, columns=self.data.var_names).T.sum(axis=1)
+        RNA_sum = pd.DataFrame(self.rna_counts, index=self.data.obs_names, columns=self.data.var_names).T.sum(axis=1)
         df_sums = pd.DataFrame({"DNA_sum": DNA_sum, "RNA_sum": RNA_sum}).fillna(0)
         # removing all barcodes with 0 counts in RNA an more DNA count than number of replicates/observations
-        df_sums = df_sums[
-            (df_sums["DNA_sum"] > self.data.n_obs) & (df_sums["RNA_sum"] > 0)
-        ]
+        df_sums = df_sums[(df_sums["DNA_sum"] > self.data.n_obs) & (df_sums["RNA_sum"] > 0)]
 
         # remove all barcodes where oligo has less barcodes as the number of replicates/observations
-        df_sums = df_sums.groupby(self.data.var["oligo"], observed=True).filter(
-            lambda x: len(x) >= self.data.n_obs
-        )
+        df_sums = df_sums.groupby(self.data.var["oligo"], observed=True).filter(lambda x: len(x) >= self.data.n_obs)
 
         # Calculate ratio, ratio_med, ratio_diff, and mad
         df_sums["ratio"] = np.log2(df_sums["DNA_sum"] / df_sums["RNA_sum"])
-        df_sums["ratio_med"] = df_sums.groupby(self.data.var["oligo"], observed=True)[
-            "ratio"
-        ].transform("median")
+        df_sums["ratio_med"] = df_sums.groupby(self.data.var["oligo"], observed=True)["ratio"].transform("median")
         df_sums["ratio_diff"] = df_sums["ratio"] - df_sums["ratio_med"]
         # df_sums['mad'] = (df_sums['ratio'] - df_sums['ratio_med']).abs().mean()
 
         # Calculate quantiles within  n_bins
-        qs = np.unique(
-            np.quantile(np.log10(df_sums["RNA_sum"]), np.arange(0, n_bins) / n_bins)
-        )
+        qs = np.unique(np.quantile(np.log10(df_sums["RNA_sum"]), np.arange(0, n_bins) / n_bins))
 
         # Create bins based on rna_count
         df_sums["bin"] = pd.cut(
@@ -506,26 +448,16 @@ class MPRAdata:
             labels=[str(i) for i in range(0, len(qs) - 1)],
         )
         # Filter based on ratio_diff and mad
-        df_sums["ratio_diff_med"] = df_sums.groupby("bin", observed=True)[
-            "ratio_diff"
-        ].transform("median")
-        df_sums["ratio_diff_med_dist"] = np.abs(
-            df_sums["ratio_diff"] - df_sums["ratio_diff_med"]
-        )
-        df_sums["mad"] = df_sums.groupby("bin", observed=True)[
-            "ratio_diff_med_dist"
-        ].transform("median")
+        df_sums["ratio_diff_med"] = df_sums.groupby("bin", observed=True)["ratio_diff"].transform("median")
+        df_sums["ratio_diff_med_dist"] = np.abs(df_sums["ratio_diff"] - df_sums["ratio_diff_med"])
+        df_sums["mad"] = df_sums.groupby("bin", observed=True)["ratio_diff_med_dist"].transform("median")
 
         m = df_sums.ratio_diff > times_mad * df_sums.mad
         df_sums = df_sums[~m]
 
-        return self.barcode_filter.apply(
-            lambda col: col | ~self.barcode_filter.index.isin(df_sums.index)
-        )
+        return self.barcode_filter.apply(lambda col: col | ~self.barcode_filter.index.isin(df_sums.index))
 
-    def _barcode_filter_random(
-        self, proportion=1.0, total=None, aggegate_over_replicates=True
-    ):
+    def _barcode_filter_random(self, proportion=1.0, total=None, aggegate_over_replicates=True):
 
         if aggegate_over_replicates and total is None:
             total = self.barcode_filter.shape[0]
@@ -587,84 +519,41 @@ class MPRAdata:
         def sample_individual_counts(x, proportion):
             return int(
                 np.floor(x * proportion)
-                + (
-                    0.0
-                    if x != 0 and np.random.rand() > (x * proportion - np.floor(x * proportion))
-                    else 1.0
-                )
+                + (0.0 if x != 0 and np.random.rand() > (x * proportion - np.floor(x * proportion)) else 1.0)
             )
 
         vectorized_sample_individual_counts = np.vectorize(sample_individual_counts)
 
-        if (
-                count_type == CountSampling.RNA
-                or count_type == CountSampling.RNA_AND_DNA
-        ):
-            self.data.layers["rna_sampling"] = self.rna_counts.copy()
+        def apply_sampling(layer_name, counts, proportion, total, max_value, aggregate_over_replicates):
+            self.data.layers[layer_name] = counts.copy()
 
             if total is not None or proportion is not None:
-                # taking the smalles proportion when proportion and total given
-                pp_rna = [1.0] * self.n_replicates
+                pp = [1.0] * self.n_replicates
 
                 if proportion is not None:
-                    pp_rna = [proportion] * self.n_replicates
-            
+                    pp = [proportion] * self.n_replicates
+
                 if total is not None:
                     if aggregate_over_replicates:
-                        for i, pp in enumerate(pp_rna):
-                            pp_rna[i] = min(
-                                total / np.sum(self.rna_counts), pp
-                            )
+                        for i, p in enumerate(pp):
+                            pp[i] = min(total / np.sum(self.data.layers[layer_name]), p)
                     else:
-                        for i, pp in enumerate(pp_rna):
-                            pp_rna[i] = min(
-                                total / np.sum(self.rna_counts[i, :]),
-                                pp,
-                            )
-                for i, pp in enumerate(pp_rna):
-                    self.data.layers["rna_sampling"][i, :] = (
-                        vectorized_sample_individual_counts(
-                            self.rna_counts[i, :], proportion=pp
-                        )
-                    )
-            if max_value is not None:
-                self.data.layers["rna_sampling"] = np.clip(
-                    self.rna_counts, None, max_value
-                )
-        if (
-            count_type == CountSampling.DNA
-            or count_type == CountSampling.RNA_AND_DNA
-        ):
-            self.data.layers["dna_sampling"] = self.dna_counts.copy()
-            if total is not None or proportion is not None:
-                # taking the smalles proportion when proportion and total given
-                pp_dna = [1.0] * self.n_replicates
+                        for i, p in enumerate(pp):
+                            pp[i] = min(total / np.sum(self.data.layers[layer_name][i, :]), p)
 
-                if proportion is not None:
-                    pp_dna = [proportion] * self.n_replicates
-                if total is not None:
-                    if aggregate_over_replicates:
-                        for i, pp in enumerate(pp_dna):
-                            pp_dna[i] = min(
-                                total / np.sum(self.dna_counts), pp
-                            )
-                    else:
-                        for i, pp in enumerate(pp_dna):
-                            pp_dna[i] = min(
-                                total / np.sum(self.dna_counts[i, :]),
-                                pp,
-                            )
-
-                for i, pp in enumerate(pp_dna):
-                    self.data.layers["dna_sampling"][i, :] = (
-                        vectorized_sample_individual_counts(
-                            self.dna_counts[i, :], proportion=pp
-                        )
+                for i, p in enumerate(pp):
+                    self.data.layers[layer_name][i, :] = vectorized_sample_individual_counts(
+                        self.data.layers[layer_name][i, :], proportion=p
                     )
+
             if max_value is not None:
-                self.data.layers["dna_sampling"] = np.clip(
-                    self.dna_counts, None, max_value
-                )
+                self.data.layers[layer_name] = np.clip(self.data.layers[layer_name], None, max_value)
+
+        if count_type == CountSampling.RNA or count_type == CountSampling.RNA_AND_DNA:
+            apply_sampling("rna_sampling", self.rna_counts, proportion, total, max_value, aggregate_over_replicates)
+
+        if count_type == CountSampling.DNA or count_type == CountSampling.RNA_AND_DNA:
+            apply_sampling("dna_sampling", self.dna_counts, proportion, total, max_value, aggregate_over_replicates)
 
         self._add_metadata(
             "count_sampling",
@@ -707,24 +596,16 @@ class MPRAdata:
             None
         """
         num_columns = self.grouped_data.shape[0]
-        self.grouped_data.obsp["pearson_correlation"] = np.zeros(
-            (num_columns, num_columns)
-        )
-        self.grouped_data.obsp["pearson_correlation_pvalue"] = np.zeros(
-            (num_columns, num_columns)
-        )
-        self.grouped_data.obsp["spearman_correlation"] = np.zeros(
-            (num_columns, num_columns)
-        )
-        self.grouped_data.obsp["spearman_correlation_pvalue"] = np.zeros(
-            (num_columns, num_columns)
-        )
+        self.grouped_data.obsp["pearson_correlation"] = np.zeros((num_columns, num_columns))
+        self.grouped_data.obsp["pearson_correlation_pvalue"] = np.zeros((num_columns, num_columns))
+        self.grouped_data.obsp["spearman_correlation"] = np.zeros((num_columns, num_columns))
+        self.grouped_data.obsp["spearman_correlation_pvalue"] = np.zeros((num_columns, num_columns))
 
         for i in range(num_columns):
             for j in range(i, num_columns):
-                mask = ~np.isnan(
-                    self.grouped_data.layers["log2FoldChange"][i, :]
-                ) & ~np.isnan(self.grouped_data.layers["log2FoldChange"][j, :])
+                mask = ~np.isnan(self.grouped_data.layers["log2FoldChange"][i, :]) & ~np.isnan(
+                    self.grouped_data.layers["log2FoldChange"][j, :]
+                )
                 x = self.grouped_data.layers["log2FoldChange"][i, mask]
                 y = self.grouped_data.layers["log2FoldChange"][j, mask]
 
@@ -733,23 +614,19 @@ class MPRAdata:
                     self.grouped_data.obsp["spearman_correlation"][i, j],
                     self.grouped_data.obsp["spearman_correlation_pvalue"][i, j],
                 ) = spearmanr(x, y)
-                self.grouped_data.obsp["spearman_correlation"][j, i] = (
-                    self.grouped_data.obsp["spearman_correlation"][i, j]
-                )
-                self.grouped_data.obsp["spearman_correlation_pvalue"][j, i] = (
-                    self.grouped_data.obsp["spearman_correlation_pvalue"][i, j]
-                )
+                self.grouped_data.obsp["spearman_correlation"][j, i] = self.grouped_data.obsp["spearman_correlation"][i, j]
+                self.grouped_data.obsp["spearman_correlation_pvalue"][j, i] = self.grouped_data.obsp[
+                    "spearman_correlation_pvalue"
+                ][i, j]
 
                 # Pearson correlation
                 (
                     self.grouped_data.obsp["pearson_correlation"][i, j],
                     self.grouped_data.obsp["pearson_correlation_pvalue"][i, j],
                 ) = pearsonr(x, y)
-                self.grouped_data.obsp["pearson_correlation"][j, i] = (
-                    self.grouped_data.obsp["pearson_correlation"][i, j]
-                )
-                self.grouped_data.obsp["pearson_correlation_pvalue"][j, i] = (
-                    self.grouped_data.obsp["pearson_correlation_pvalue"][i, j]
-                )
+                self.grouped_data.obsp["pearson_correlation"][j, i] = self.grouped_data.obsp["pearson_correlation"][i, j]
+                self.grouped_data.obsp["pearson_correlation_pvalue"][j, i] = self.grouped_data.obsp[
+                    "pearson_correlation_pvalue"
+                ][i, j]
 
         self.grouped_data.uns["correlation"] = True
