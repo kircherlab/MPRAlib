@@ -1,7 +1,7 @@
 import pandas as pd
-import anndata as ad
 import numpy as np
 import os
+from mpralib.mpradata import MPRAdata
 
 
 def chromosome_map() -> pd.DataFrame:
@@ -20,11 +20,13 @@ def chromosome_map() -> pd.DataFrame:
     return df
 
 
-def export_activity_file(data: ad.AnnData, output_file_path: str) -> None:
+def export_activity_file(mpradata: MPRAdata, output_file_path: str) -> None:
 
     output = pd.DataFrame()
 
-    for replicate in data.obs["replicate"]:
+    data = mpradata.grouped_data
+
+    for replicate in data.obs_names:
         replicate_data = data[replicate, :]
         replicate_data = replicate_data[:, replicate_data.layers["barcodes"] != 0]
         df = {
@@ -38,5 +40,21 @@ def export_activity_file(data: ad.AnnData, output_file_path: str) -> None:
             "n_bc": replicate_data.layers["barcodes"][0, :],
         }
         output = pd.concat([output, pd.DataFrame(df)], axis=0)
+
+    output.to_csv(output_file_path, sep="\t", index=False)
+
+
+def export_barcode_activity_file(mpradata: MPRAdata, output_file_path: str) -> None:
+
+    output = pd.DataFrame({
+            "barcode": mpradata.barcodes,
+            "oligo_name": mpradata.oligos
+        })
+
+    for replicate in mpradata.replicates:
+        replicate_data = mpradata.data[replicate, :]
+
+        output[f"dna_count_{replicate}"] = replicate_data.layers["dna"][0]
+        output[f"rna_count_{replicate}"] = replicate_data.layers["rna"][0]
 
     output.to_csv(output_file_path, sep="\t", index=False)
