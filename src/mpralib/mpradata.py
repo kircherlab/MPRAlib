@@ -507,6 +507,46 @@ class MPRAdata:
         self.data.layers.pop("rna_sampling", None)
         self.data.layers.pop("dna_sampling", None)
 
+    def _calculate_proportions(proportion, total, aggregate_over_replicates, counts, replicates):
+        pp = [1.0] * replicates
+
+        if proportion is not None:
+            pp = [proportion] * replicates
+
+        if total is not None:
+            if aggregate_over_replicates:
+                for i, p in enumerate(pp):
+                    pp[i] = min(total / np.sum(counts), p)
+            else:
+                for i, p in enumerate(pp):
+                    pp[i] = min(total / np.sum(counts[i, :]), p)
+        return pp
+
+    def _sample_individual_counts(x, proportion):
+        return int(
+            np.floor(x * proportion)
+            + (0.0 if x != 0 and np.random.rand() > (x * proportion - np.floor(x * proportion)) else 1.0)
+        )
+
+    def _apply_sampling(self, layer_name, counts, proportion, total, max_value, aggregate_over_replicates):
+        self.data.layers[layer_name] = counts.copy()
+
+        if total is not None or proportion is not None:
+
+            pp = self._calculate_proportions(
+                proportion, total, aggregate_over_replicates, self.data.layers[layer_name], self.n_replicates
+            )
+
+            vectorized_sample_individual_counts = np.vectorize(self._sample_individual_counts)
+
+            for i, p in enumerate(pp):
+                self.data.layers[layer_name][i, :] = vectorized_sample_individual_counts(
+                    self.data.layers[layer_name][i, :], proportion=p
+                )
+
+        if max_value is not None:
+            self.data.layers[layer_name] = np.clip(self.data.layers[layer_name], None, max_value)
+
     def apply_count_sampling(
         self,
         count_type: CountSampling,
@@ -516,51 +556,11 @@ class MPRAdata:
         aggregate_over_replicates: bool = False,
     ) -> None:
 
-        def sample_individual_counts(x, proportion):
-            return int(
-                np.floor(x * proportion)
-                + (0.0 if x != 0 and np.random.rand() > (x * proportion - np.floor(x * proportion)) else 1.0)
-            )
-
-        vectorized_sample_individual_counts = np.vectorize(sample_individual_counts)
-
-        def _calculate_proportions(proportion, total, aggregate_over_replicates, counts, replicates):
-            pp = [1.0] * replicates
-
-            if proportion is not None:
-                pp = [proportion] * replicates
-
-            if total is not None:
-                if aggregate_over_replicates:
-                    for i, p in enumerate(pp):
-                        pp[i] = min(total / np.sum(counts), p)
-                else:
-                    for i, p in enumerate(pp):
-                        pp[i] = min(total / np.sum(counts[i, :]), p)
-            return pp
-
-        def _apply_sampling(layer_name, counts, proportion, total, max_value, aggregate_over_replicates):
-            self.data.layers[layer_name] = counts.copy()
-
-            if total is not None or proportion is not None:
-
-                pp = _calculate_proportions(
-                    proportion, total, aggregate_over_replicates, self.data.layers[layer_name], self.n_replicates
-                )
-
-                for i, p in enumerate(pp):
-                    self.data.layers[layer_name][i, :] = vectorized_sample_individual_counts(
-                        self.data.layers[layer_name][i, :], proportion=p
-                    )
-
-            if max_value is not None:
-                self.data.layers[layer_name] = np.clip(self.data.layers[layer_name], None, max_value)
-
         if count_type == CountSampling.RNA or count_type == CountSampling.RNA_AND_DNA:
-            _apply_sampling("rna_sampling", self.rna_counts, proportion, total, max_value, aggregate_over_replicates)
+            self._apply_sampling("rna_sampling", self.rna_counts, proportion, total, max_value, aggregate_over_replicates)
 
         if count_type == CountSampling.DNA or count_type == CountSampling.RNA_AND_DNA:
-            _apply_sampling("dna_sampling", self.dna_counts, proportion, total, max_value, aggregate_over_replicates)
+            self._apply_sampling("dna_sampling", self.dna_counts, proportion, total, max_value, aggregate_over_replicates)
 
         self._add_metadata(
             "count_sampling",
