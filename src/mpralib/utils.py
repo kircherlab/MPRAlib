@@ -12,9 +12,7 @@ def chromosome_map() -> pd.DataFrame:
     df = pd.concat(
         [
             df,
-            pd.read_csv(
-                file_path, sep="\t", header=None, comment="#", dtype="category"
-            ),
+            pd.read_csv(file_path, sep="\t", header=None, comment="#", dtype="category"),
         ],
         ignore_index=True,
     )
@@ -34,15 +32,9 @@ def export_activity_file(data: ad.AnnData, output_file_path: str) -> None:
             "oligo_name": replicate_data.var["oligo"],
             "dna_counts": replicate_data.layers["dna"][0, :],
             "rna_counts": replicate_data.layers["rna"][0, :],
-            "dna_normalized": np.round(
-                replicate_data.layers["dna_normalized"][0, :], 4
-            ),
-            "rna_normalized": np.round(
-                replicate_data.layers["rna_normalized"][0, :], 4
-            ),
-            "log2FoldChange": np.round(
-                replicate_data.layers["log2FoldChange"][0, :], 4
-            ),
+            "dna_normalized": np.round(replicate_data.layers["dna_normalized"][0, :], 4),
+            "rna_normalized": np.round(replicate_data.layers["rna_normalized"][0, :], 4),
+            "log2FoldChange": np.round(replicate_data.layers["log2FoldChange"][0, :], 4),
             "n_bc": replicate_data.layers["barcodes"][0, :],
         }
         output = pd.concat([output, pd.DataFrame(df)], axis=0)
