@@ -524,22 +524,29 @@ class MPRAdata:
 
         vectorized_sample_individual_counts = np.vectorize(sample_individual_counts)
 
-        def apply_sampling(layer_name, counts, proportion, total, max_value, aggregate_over_replicates):
+        def _calculate_proportions(proportion, total, aggregate_over_replicates, counts, replicates):
+            pp = [1.0] * replicates
+
+            if proportion is not None:
+                pp = [proportion] * replicates
+
+            if total is not None:
+                if aggregate_over_replicates:
+                    for i, p in enumerate(pp):
+                        pp[i] = min(total / np.sum(counts), p)
+                else:
+                    for i, p in enumerate(pp):
+                        pp[i] = min(total / np.sum(counts[i, :]), p)
+            return pp
+
+        def _apply_sampling(layer_name, counts, proportion, total, max_value, aggregate_over_replicates):
             self.data.layers[layer_name] = counts.copy()
 
             if total is not None or proportion is not None:
-                pp = [1.0] * self.n_replicates
 
-                if proportion is not None:
-                    pp = [proportion] * self.n_replicates
-
-                if total is not None:
-                    if aggregate_over_replicates:
-                        for i, p in enumerate(pp):
-                            pp[i] = min(total / np.sum(self.data.layers[layer_name]), p)
-                    else:
-                        for i, p in enumerate(pp):
-                            pp[i] = min(total / np.sum(self.data.layers[layer_name][i, :]), p)
+                pp = _calculate_proportions(
+                    proportion, total, aggregate_over_replicates, self.data.layers[layer_name], self.n_replicates
+                )
 
                 for i, p in enumerate(pp):
                     self.data.layers[layer_name][i, :] = vectorized_sample_individual_counts(
@@ -550,10 +557,10 @@ class MPRAdata:
                 self.data.layers[layer_name] = np.clip(self.data.layers[layer_name], None, max_value)
 
         if count_type == CountSampling.RNA or count_type == CountSampling.RNA_AND_DNA:
-            apply_sampling("rna_sampling", self.rna_counts, proportion, total, max_value, aggregate_over_replicates)
+            _apply_sampling("rna_sampling", self.rna_counts, proportion, total, max_value, aggregate_over_replicates)
 
         if count_type == CountSampling.DNA or count_type == CountSampling.RNA_AND_DNA:
-            apply_sampling("dna_sampling", self.dna_counts, proportion, total, max_value, aggregate_over_replicates)
+            _apply_sampling("dna_sampling", self.dna_counts, proportion, total, max_value, aggregate_over_replicates)
 
         self._add_metadata(
             "count_sampling",
