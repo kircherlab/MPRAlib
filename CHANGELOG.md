@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.2.0](https://github.com/kircherlab/MPRAlib/compare/v0.1.0...v0.2.0) (2025-02-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* implemented count sampling
+
+### Features
+
+* Control pseudo counts ([0534bb6](https://github.com/kircherlab/MPRAlib/commit/0534bb663e47e9ff77a5945340791144ad24eea5)), closes [#14](https://github.com/kircherlab/MPRAlib/issues/14)
+* implement RNA and DNA count methods with sampling and filtering ([95e3be9](https://github.com/kircherlab/MPRAlib/commit/95e3be92b98677e571760c4c8efc807a4227610e))
+* implemented count sampling ([bfa4da5](https://github.com/kircherlab/MPRAlib/commit/bfa4da55a73e19b069b1e44d9141b2f393e3114b))
+
+
+### Bug Fixes
+
+* issues and prepare to split up counts ([484d936](https://github.com/kircherlab/MPRAlib/commit/484d9367c723ad5004f9cb3dd59039461556d988))
+
 ## 0.1.0 (2025-02-17)
 
 
