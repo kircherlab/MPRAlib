@@ -21,6 +21,22 @@ def chromosome_map() -> pd.DataFrame:
 
 
 def export_activity_file(mpradata: MPRAdata, output_file_path: str) -> None:
+    """
+    Export activity data from an MPRAdata object to a tab-separated values (TSV) file.
+
+    The function processes the grouped data from the MPRAdata object, extracts relevant information
+    for each replicate, and writes the data to a TSV file. The output file contains columns for
+    replicate, oligo name, DNA counts, RNA counts, normalized DNA counts, normalized RNA counts,
+    log2 fold change, and the number of barcodes. Barcode filters, count sampling
+    and barcode thresholds are applied.
+
+    Parameters:
+    mpradata (MPRAdata): An object containing MPRA (Massively Parallel Reporter Assay) data.
+    output_file_path (str): The file path where the output TSV file will be saved.
+
+    Returns:
+    None
+    """
 
     output = pd.DataFrame()
 
@@ -44,17 +60,30 @@ def export_activity_file(mpradata: MPRAdata, output_file_path: str) -> None:
     output.to_csv(output_file_path, sep="\t", index=False)
 
 
-def export_barcode_activity_file(mpradata: MPRAdata, output_file_path: str) -> None:
+def export_barcode_file(mpradata: MPRAdata, output_file_path: str) -> None:
+    """
+    Export barcode count data to a file.
 
-    output = pd.DataFrame({
-            "barcode": mpradata.barcodes,
-            "oligo_name": mpradata.oligos
-        })
+    This function takes an MPRAdata object and exports its barcode count data
+    to a specified file path in tab-separated values (TSV) format. The output file
+    will contain columns for barcodes, oligo names, and DNA/RNA counts for each replicate.
+    Modifides counts (barcode filter/sampling) if applicable will be written.
 
-    for replicate in mpradata.replicates:
-        replicate_data = mpradata.data[replicate, :]
+    Parameters:
+    mpradata (MPRAdata): An object containing MPRA data, including barcodes, oligos,
+                         DNA counts, RNA counts, and replicates.
+    output_file_path (str): The file path where the output TSV file will be saved.
 
-        output[f"dna_count_{replicate}"] = replicate_data.layers["dna"][0]
-        output[f"rna_count_{replicate}"] = replicate_data.layers["rna"][0]
+    Returns:
+    None
+    """
 
+    output = pd.DataFrame({"barcode": mpradata.barcodes, "oligo_name": mpradata.oligos})
+    dna_counts = mpradata.dna_counts
+
+    rna_counts = mpradata.rna_counts
+    for i, replicate in enumerate(mpradata.replicates):
+        output[f"dna_count_{replicate}"] = dna_counts[i]
+        output[f"rna_count_{replicate}"] = rna_counts[i]
+    output.replace(0, "", inplace=True)
     output.to_csv(output_file_path, sep="\t", index=False)

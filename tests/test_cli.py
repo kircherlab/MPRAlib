@@ -30,8 +30,6 @@ class TestMPRlibCLI(unittest.TestCase):
                 "activities",
                 "--input",
                 self.input_file,
-                "--bc-threshold",
-                "1",
                 "--barcode-level",
                 "--output",
                 output_file,

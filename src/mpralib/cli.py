@@ -5,21 +5,21 @@ import math
 import pysam
 from sklearn.preprocessing import MinMaxScaler
 from mpralib.mpradata import MPRAdata, BarcodeFilter
-from mpralib.utils import chromosome_map, export_activity_file, export_barcode_activity_file
+from mpralib.utils import chromosome_map, export_activity_file, export_barcode_file
 
 
-@click.group()
+@click.group(help="Command line interface of MPRAlib, a library for MPRA data analysis.")
 def cli():
     pass
 
 
-@cli.command()
+@cli.command(help="Generating element activity or barcode count files.")
 @click.option(
     "--input",
     "input_file",
     required=True,
     type=click.Path(exists=True, readable=True),
-    help="Input file path of MPRA results.",
+    help="Input file path of MPRA result in a barcode format.",
 )
 @click.option(
     "--bc-threshold",
@@ -27,13 +27,13 @@ def cli():
     required=False,
     default=1,
     type=int,
-    help="Using a barcode threshold for output.",
+    help="Using a barcode threshold for output (element level only).",
 )
 @click.option(
-    "--oligo-level/--barcode-level",
-    "oligo_level",
+    "--element-level/--barcode-level",
+    "element_level",
     default=True,
-    help="Export activity at the oligo level (default) or barcode level.",
+    help="Export activity at the element (default) or barcode level.",
 )
 @click.option(
     "--output",
@@ -42,16 +42,15 @@ def cli():
     type=click.Path(writable=True),
     help="Output file of results.",
 )
-def activities(input_file, bc_threshold, oligo_level, output_file):
-    """Reads a file and generates an MPRAdata object."""
+def activities(input_file, bc_threshold, element_level, output_file):
     mpradata = MPRAdata.from_file(input_file)
 
     mpradata.barcode_threshold = bc_threshold
 
-    if oligo_level:
+    if element_level:
         export_activity_file(mpradata, output_file)
     else:
-        export_barcode_activity_file(mpradata, output_file)
+        export_barcode_file(mpradata, output_file)
 
 
 @cli.command()
