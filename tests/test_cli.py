@@ -17,6 +17,39 @@ class TestMPRlibCLI(unittest.TestCase):
             "reporter_experiment_barcode.input.tsv.gz",
         )
 
+    def test_barcode_activities_bc1(self):
+
+        # Create a temporary output file
+        with tempfile.NamedTemporaryFile(delete=False) as temp_output:
+            output_file = temp_output.name
+
+        # Run the command
+        result = self.runner.invoke(
+            cli,
+            [
+                "activities",
+                "--input",
+                self.input_file,
+                "--barcode-level",
+                "--output",
+                output_file,
+            ],
+        )
+
+        # Check the result
+        self.assertIs(result.exit_code, 0)
+        self.assertTrue(os.path.exists(output_file))
+
+        with open(output_file, "r") as f:
+            output_content = f.read()
+
+        expected_output_file = os.path.join(os.path.dirname(__file__), "data", "reporter_experiment_barcode.input.tsv.gz")
+
+        with gzip.open(expected_output_file, "rt") as f:
+            expected_content = f.read()
+
+        self.assertTrue(output_content == expected_content)
+
     def test_activities_bc1(self):
 
         # Create a temporary output file

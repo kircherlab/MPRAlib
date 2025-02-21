@@ -88,8 +88,16 @@ class MPRAdata:
         return self.data.layers["rna_normalized"]
 
     @property
+    def barcodes(self):
+        return self.data.var_names
+
+    @property
     def oligos(self):
         return self.data.var["oligo"]
+
+    @property
+    def replicates(self):
+        return self.data.obs_names
 
     @property
     def n_replicates(self):
@@ -97,11 +105,6 @@ class MPRAdata:
 
     @property
     def n_raw_barcodes(self):
-        return self.data.n_vars
-
-    @property
-    def n_filter_barcodes(self):
-        # TODO
         return self.data.n_vars
 
     @property
@@ -122,8 +125,8 @@ class MPRAdata:
         if new_data is None:
             self.data.varm["barcode_filter"] = pd.DataFrame(
                 np.full((self.data.n_vars, self.data.n_obs), False),
-                index=self.data.var_names,
-                columns=self.data.obs_names,
+                index=self.barcodes,
+                columns=self.replicates,
             )
             if "barcode_filter" in self.data.uns:
                 del self.data.uns["barcode_filter"]
@@ -321,8 +324,6 @@ class MPRAdata:
         adata.layers["rna"] = adata.X.copy()
         adata.layers["dna"] = anndata_replicate_dna
 
-        adata.obs["replicate"] = [replicate.split("_")[2] for replicate in replicate_columns_rna]
-
         adata.var["oligo"] = pd.Categorical(data["oligo_name"].values)
 
         adata.uns["file_path"] = file_path
@@ -383,7 +384,7 @@ class MPRAdata:
             self._sum_counts_by_oligo(self.normalized_dna_counts) / self.grouped_data.layers["barcodes"]
         )
 
-        self.grouped_data.obs_names = self.data.obs_names
+        self.grouped_data.obs_names = self.replicates
         self.grouped_data.var_names = self.data.var["oligo"].unique().tolist()
 
         # Subset of vars using the firs occurence of oligo name
@@ -410,8 +411,8 @@ class MPRAdata:
 
         grouped = pd.DataFrame(
             counts,
-            index=self.data.obs_names,
-            columns=self.data.var_names,
+            index=self.replicates,
+            columns=self.barcodes,
         ).T.groupby(self.data.var["oligo"], observed=True)
 
         # Perform an operation on each group, e.g., mean
@@ -421,8 +422,8 @@ class MPRAdata:
 
         grouped = pd.DataFrame(
             (self.raw_rna_counts + self.raw_dna_counts) * ~self.barcode_filter.T.values,
-            index=self.data.obs_names,
-            columns=self.data.var_names,
+            index=self.replicates,
+            columns=self.barcodes,
         ).T.groupby(self.oligos, observed=True)
 
         return grouped.apply(lambda x: (x != 0).sum()).T
@@ -436,11 +437,11 @@ class MPRAdata:
 
         barcode_mask = pd.DataFrame(
             self.raw_dna_counts + self.raw_rna_counts,
-            index=self.data.obs_names,
-            columns=self.data.var_names,
+            index=self.replicates,
+            columns=self.barcodes,
         ).T.apply(lambda x: (x != 0))
 
-        df_rna = pd.DataFrame(self.raw_rna_counts, index=self.data.obs_names, columns=self.data.var_names).T
+        df_rna = pd.DataFrame(self.raw_rna_counts, index=self.replicates, columns=self.barcodes).T
         grouped = df_rna.where(barcode_mask).groupby(self.oligos, observed=True)
 
         mask = ((df_rna - grouped.transform("mean")) / grouped.transform("std")).abs() > times_zscore
@@ -450,8 +451,8 @@ class MPRAdata:
     def _barcode_filter_mad(self, times_mad=3, n_bins=20):
 
         # sum up DNA and RNA counts across replicates
-        DNA_sum = pd.DataFrame(self.raw_dna_counts, index=self.data.obs_names, columns=self.data.var_names).T.sum(axis=1)
-        RNA_sum = pd.DataFrame(self.raw_rna_counts, index=self.data.obs_names, columns=self.data.var_names).T.sum(axis=1)
+        DNA_sum = pd.DataFrame(self.raw_dna_counts, index=self.replicates, columns=self.barcodes).T.sum(axis=1)
+        RNA_sum = pd.DataFrame(self.raw_rna_counts, index=self.replicates, columns=self.barcodes).T.sum(axis=1)
         df_sums = pd.DataFrame({"DNA_sum": DNA_sum, "RNA_sum": RNA_sum}).fillna(0)
         # removing all barcodes with 0 counts in RNA an more DNA count than number of replicates/observations
         df_sums = df_sums[(df_sums["DNA_sum"] > self.data.n_obs) & (df_sums["RNA_sum"] > 0)]
@@ -497,8 +498,8 @@ class MPRAdata:
 
         mask = pd.DataFrame(
             np.full((self.data.n_vars, self.data.n_obs), False),
-            index=self.data.var_names,
-            columns=self.data.obs_names,
+            index=self.barcodes,
+            columns=self.replicates,
         )
 
         if aggegate_over_replicates:
@@ -510,8 +511,8 @@ class MPRAdata:
 
             mask = pd.DataFrame(
                 flat_df.reshape(self.barcode_filter.shape),
-                index=self.data.var_names,
-                columns=self.data.obs_names,
+                index=self.barcodes,
+                columns=self.replicates,
             )
         return mask
 
@@ -532,8 +533,8 @@ class MPRAdata:
     def _barcode_filter_min_max_count(self, barcode_filter, rna_count=None, dna_count=None):
         mask = pd.DataFrame(
             np.full((self.n_raw_barcodes, self.n_replicates), False),
-            index=self.data.var_names,
-            columns=self.data.obs_names,
+            index=self.barcodes,
+            columns=self.replicates,
         )
         if rna_count is not None:
             mask = mask | self._barcode_filter_min_max_counts(barcode_filter, self.raw_rna_counts, rna_count)
