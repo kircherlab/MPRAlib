@@ -109,6 +109,8 @@ class MPRAdata:
 
     @property
     def barcode_threshold(self) -> int:
+        if "barcode_threshold" not in self.data.uns:
+            self.data.uns["barcode_threshold"] = None
         return self.data.uns["barcode_threshold"]
 
     @barcode_threshold.setter
@@ -736,7 +738,7 @@ class MPRAdata:
             self.grouped_data.obsp[f"{correlation}_correlation_{layer}"] = np.zeros((num_columns, num_columns))
             self.grouped_data.obsp[f"{correlation}_correlation_{layer}_pvalue"] = np.zeros((num_columns, num_columns))
 
-        def compute_correlation(x, y, method):
+        def compute_correlation(x, y, method) -> tuple:
             if method == "spearman":
                 return spearmanr(x, y)
             elif method == "pearson":
