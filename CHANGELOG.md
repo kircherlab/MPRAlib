@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.2](https://github.com/kircherlab/MPRAlib/compare/v0.2.1...v0.2.2) (2025-02-27)
+
+
+### Bug Fixes
+
+* initialize barcode_threshold when it is not there ([4f09174](https://github.com/kircherlab/MPRAlib/commit/4f09174260cb349c5e4b89eb2c36f7b15c01ad13))
+
+## [0.2.1](https://github.com/kircherlab/MPRAlib/compare/v0.2.0...v0.2.1) (2025-02-27)
+
+
+### Features
+
+* adding rna and dna counts correlations ([b2b4d60](https://github.com/kircherlab/MPRAlib/commit/b2b4d60258f179a68e77b90961abf85dc4b89b6b))
+
 ## [0.2.0](https://github.com/kircherlab/MPRAlib/compare/v0.1.0...v0.2.0) (2025-02-21)
 
 
