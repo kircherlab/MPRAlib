@@ -260,5 +260,37 @@ class TestMPRAdataNormalization(unittest.TestCase):
         np.testing.assert_almost_equal(rna_normalized, expected_normalized, decimal=3)
 
 
+class TestMPRAdataCorrelation(unittest.TestCase):
+
+    def setUp(self):
+        layers = {"rna": COUNTS_RNA.copy(), "dna": COUNTS_DNA.copy()}
+        self.mpra_data = MPRAdata(ad.AnnData(X=COUNTS_RNA.copy(), obs=OBS.copy(), var=VAR.copy(), layers=layers))
+
+    def test_correlation(self):
+        self.mpra_data._normalize()
+        self.mpra_data._group_data()
+        self.mpra_data._compute_correlation("log2FoldChange")
+        self.assertIn("pearson_correlation_log2FoldChange", self.mpra_data.grouped_data.obsp)
+        self.assertIn("spearman_correlation_log2FoldChange", self.mpra_data.grouped_data.obsp)
+
+    def test_pearson_correlation(self):
+        x = self.mpra_data.pearson_correlation
+        y = self.mpra_data.pearson_correlation_rna
+        z = self.mpra_data.pearson_correlation_dna
+        np.testing.assert_equal(x, np.array([[1.0, np.nan, np.nan], [np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan]]))
+        np.testing.assert_almost_equal(
+            y, np.array([[1.0, 1.0, -0.475752], [1.0, 1.0, -0.475752], [-0.475752, -0.475752, 1.0]]), decimal=3
+        )
+        np.testing.assert_almost_equal(z, np.array([[1.0, 1.0, -0.476], [1.0, 1.0, -0.476], [-0.476, -0.476, 1.0]]), decimal=3)
+
+    def test_spearman_correlation(self):
+        x = self.mpra_data.spearman_correlation
+        y = self.mpra_data.spearman_correlation_rna
+        z = self.mpra_data.spearman_correlation_dna
+        np.testing.assert_equal(x, np.array([[1.0, np.nan, np.nan], [np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan]]))
+        np.testing.assert_almost_equal(y, np.array([[1.0, 1.0, 0.0], [1.0, 1.0, 0.0], [0.0, 0.0, 1.0]]), decimal=3)
+        np.testing.assert_equal(z, np.array([[1.0, 1.0, 0.0], [1.0, 1.0, 0.0], [0.0, 0.0, 1.0]]))
+
+
 if __name__ == "__main__":
     unittest.main()

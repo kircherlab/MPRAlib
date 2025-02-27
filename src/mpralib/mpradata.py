@@ -159,14 +159,43 @@ class MPRAdata:
         Returns:
             np.ndarray: The Spearman correlation matrix for the grouped data.
         """
-        if not self.grouped_data.uns["correlation"]:
-            self._correlation()
-        return self.grouped_data.obsp["spearman_correlation"]
+
+        return self._correlation("spearman", "log2FoldChange")
+
+    @property
+    def spearman_correlation_dna(self) -> np.ndarray:
+        """
+        Calculate and return the Spearman correlation for the DNA normalized counts.
+
+        This property checks if the Spearman correlation has already been computed
+        and stored in the `grouped_data` attribute. If not, it calls the `_correlation`
+        method to compute it. The computed Spearman correlation is then retrieved
+        from the `grouped_data.obsp` attribute.
+
+        Returns:
+            np.ndarray: The Spearman correlation matrix for the DNA normalized counts.
+        """
+        return self._correlation("spearman", "dna_normalized")
+
+    @property
+    def spearman_correlation_rna(self) -> np.ndarray:
+        """
+        Calculate and return the Spearman correlation for the RNA normalized counts.
+
+        This property checks if the Spearman correlation has already been computed
+        and stored in the `grouped_data` attribute. If not, it calls the `_correlation`
+        method to compute it. The computed Spearman correlation is then retrieved
+        from the `grouped_data.obsp` attribute.
+
+        Returns:
+            np.ndarray: The Spearman correlation matrix for the RNA normalized counts.
+        """
+        return self._correlation("spearman", "rna_normalized")
 
     @property
     def pearson_correlation(self) -> np.ndarray:
         """
-        Computes and returns the Pearson correlation matrix.
+        Computes and returns the Pearson correlation matrix of log2FoldChange.
 
         This property checks if the Pearson correlation matrix is already computed
         and stored in the `grouped_data` attribute. If not, it calls the `_correlation`
@@ -174,11 +203,39 @@ class MPRAdata:
         the `grouped_data` attribute.
 
         Returns:
-            np.ndarray: The Pearson correlation matrix for the grouped data..
+            np.ndarray: The Pearson correlation matrix for the grouped data.
         """
-        if not self.grouped_data.uns["correlation"]:
-            self._correlation()
-        return self.grouped_data.obsp["pearson_correlation"]
+        return self._correlation("pearson", "log2FoldChange")
+
+    @property
+    def pearson_correlation_dna(self) -> np.ndarray:
+        """
+        Computes and returns the Pearson correlation matrix for DNA normalized counts.
+
+        This property checks if the Pearson correlation matrix is already computed
+        and stored in the `grouped_data` attribute. If not, it calls the `_correlation`
+        method to compute it. The Pearson correlation matrix is then retrieved from
+        the `grouped_data` attribute.
+
+        Returns:
+            np.ndarray: The Pearson correlation matrix for the DNA normalized counts.
+        """
+        return self._correlation("pearson", "dna_normalized")
+
+    @property
+    def pearson_correlation_rna(self) -> np.ndarray:
+        """
+        Computes and returns the Pearson correlation matrix for RNA normalized counts.
+
+        This property checks if the Pearson correlation matrix is already computed
+        and stored in the `grouped_data` attribute. If not, it calls the `_correlation`
+        method to compute it. The Pearson correlation matrix is then retrieved from
+        the `grouped_data` attribute.
+
+        Returns:
+            np.ndarray: The Pearson correlation matrix for the RNA normalized counts.
+        """
+        return self._correlation("pearson", "rna_normalized")
 
     @property
     def variant_map(self) -> pd.DataFrame:
@@ -403,7 +460,9 @@ class MPRAdata:
 
         self.grouped_data.uns = self.data.uns
 
-        self.grouped_data.uns["correlation"] = False
+        self.grouped_data.uns["correlation_log2FoldChange"] = False
+        self.grouped_data.uns["correlation_rna_normalized"] = False
+        self.grouped_data.uns["correlation_dna_normalized"] = False
 
         self._compute_activities()
 
@@ -652,7 +711,12 @@ class MPRAdata:
         else:
             self.data.uns[key] = value
 
-    def _correlation(self):
+    def _correlation(self, method, layer):
+        if not self.grouped_data.uns[f"correlation_{layer}"]:
+            self._compute_correlation(layer)
+        return self.grouped_data.obsp[f"{method}_correlation_{layer}"]
+
+    def _compute_correlation(self, layer):
         """
         Compute Pearson and Spearman correlation matrices for the log2FoldChange layer of grouped_data.
         This method calculates both Pearson and Spearman correlation coefficients and their corresponding p-values
@@ -668,37 +732,29 @@ class MPRAdata:
             None
         """
         num_columns = self.grouped_data.shape[0]
-        self.grouped_data.obsp["pearson_correlation"] = np.zeros((num_columns, num_columns))
-        self.grouped_data.obsp["pearson_correlation_pvalue"] = np.zeros((num_columns, num_columns))
-        self.grouped_data.obsp["spearman_correlation"] = np.zeros((num_columns, num_columns))
-        self.grouped_data.obsp["spearman_correlation_pvalue"] = np.zeros((num_columns, num_columns))
+        for correlation in ["pearson", "spearman"]:
+            self.grouped_data.obsp[f"{correlation}_correlation_{layer}"] = np.zeros((num_columns, num_columns))
+            self.grouped_data.obsp[f"{correlation}_correlation_{layer}_pvalue"] = np.zeros((num_columns, num_columns))
+
+        def compute_correlation(x, y, method):
+            if method == "spearman":
+                return spearmanr(x, y)
+            elif method == "pearson":
+                return pearsonr(x, y)
+            else:
+                raise ValueError(f"Unsupported correlation method: {method}")
 
         for i in range(num_columns):
             for j in range(i, num_columns):
-                mask = ~np.isnan(self.grouped_data.layers["log2FoldChange"][i, :]) & ~np.isnan(
-                    self.grouped_data.layers["log2FoldChange"][j, :]
-                )
-                x = self.grouped_data.layers["log2FoldChange"][i, mask]
-                y = self.grouped_data.layers["log2FoldChange"][j, mask]
+                mask = ~np.isnan(self.grouped_data.layers[layer][i, :]) & ~np.isnan(self.grouped_data.layers[layer][j, :])
+                x = self.grouped_data.layers[layer][i, mask]
+                y = self.grouped_data.layers[layer][j, mask]
 
-                # Spearman correlation
-                (
-                    self.grouped_data.obsp["spearman_correlation"][i, j],
-                    self.grouped_data.obsp["spearman_correlation_pvalue"][i, j],
-                ) = spearmanr(x, y)
-                self.grouped_data.obsp["spearman_correlation"][j, i] = self.grouped_data.obsp["spearman_correlation"][i, j]
-                self.grouped_data.obsp["spearman_correlation_pvalue"][j, i] = self.grouped_data.obsp[
-                    "spearman_correlation_pvalue"
-                ][i, j]
+                for method in ["spearman", "pearson"]:
+                    corr, pvalue = compute_correlation(x, y, method)
+                    self.grouped_data.obsp[f"{method}_correlation_{layer}"][i, j] = corr
+                    self.grouped_data.obsp[f"{method}_correlation_{layer}_pvalue"][i, j] = pvalue
+                    self.grouped_data.obsp[f"{method}_correlation_{layer}"][j, i] = corr
+                    self.grouped_data.obsp[f"{method}_correlation_{layer}_pvalue"][j, i] = pvalue
 
-                # Pearson correlation
-                (
-                    self.grouped_data.obsp["pearson_correlation"][i, j],
-                    self.grouped_data.obsp["pearson_correlation_pvalue"][i, j],
-                ) = pearsonr(x, y)
-                self.grouped_data.obsp["pearson_correlation"][j, i] = self.grouped_data.obsp["pearson_correlation"][i, j]
-                self.grouped_data.obsp["pearson_correlation_pvalue"][j, i] = self.grouped_data.obsp[
-                    "pearson_correlation_pvalue"
-                ][i, j]
-
-        self.grouped_data.uns["correlation"] = True
+        self.grouped_data.uns[f"correlation_{layer}"] = True
