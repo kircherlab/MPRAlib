@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/kircherlab/MPRAlib/compare/v0.2.0...v0.2.1) (2025-02-27)
+
+
+### Features
+
+* adding rna and dna counts correlations ([b2b4d60](https://github.com/kircherlab/MPRAlib/commit/b2b4d60258f179a68e77b90961abf85dc4b89b6b))
+
 ## [0.2.0](https://github.com/kircherlab/MPRAlib/compare/v0.1.0...v0.2.0) (2025-02-21)
 
 
