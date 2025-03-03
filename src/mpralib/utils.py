@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import os
-from mpralib.mpradata import MPRAdata
+from mpralib.mpradata import MPRABarcodeData, MPRAOligoData
 
 
 def chromosome_map() -> pd.DataFrame:
@@ -20,7 +20,7 @@ def chromosome_map() -> pd.DataFrame:
     return df
 
 
-def export_activity_file(mpradata: MPRAdata, output_file_path: str) -> None:
+def export_activity_file(mpradata: MPRAOligoData, output_file_path: str) -> None:
     """
     Export activity data from an MPRAdata object to a tab-separated values (TSV) file.
 
@@ -40,11 +40,11 @@ def export_activity_file(mpradata: MPRAdata, output_file_path: str) -> None:
 
     output = pd.DataFrame()
 
-    data = mpradata.grouped_data
+    mpradata.activity
 
-    for replicate in data.obs_names:
-        replicate_data = data[replicate, :]
-        replicate_data = replicate_data[:, replicate_data.layers["barcodes"] != 0]
+    for replicate in mpradata.obs_names:
+        replicate_data = mpradata.data[replicate, :]
+        replicate_data = replicate_data[:, replicate_data.layers["barcode_counts"] >= mpradata.barcode_threshold]
         df = {
             "replicate": np.repeat(replicate, replicate_data.var_names.size),
             "oligo_name": replicate_data.var["oligo"],
@@ -53,14 +53,14 @@ def export_activity_file(mpradata: MPRAdata, output_file_path: str) -> None:
             "dna_normalized": np.round(replicate_data.layers["dna_normalized"][0, :], 4),
             "rna_normalized": np.round(replicate_data.layers["rna_normalized"][0, :], 4),
             "log2FoldChange": np.round(replicate_data.layers["log2FoldChange"][0, :], 4),
-            "n_bc": replicate_data.layers["barcodes"][0, :],
+            "n_bc": replicate_data.layers["barcode_counts"][0, :],
         }
         output = pd.concat([output, pd.DataFrame(df)], axis=0)
 
     output.to_csv(output_file_path, sep="\t", index=False)
 
 
-def export_barcode_file(mpradata: MPRAdata, output_file_path: str) -> None:
+def export_barcode_file(mpradata: MPRABarcodeData, output_file_path: str) -> None:
     """
     Export barcode count data to a file.
 
@@ -78,11 +78,13 @@ def export_barcode_file(mpradata: MPRAdata, output_file_path: str) -> None:
     None
     """
 
-    output = pd.DataFrame({"barcode": mpradata.barcodes, "oligo_name": mpradata.oligos})
-    dna_counts = mpradata.dna_counts
+    output = pd.DataFrame({"barcode": mpradata.var_names, "oligo_name": mpradata.oligos})
 
+    mpradata.normalized_rna_counts
+
+    dna_counts = mpradata.dna_counts
     rna_counts = mpradata.rna_counts
-    for i, replicate in enumerate(mpradata.replicates):
+    for i, replicate in enumerate(mpradata.obs_names):
         output[f"dna_count_{replicate}"] = dna_counts[i]
         output[f"rna_count_{replicate}"] = rna_counts[i]
     output.replace(0, "", inplace=True)

@@ -4,7 +4,7 @@ import numpy as np
 import math
 import pysam
 from sklearn.preprocessing import MinMaxScaler
-from mpralib.mpradata import MPRAdata, BarcodeFilter
+from mpralib.mpradata import MPRABarcodeData, MPRAOligoData, BarcodeFilter
 from mpralib.utils import chromosome_map, export_activity_file, export_barcode_file
 
 
@@ -43,12 +43,12 @@ def cli():
     help="Output file of results.",
 )
 def activities(input_file, bc_threshold, element_level, output_file):
-    mpradata = MPRAdata.from_file(input_file)
+    mpradata = MPRABarcodeData.from_file(input_file)
 
     mpradata.barcode_threshold = bc_threshold
 
     if element_level:
-        export_activity_file(mpradata, output_file)
+        export_activity_file(mpradata.oligo_data, output_file)
     else:
         export_barcode_file(mpradata, output_file)
 
@@ -85,7 +85,7 @@ def activities(input_file, bc_threshold, element_level, output_file):
 )
 def filter_outliers(input_file, rna_zscore_times, bc_threshold, output_file):
     """Reads a file and generates an MPRAdata object."""
-    mpradata = MPRAdata.from_file(input_file)
+    mpradata = MPRABarcodeData.from_file(input_file)
 
     mpradata.barcode_threshold = bc_threshold
 
@@ -93,10 +93,10 @@ def filter_outliers(input_file, rna_zscore_times, bc_threshold, output_file):
 
     mpradata.apply_barcode_filter(BarcodeFilter.RNA_ZSCORE, {"times_zscore": rna_zscore_times})
 
-    print(mpradata.spearman_correlation)
-    print(mpradata.pearson_correlation)
+    print(mpradata.spearman_correlation_activity)
+    print(mpradata.pearson_correlation_activity)
 
-    data = mpradata.grouped_data
+    data = mpradata.oligo_data
 
     print(data.layers["barcodes"].sum())
     print((data.layers["barcodes"] == 0).sum())
@@ -145,7 +145,7 @@ def filter_outliers(input_file, rna_zscore_times, bc_threshold, output_file):
 )
 def get_variant_map(input_file, metadata_file, output_file):
     """Reads a file and generates an MPRAdata object."""
-    mpradata = MPRAdata.from_file(input_file)
+    mpradata = MPRABarcodeData.from_file(input_file)
 
     mpradata.add_metadata_file(metadata_file)
 
@@ -194,7 +194,7 @@ def get_variant_map(input_file, metadata_file, output_file):
 )
 def get_element_counts(input_file, metadata_file, output_dna_file, output_rna_file, output_mpra_data_file):
 
-    mpradata = MPRAdata.from_file(input_file)
+    mpradata = MPRABarcodeData.from_file(input_file)
 
     mpradata.add_metadata_file(metadata_file)
 
@@ -204,10 +204,10 @@ def get_element_counts(input_file, metadata_file, output_dna_file, output_rna_fi
 
     mask = mpradata.data.var["allele"].apply(lambda x: "ref" in x).values | (mpradata.data.var["category"] == "element")
 
-    mpradata.barcode_filter = mpradata.barcode_filter | ~np.repeat(np.array(mask)[:, np.newaxis], 3, axis=1)
+    mpradata.var_filter = mpradata.var_filter | ~np.repeat(np.array(mask)[:, np.newaxis], 3, axis=1)
 
     click.echo("After correlate filtering:")
-    click.echo(mpradata.pearson_correlation)
+    click.echo(mpradata.pearson_correlation_activity)
 
     mpradata.element_dna_counts.to_csv(output_dna_file, sep="\t", index=True)
     mpradata.element_rna_counts.to_csv(output_rna_file, sep="\t", index=True)
@@ -247,22 +247,22 @@ def get_element_counts(input_file, metadata_file, output_dna_file, output_rna_fi
 )
 def get_variant_counts(input_file, metadata_file, output_dna_file, output_rna_file):
     """Reads a file and generates an MPRAdata object."""
-    mpradata = MPRAdata.from_file(input_file)
+    mpradata = MPRABarcodeData.from_file(input_file)
 
     mpradata.add_metadata_file(metadata_file)
 
     click.echo("Initial Pearson correlation:")
-    click.echo(mpradata.pearson_correlation)
+    click.echo(mpradata.pearson_correlation_activity)
 
     mpradata.barcode_threshold = 10
 
     click.echo("After BC-threshold filtering:")
-    click.echo(mpradata.pearson_correlation)
+    click.echo(mpradata.pearson_correlation_activity)
 
     mpradata.apply_barcode_filter(BarcodeFilter.RNA_ZSCORE, {"times_zscore": 3})
 
     click.echo("After ZSCORE filtering:")
-    click.echo(mpradata.pearson_correlation)
+    click.echo(mpradata.pearson_correlation_activity)
 
     mpradata.variant_dna_counts.to_csv(output_dna_file, sep="\t", index=True)
     mpradata.variant_rna_counts.to_csv(output_rna_file, sep="\t", index=True)
@@ -299,7 +299,7 @@ def get_variant_counts(input_file, metadata_file, output_dna_file, output_rna_fi
 )
 def get_reporter_elements(input_file, metadata_file, mpralm_file, output_reporter_elements_file):
 
-    mpradata = MPRAdata.from_file(input_file)
+    mpradata = MPRABarcodeData.from_file(input_file)
 
     mpradata.add_metadata_file(metadata_file)
 
@@ -309,23 +309,23 @@ def get_reporter_elements(input_file, metadata_file, mpralm_file, output_reporte
 
     mask = mpradata.data.var["allele"].apply(lambda x: "ref" in x).values | (mpradata.data.var["category"] == "element")
 
-    mpradata.barcode_filter = mpradata.barcode_filter | ~np.repeat(np.array(mask)[:, np.newaxis], 3, axis=1)
+    mpradata.var_filter = mpradata.var_filter | ~np.repeat(np.array(mask)[:, np.newaxis], 3, axis=1)
 
     df = pd.read_csv(mpralm_file, sep="\t", header=0)
 
     indexes_in_order = [
-        mpradata.grouped_data.var["oligo"][mpradata.grouped_data.var["oligo"] == ID].index.tolist() for ID in df["ID"]
+        mpradata.oligo_data.var["oligo"][mpradata.oligo_data.var["oligo"] == ID].index.tolist() for ID in df["ID"]
     ]
     indexes_in_order = [index for sublist in indexes_in_order for index in sublist]
     df.index = indexes_in_order
 
-    df = df.join(mpradata.grouped_data.var["oligo"], how="right")
+    df = df.join(mpradata.oligo_data.var["oligo"], how="right")
 
-    mpradata.grouped_data.varm["mpralm_element"] = df
+    mpradata.oligo_data.varm["mpralm_element"] = df
 
-    out_df = mpradata.grouped_data.varm["mpralm_element"][["oligo", "logFC", "P.Value", "adj.P.Val"]]
-    out_df["inputCount"] = mpradata.grouped_data.layers["dna_normalized"].mean(axis=0)
-    out_df["outputCount"] = mpradata.grouped_data.layers["rna_normalized"].mean(axis=0)
+    out_df = mpradata.oligo_data.varm["mpralm_element"][["oligo", "logFC", "P.Value", "adj.P.Val"]]
+    out_df["inputCount"] = mpradata.oligo_data.layers["dna_normalized"].mean(axis=0)
+    out_df["outputCount"] = mpradata.oligo_data.layers["rna_normalized"].mean(axis=0)
     out_df.dropna(inplace=True)
     out_df["minusLog10PValue"] = -np.log10(out_df["P.Value"])
     out_df["minusLog10QValue"] = -np.log10(out_df["adj.P.Val"])
@@ -373,7 +373,7 @@ def get_reporter_elements(input_file, metadata_file, mpralm_file, output_reporte
 )
 def get_reporter_variants(input_file, metadata_file, mpralm_file, output_reporter_variants_file):
 
-    mpradata = MPRAdata.from_file(input_file)
+    mpradata = MPRABarcodeData.from_file(input_file)
 
     mpradata.add_metadata_file(metadata_file)
 
@@ -390,7 +390,7 @@ def get_reporter_variants(input_file, metadata_file, mpralm_file, output_reporte
 
     columns_ref = []
     columns_alt = []
-    for replicate in mpradata.grouped_data.obs_names:
+    for replicate in mpradata.oligo_data.obs_names:
         columns_ref.append("counts_" + replicate + "_REF")
         columns_alt.append("counts_" + replicate + "_ALT")
 
@@ -400,19 +400,19 @@ def get_reporter_variants(input_file, metadata_file, mpralm_file, output_reporte
     for spdi, row in spdi_map.iterrows():
         if spdi in df.index:
             df.loc[spdi, "inputCountRef"] = (
-                (variant_dna_counts.loc[spdi][columns_ref] / dna_counts) * MPRAdata.SCALING
+                (variant_dna_counts.loc[spdi][columns_ref] / dna_counts) * MPRABarcodeData.SCALING
             ).mean()
             df.loc[spdi, "inputCountAlt"] = (
-                (variant_dna_counts.loc[spdi][columns_alt] / dna_counts) * MPRAdata.SCALING
+                (variant_dna_counts.loc[spdi][columns_alt] / dna_counts) * MPRABarcodeData.SCALING
             ).mean()
             df.loc[spdi, "outputCountRef"] = (
-                (variant_rna_counts.loc[spdi][columns_ref] / rna_counts) * MPRAdata.SCALING
+                (variant_rna_counts.loc[spdi][columns_ref] / rna_counts) * MPRABarcodeData.SCALING
             ).mean()
             df.loc[spdi, "outputCountAlt"] = (
-                (variant_rna_counts.loc[spdi][columns_alt] / rna_counts) * MPRAdata.SCALING
+                (variant_rna_counts.loc[spdi][columns_alt] / rna_counts) * MPRABarcodeData.SCALING
             ).mean()
             df.loc[spdi, "variantPos"] = int(
-                mpradata.grouped_data.var["variant_pos"][mpradata.oligos.isin(row["REF"])].values[0][0]
+                mpradata.oligo_data.var["variant_pos"][mpradata.oligos.isin(row["REF"])].values[0][0]
             )
 
     df["minusLog10PValue"] = -np.log10(df["P.Value"])
@@ -482,7 +482,7 @@ def get_reporter_variants(input_file, metadata_file, mpralm_file, output_reporte
 )
 def get_reporter_genomic_elements(input_file, metadata_file, mpralm_file, output_reporter_genomic_elements_file):
 
-    mpradata = MPRAdata.from_file(input_file)
+    mpradata = MPRABarcodeData.from_file(input_file)
 
     mpradata.add_metadata_file(metadata_file)
 
@@ -492,28 +492,28 @@ def get_reporter_genomic_elements(input_file, metadata_file, mpralm_file, output
 
     mask = mpradata.data.var["allele"].apply(lambda x: "ref" in x).values | (mpradata.data.var["category"] == "element")
 
-    mpradata.barcode_filter = mpradata.barcode_filter | ~np.repeat(np.array(mask)[:, np.newaxis], 3, axis=1)
+    mpradata.var_filter = mpradata.var_filter | ~np.repeat(np.array(mask)[:, np.newaxis], 3, axis=1)
 
     df = pd.read_csv(mpralm_file, sep="\t", header=0)
 
     indexes_in_order = [
-        mpradata.grouped_data.var["oligo"][mpradata.grouped_data.var["oligo"] == ID].index.tolist() for ID in df["ID"]
+        mpradata.oligo_data.var["oligo"][mpradata.oligo_data.var["oligo"] == ID].index.tolist() for ID in df["ID"]
     ]
     indexes_in_order = [index for sublist in indexes_in_order for index in sublist]
     df.index = indexes_in_order
 
-    df = df.join(mpradata.grouped_data.var["oligo"], how="right")
+    df = df.join(mpradata.oligo_data.var["oligo"], how="right")
 
-    mpradata.grouped_data.varm["mpralm_element"] = df
+    mpradata.oligo_data.varm["mpralm_element"] = df
 
-    out_df = mpradata.grouped_data.varm["mpralm_element"][["oligo", "logFC", "P.Value", "adj.P.Val"]]
-    out_df.loc[:, ["inputCount"]] = mpradata.grouped_data.layers["dna_normalized"].mean(axis=0)
-    out_df.loc[:, ["outputCount"]] = mpradata.grouped_data.layers["rna_normalized"].mean(axis=0)
+    out_df = mpradata.oligo_data.varm["mpralm_element"][["oligo", "logFC", "P.Value", "adj.P.Val"]]
+    out_df.loc[:, ["inputCount"]] = mpradata.oligo_data.layers["dna_normalized"].mean(axis=0)
+    out_df.loc[:, ["outputCount"]] = mpradata.oligo_data.layers["rna_normalized"].mean(axis=0)
     print(out_df)
-    out_df["chr"] = mpradata.grouped_data.var["chr"]
-    out_df["start"] = mpradata.grouped_data.var["start"]
-    out_df["end"] = mpradata.grouped_data.var["end"]
-    out_df["strand"] = mpradata.grouped_data.var["strand"]
+    out_df["chr"] = mpradata.oligo_data.var["chr"]
+    out_df["start"] = mpradata.oligo_data.var["start"]
+    out_df["end"] = mpradata.oligo_data.var["end"]
+    out_df["strand"] = mpradata.oligo_data.var["strand"]
     out_df.dropna(inplace=True)
     scaler = MinMaxScaler(feature_range=(0, 1000))
     out_df["score"] = scaler.fit_transform(out_df[["logFC"]]).astype(int)
@@ -571,7 +571,7 @@ def get_reporter_genomic_elements(input_file, metadata_file, mpralm_file, output
 )
 def get_reporter_genomic_variants(input_file, metadata_file, mpralm_file, output_reporter_genomic_variants_file):
 
-    mpradata = MPRAdata.from_file(input_file)
+    mpradata = MPRABarcodeData.from_file(input_file)
 
     mpradata.add_metadata_file(metadata_file)
 
@@ -588,7 +588,7 @@ def get_reporter_genomic_variants(input_file, metadata_file, mpralm_file, output
 
     columns_ref = []
     columns_alt = []
-    for replicate in mpradata.grouped_data.obs_names:
+    for replicate in mpradata.oligo_data.obs_names:
         columns_ref.append("counts_" + replicate + "_REF")
         columns_alt.append("counts_" + replicate + "_ALT")
 
@@ -598,21 +598,21 @@ def get_reporter_genomic_variants(input_file, metadata_file, mpralm_file, output
     for spdi, row in spdi_map.iterrows():
         if spdi in df.index:
             df.loc[spdi, "inputCountRef"] = (
-                (variant_dna_counts.loc[spdi][columns_ref] / dna_counts) * MPRAdata.SCALING
+                (variant_dna_counts.loc[spdi][columns_ref] / dna_counts) * MPRABarcodeData.SCALING
             ).mean()
             df.loc[spdi, "inputCountAlt"] = (
-                (variant_dna_counts.loc[spdi][columns_alt] / dna_counts) * MPRAdata.SCALING
+                (variant_dna_counts.loc[spdi][columns_alt] / dna_counts) * MPRABarcodeData.SCALING
             ).mean()
             df.loc[spdi, "outputCountRef"] = (
-                (variant_rna_counts.loc[spdi][columns_ref] / rna_counts) * MPRAdata.SCALING
+                (variant_rna_counts.loc[spdi][columns_ref] / rna_counts) * MPRABarcodeData.SCALING
             ).mean()
             df.loc[spdi, "outputCountAlt"] = (
-                (variant_rna_counts.loc[spdi][columns_alt] / rna_counts) * MPRAdata.SCALING
+                (variant_rna_counts.loc[spdi][columns_alt] / rna_counts) * MPRABarcodeData.SCALING
             ).mean()
             df.loc[spdi, "variantPos"] = int(
-                mpradata.grouped_data.var["variant_pos"][mpradata.oligos.isin(row["REF"])].values[0][0]
+                mpradata.oligo_data.var["variant_pos"][mpradata.oligos.isin(row["REF"])].values[0][0]
             )
-            df.loc[spdi, "strand"] = mpradata.grouped_data.var["strand"][mpradata.oligos.isin(row["REF"])].values[0]
+            df.loc[spdi, "strand"] = mpradata.oligo_data.var["strand"][mpradata.oligos.isin(row["REF"])].values[0]
 
     df["variantPos"] = df["variantPos"].astype(int)
     df["minusLog10PValue"] = -np.log10(df["P.Value"])

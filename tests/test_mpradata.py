@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import anndata as ad
 import copy
-from mpralib.mpradata import MPRAdata, CountSampling, BarcodeFilter
+from mpralib.mpradata import MPRABarcodeData, CountSampling, BarcodeFilter
 
 
 OBS = pd.DataFrame(index=["rep1", "rep2", "rep3"])
@@ -31,11 +31,11 @@ class TestMPRAdataSampling(unittest.TestCase):
         # Create a sample AnnData object for testing
 
         layers = {"rna": COUNTS_RNA.copy(), "dna": COUNTS_DNA.copy()}
-        self.mpra_data = MPRAdata(ad.AnnData(X=COUNTS_RNA.copy(), obs=OBS.copy(), var=VAR.copy(), layers=layers))
+        self.mpra_data = MPRABarcodeData(ad.AnnData(X=COUNTS_RNA.copy(), obs=OBS.copy(), var=VAR.copy(), layers=layers))
 
         self.mpra_data_with_bc_filter = copy.deepcopy(self.mpra_data)
 
-        self.mpra_data_with_bc_filter.barcode_filter = pd.DataFrame(
+        self.mpra_data_with_bc_filter.var_filter = pd.DataFrame(
             FILTER,
             index=self.mpra_data.data.var_names,
             columns=self.mpra_data.data.obs_names,
@@ -155,7 +155,7 @@ class TestMPRAdataBarcodeFilter(unittest.TestCase):
     def setUp(self):
         # Create a sample AnnData object for testing
         layers = {"rna": COUNTS_RNA.copy(), "dna": COUNTS_DNA.copy()}
-        self.mpra_data = MPRAdata(ad.AnnData(X=COUNTS_RNA.copy(), obs=OBS.copy(), var=VAR.copy(), layers=layers))
+        self.mpra_data = MPRABarcodeData(ad.AnnData(X=COUNTS_RNA.copy(), obs=OBS.copy(), var=VAR.copy(), layers=layers))
 
     def test_apply_barcode_filter_min_count(self):
         self.mpra_data.apply_barcode_filter(BarcodeFilter.MIN_COUNT, params={"rna_min_count": 4, "dna_min_count": 3})
@@ -168,7 +168,7 @@ class TestMPRAdataBarcodeFilter(unittest.TestCase):
                 [True, False, False],
             ]
         )
-        np.testing.assert_array_equal(self.mpra_data.barcode_filter.values, expected_filter)
+        np.testing.assert_array_equal(self.mpra_data.var_filter.values, expected_filter)
 
     def test_apply_barcode_filter_max_count(self):
         self.mpra_data.apply_barcode_filter(BarcodeFilter.MAX_COUNT, params={"rna_max_count": 9, "dna_max_count": 100})
@@ -181,9 +181,9 @@ class TestMPRAdataBarcodeFilter(unittest.TestCase):
                 [False, False, True],
             ]
         )
-        np.testing.assert_array_equal(self.mpra_data.barcode_filter.values, expected_filter)
+        np.testing.assert_array_equal(self.mpra_data.var_filter.values, expected_filter)
 
-        self.mpra_data.barcode_filter = None
+        self.mpra_data.var_filter = None
 
         self.mpra_data.apply_barcode_filter(BarcodeFilter.MAX_COUNT, params={"dna_max_count": 99})
         expected_filter = np.array(
@@ -195,21 +195,21 @@ class TestMPRAdataBarcodeFilter(unittest.TestCase):
                 [False, False, True],
             ]
         )
-        np.testing.assert_array_equal(self.mpra_data.barcode_filter.values, expected_filter)
+        np.testing.assert_array_equal(self.mpra_data.var_filter.values, expected_filter)
 
 
-class TestMPRAdataNormalization(unittest.TestCase):
+class TestMPRABarcodeDataNormalization(unittest.TestCase):
 
     def setUp(self):
         # Create a sample AnnData object for testing
         layers = {"rna": COUNTS_RNA.copy(), "dna": COUNTS_DNA.copy()}
-        self.mpra_data = MPRAdata(ad.AnnData(X=COUNTS_RNA.copy(), obs=OBS.copy(), var=VAR.copy(), layers=layers))
+        self.mpra_data = MPRABarcodeData(ad.AnnData(X=COUNTS_RNA.copy(), obs=OBS.copy(), var=VAR.copy(), layers=layers))
 
         self.mpra_data.SCALING = 10
 
         self.mpra_data_with_bc_filter = copy.deepcopy(self.mpra_data)
 
-        self.mpra_data_with_bc_filter.barcode_filter = pd.DataFrame(
+        self.mpra_data_with_bc_filter.var_filter = pd.DataFrame(
             FILTER,
             index=self.mpra_data.data.var_names,
             columns=self.mpra_data.data.obs_names,
@@ -217,7 +217,7 @@ class TestMPRAdataNormalization(unittest.TestCase):
 
     def test_normalize_counts(self):
         self.mpra_data._normalize()
-        dna_normalized = self.mpra_data.data.layers["dna_normalized"]
+        dna_normalized = self.mpra_data.normalized_dna_counts
         expected_dna_normalized = np.array(
             [
                 [1.428, 2.142, 2.857, 1.428, 2.142],
@@ -230,10 +230,10 @@ class TestMPRAdataNormalization(unittest.TestCase):
         expected_rna_normalized = np.array(
             [[1.333, 2.0, 3.333, 1.333, 2.0], [1.724, 2.069, 2.414, 1.724, 2.069], [0.576, 0.647, 0.719, 0.791, 7.266]]
         )
-        rna_normalized = self.mpra_data.data.layers["rna_normalized"]
+        rna_normalized = self.mpra_data.normalized_rna_counts
         np.testing.assert_almost_equal(rna_normalized, expected_rna_normalized, decimal=3)
 
-    def test_normalize_with_pseudocount(self):
+    def test_normalize_without_pseudocount(self):
         mpra_data = copy.deepcopy(self.mpra_data)
         mpra_data.PSEUDOCOUNT = 0
         mpra_data._normalize()
@@ -260,21 +260,73 @@ class TestMPRAdataNormalization(unittest.TestCase):
         np.testing.assert_almost_equal(rna_normalized, expected_normalized, decimal=3)
 
 
+class TestMPRAOligoDataNormalization(unittest.TestCase):
+
+    def setUp(self):
+        # Create a sample AnnData object for testing
+        layers = {"rna": COUNTS_RNA.copy(), "dna": COUNTS_DNA.copy()}
+        mpra_barcode_data = MPRABarcodeData(ad.AnnData(X=COUNTS_RNA.copy(), obs=OBS.copy(), var=VAR.copy(), layers=layers))
+
+        self.mpra_data = mpra_barcode_data.oligo_data
+        self.mpra_data.SCALING = 10
+
+        mpra_barcode_data = copy.deepcopy(mpra_barcode_data)
+
+        mpra_barcode_data.var_filter = pd.DataFrame(
+            FILTER,
+            index=mpra_barcode_data.data.var_names,
+            columns=mpra_barcode_data.data.obs_names,
+        )
+
+        self.mpra_data_with_bc_filter = mpra_barcode_data.oligo_data
+        self.mpra_data_with_bc_filter.SCALING = 10
+
+    def test_normalize_counts(self):
+        dna_normalized = self.mpra_data.normalized_dna_counts
+        expected_dna_normalized = np.array([[1.786, 2.857, 1.786], [1.897, 2.414, 1.897], [0.612, 0.719, 4.029]])
+        np.testing.assert_almost_equal(dna_normalized, expected_dna_normalized, decimal=3)
+
+        expected_rna_normalized = np.array([[1.667, 3.333, 1.667], [1.897, 2.414, 1.897], [0.612, 0.719, 4.029]])
+        rna_normalized = self.mpra_data.normalized_rna_counts
+        np.testing.assert_almost_equal(rna_normalized, expected_rna_normalized, decimal=3)
+
+    def test_normalize_without_pseudocount(self):
+        mpra_data = copy.deepcopy(self.mpra_data)
+        mpra_data.PSEUDOCOUNT = 0
+
+        dna_normalized = mpra_data.normalized_dna_counts
+        expected_dna_normalized = np.array([[1.667, 3.333, 1.667], [1.875, 2.5, 1.875], [0.56, 0.672, 4.104]])
+        np.testing.assert_almost_equal(dna_normalized, expected_dna_normalized, decimal=3)
+
+        expected_rna_normalized = np.array([[1.5, 4.0, 1.5], [1.875, 2.5, 1.875], [0.56, 0.672, 4.104]])
+        rna_normalized = mpra_data.normalized_rna_counts
+        np.testing.assert_almost_equal(rna_normalized, expected_rna_normalized, decimal=3)
+
+    def test_normalize_counts_with_bc_filter(self):
+
+        dna_normalized = self.mpra_data_with_bc_filter.normalized_dna_counts
+        expected_normalized = np.array([[2.5, np.nan, 2.5], [2.5, 2.917, 2.292], [3.148, 3.704, np.nan]])
+        np.testing.assert_almost_equal(dna_normalized, expected_normalized, decimal=3)
+
+        rna_normalized = self.mpra_data_with_bc_filter.normalized_rna_counts
+        np.testing.assert_almost_equal(rna_normalized, expected_normalized, decimal=3)
+
+
 class TestMPRAdataCorrelation(unittest.TestCase):
 
     def setUp(self):
         layers = {"rna": COUNTS_RNA.copy(), "dna": COUNTS_DNA.copy()}
-        self.mpra_data = MPRAdata(ad.AnnData(X=COUNTS_RNA.copy(), obs=OBS.copy(), var=VAR.copy(), layers=layers))
+        self.mpra_data = MPRABarcodeData(
+            ad.AnnData(X=COUNTS_RNA.copy(), obs=OBS.copy(), var=VAR.copy(), layers=layers)
+        ).oligo_data
 
     def test_correlation(self):
-        self.mpra_data._normalize()
-        self.mpra_data._group_data()
-        self.mpra_data._compute_correlation("log2FoldChange")
-        self.assertIn("pearson_correlation_log2FoldChange", self.mpra_data.grouped_data.obsp)
-        self.assertIn("spearman_correlation_log2FoldChange", self.mpra_data.grouped_data.obsp)
+        self.mpra_data._compute_correlation(self.mpra_data.activity, "log2FoldChange")
+        self.assertIn("pearson_correlation_log2FoldChange", self.mpra_data.data.obsp)
+        self.assertIn("spearman_correlation_log2FoldChange", self.mpra_data.data.obsp)
 
     def test_pearson_correlation(self):
-        x = self.mpra_data.pearson_correlation
+        x = self.mpra_data.pearson_correlation_activity
         y = self.mpra_data.pearson_correlation_rna
         z = self.mpra_data.pearson_correlation_dna
         np.testing.assert_equal(x, np.array([[1.0, np.nan, np.nan], [np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan]]))
@@ -284,7 +336,7 @@ class TestMPRAdataCorrelation(unittest.TestCase):
         np.testing.assert_almost_equal(z, np.array([[1.0, 1.0, -0.476], [1.0, 1.0, -0.476], [-0.476, -0.476, 1.0]]), decimal=3)
 
     def test_spearman_correlation(self):
-        x = self.mpra_data.spearman_correlation
+        x = self.mpra_data.spearman_correlation_activity
         y = self.mpra_data.spearman_correlation_rna
         z = self.mpra_data.spearman_correlation_dna
         np.testing.assert_equal(x, np.array([[1.0, np.nan, np.nan], [np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan]]))

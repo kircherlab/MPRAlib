@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 import numpy as np
 import ast
 import pandas as pd
@@ -21,17 +22,23 @@ class BarcodeFilter(Enum):
     MAX_COUNT = "MAX_COUNT"
 
 
-class MPRAdata:
+class MPRAData(ABC):
 
     LOGGER = logging.getLogger(__name__)
+    LOGGER.setLevel(logging.INFO)
 
     SCALING = 1e6
     PSEUDOCOUNT = 1
 
-    def __init__(self, data: ad.AnnData):
+    @classmethod
+    @abstractmethod
+    def from_file(cls, file_path: str) -> "MPRAData":
+        pass
+
+    def __init__(self, data: ad.AnnData, barcode_threshold: int = 0):
         self._data = data
-        self._grouped_data = None
-        self.barcode_filter = None
+        self.var_filter = None
+        self.barcode_threshold = barcode_threshold
 
     @property
     def data(self) -> ad.AnnData:
@@ -42,16 +49,24 @@ class MPRAdata:
         self._data = new_data
 
     @property
-    def grouped_data(self):
-        if not self._grouped_data:
-            self._group_data()
-        return self._grouped_data
+    def var_names(self):
+        return self.data.var_names
 
-    @grouped_data.setter
-    def grouped_data(self, new_data: ad.AnnData) -> None:
-        if new_data is None and self._grouped_data is not None:
-            self.LOGGER.info("Dropping grouped data")
-        self._grouped_data = new_data
+    @property
+    def n_vars(self):
+        return self.data.n_vars
+
+    @property
+    def obs_names(self):
+        return self.data.obs_names
+
+    @property
+    def n_obs(self):
+        return self.data.n_obs
+
+    @property
+    def raw_rna_counts(self):
+        return self.data.layers["rna"]
 
     @property
     def normalized_dna_counts(self):
@@ -60,15 +75,11 @@ class MPRAdata:
         return self.data.layers["dna_normalized"]
 
     @property
-    def raw_rna_counts(self):
-        return self.data.layers["rna"]
-
-    @property
     def rna_counts(self):
         if "rna_sampling" in self.data.layers:
-            return self.data.layers["rna_sampling"] * ~self.barcode_filter.T.values
+            return self.data.layers["rna_sampling"] * ~self.var_filter.T.values
         else:
-            return self.raw_rna_counts * ~self.barcode_filter.T.values
+            return self.raw_rna_counts * ~self.var_filter.T.values
 
     @property
     def raw_dna_counts(self):
@@ -77,9 +88,9 @@ class MPRAdata:
     @property
     def dna_counts(self):
         if "dna_sampling" in self.data.layers:
-            return self.data.layers["dna_sampling"] * ~self.barcode_filter.T.values
+            return self.data.layers["dna_sampling"] * ~self.var_filter.T.values
         else:
-            return self.raw_dna_counts * ~self.barcode_filter.T.values
+            return self.raw_dna_counts * ~self.var_filter.T.values
 
     @property
     def normalized_rna_counts(self):
@@ -88,81 +99,47 @@ class MPRAdata:
         return self.data.layers["rna_normalized"]
 
     @property
-    def barcodes(self):
-        return self.data.var_names
+    def observed(self):
+        return (self.dna_counts + self.rna_counts) > 0
 
     @property
-    def oligos(self):
-        return self.data.var["oligo"]
+    def var_filter(self) -> pd.DataFrame:
+        return self.data.varm["var_filter"]
 
-    @property
-    def replicates(self):
-        return self.data.obs_names
+    @var_filter.setter
+    def var_filter(self, new_data: pd.DataFrame) -> None:
+        if new_data is None:
+            self.data.varm["var_filter"] = pd.DataFrame(
+                np.full((self.data.n_vars, self.data.n_obs), False),
+                index=self.var_names,
+                columns=self.obs_names,
+            )
+            if "var_filter" in self.data.uns:
+                del self.data.uns["var_filter"]
+        else:
+            self.data.varm["var_filter"] = new_data
 
-    @property
-    def n_replicates(self):
-        return self.data.n_obs
-
-    @property
-    def n_raw_barcodes(self):
-        return self.data.n_vars
+        self.drop_normalized()
 
     @property
     def barcode_threshold(self) -> int:
-        if "barcode_threshold" not in self.data.uns:
-            self.data.uns["barcode_threshold"] = None
         return self.data.uns["barcode_threshold"]
 
     @barcode_threshold.setter
     def barcode_threshold(self, barcode_threshold: int) -> None:
         self._add_metadata("barcode_threshold", barcode_threshold)
-        self.grouped_data = None
 
-    @property
-    def barcode_filter(self) -> pd.DataFrame:
-        return self.data.varm["barcode_filter"]
-
-    @barcode_filter.setter
-    def barcode_filter(self, new_data: pd.DataFrame) -> None:
-        if new_data is None:
-            self.data.varm["barcode_filter"] = pd.DataFrame(
-                np.full((self.data.n_vars, self.data.n_obs), False),
-                index=self.barcodes,
-                columns=self.replicates,
-            )
-            if "barcode_filter" in self.data.uns:
-                del self.data.uns["barcode_filter"]
-        else:
-            self.data.varm["barcode_filter"] = new_data
-
-        self.grouped_data = None
-        self.drop_normalized()
+    @abstractmethod
+    def _normalize(self):
+        pass
 
     def drop_normalized(self):
-
-        self.grouped_data = None
 
         self.LOGGER.info("Dropping normalized data")
 
         self.data.layers.pop("rna_normalized", None)
         self.data.layers.pop("dna_normalized", None)
         self.data.uns["normalized"] = False
-
-    @property
-    def spearman_correlation(self) -> np.ndarray:
-        """
-        Calculate and return the Spearman correlation for the grouped data.
-
-        This property checks if the Spearman correlation has already been computed
-        and stored in the `grouped_data` attribute. If not, it calls the `_correlation`
-        method to compute it. The computed Spearman correlation is then retrieved
-        from the `grouped_data.obsp` attribute.
-
-        Returns:
-            np.ndarray: The Spearman correlation matrix for the grouped data.
-        """
-
-        return self._correlation("spearman", "log2FoldChange")
 
     @property
     def spearman_correlation_dna(self) -> np.ndarray:
@@ -177,7 +154,7 @@ class MPRAdata:
         Returns:
             np.ndarray: The Spearman correlation matrix for the DNA normalized counts.
         """
-        return self._correlation("spearman", "dna_normalized")
+        return self._correlation("spearman", self.normalized_dna_counts, "dna_normalized")
 
     @property
     def spearman_correlation_rna(self) -> np.ndarray:
@@ -192,22 +169,7 @@ class MPRAdata:
         Returns:
             np.ndarray: The Spearman correlation matrix for the RNA normalized counts.
         """
-        return self._correlation("spearman", "rna_normalized")
-
-    @property
-    def pearson_correlation(self) -> np.ndarray:
-        """
-        Computes and returns the Pearson correlation matrix of log2FoldChange.
-
-        This property checks if the Pearson correlation matrix is already computed
-        and stored in the `grouped_data` attribute. If not, it calls the `_correlation`
-        method to compute it. The Pearson correlation matrix is then retrieved from
-        the `grouped_data` attribute.
-
-        Returns:
-            np.ndarray: The Pearson correlation matrix for the grouped data.
-        """
-        return self._correlation("pearson", "log2FoldChange")
+        return self._correlation("spearman", self.normalized_rna_counts, "rna_normalized")
 
     @property
     def pearson_correlation_dna(self) -> np.ndarray:
@@ -222,7 +184,7 @@ class MPRAdata:
         Returns:
             np.ndarray: The Pearson correlation matrix for the DNA normalized counts.
         """
-        return self._correlation("pearson", "dna_normalized")
+        return self._correlation("pearson", self.normalized_dna_counts, "dna_normalized")
 
     @property
     def pearson_correlation_rna(self) -> np.ndarray:
@@ -237,7 +199,80 @@ class MPRAdata:
         Returns:
             np.ndarray: The Pearson correlation matrix for the RNA normalized counts.
         """
-        return self._correlation("pearson", "rna_normalized")
+        return self._correlation("pearson", self.normalized_rna_counts, "rna_normalized")
+
+    def _correlation(self, method, data, layer):
+        if not self.data.uns[f"correlation_{layer}"]:
+            self._compute_correlation(data, layer)
+        return self.data.obsp[f"{method}_correlation_{layer}"]
+
+    def _compute_correlation(self, data, layer):
+        """
+        Compute Pearson and Spearman correlation matrices for the log2FoldChange layer of grouped_data.
+        This method calculates both Pearson and Spearman correlation coefficients and their corresponding p-values
+        for each pair of rows in the log2FoldChange layer of the grouped_data attribute. The results are stored in
+        the obsp attribute of grouped_data with the following keys:
+        - "pearson_correlation": Pearson correlation coefficients matrix.
+        - "pearson_correlation_pvalue": p-values for the Pearson correlation coefficients.
+        - "spearman_correlation": Spearman correlation coefficients matrix.
+        - "spearman_correlation_pvalue": p-values for the Spearman correlation coefficients.
+        Additionally, a flag indicating that the correlation has been computed is stored in the uns attribute of
+        grouped_data with the key "correlation".
+        Returns:
+            None
+        """
+        num_columns = self.n_obs
+        for correlation in ["pearson", "spearman"]:
+            self.data.obsp[f"{correlation}_correlation_{layer}"] = np.zeros((num_columns, num_columns))
+            self.data.obsp[f"{correlation}_correlation_{layer}_pvalue"] = np.zeros((num_columns, num_columns))
+
+        def compute_correlation(x, y, method) -> tuple:
+            if method == "spearman":
+                return spearmanr(x, y)
+            elif method == "pearson":
+                return pearsonr(x, y)
+            else:
+                raise ValueError(f"Unsupported correlation method: {method}")
+
+        for i in range(num_columns):
+            for j in range(i, num_columns):
+                mask = ~np.isnan(data[i, :]) & ~np.isnan(data[j, :])
+                x = data[i, mask]
+                y = data[j, mask]
+
+                for method in ["spearman", "pearson"]:
+                    corr, pvalue = compute_correlation(x, y, method)
+                    self.data.obsp[f"{method}_correlation_{layer}"][i, j] = corr
+                    self.data.obsp[f"{method}_correlation_{layer}_pvalue"][i, j] = pvalue
+                    self.data.obsp[f"{method}_correlation_{layer}"][j, i] = corr
+                    self.data.obsp[f"{method}_correlation_{layer}_pvalue"][j, i] = pvalue
+
+        self._add_metadata(f"correlation_{layer}", True)
+
+    def write(self, file_data_path: str) -> None:
+        self.data.write(file_data_path)
+
+    def _add_metadata(self, key, value):
+        if isinstance(value, list):
+            if key not in self.data.uns:
+                self.data.uns[key] = value
+            else:
+                self.data.uns[key] = self.data.uns[key] + value
+        else:
+            self.data.uns[key] = value
+
+
+class MPRABarcodeData(MPRAData):
+
+    @property
+    def oligo_data(self) -> ad.AnnData:
+        self.LOGGER.info("Computing oligo data")
+
+        return self._oligo_data()
+
+    @property
+    def oligos(self):
+        return self.data.var["oligo"]
 
     @property
     def variant_map(self) -> pd.DataFrame:
@@ -252,12 +287,12 @@ class MPRAdata:
         if "metadata_file" not in self.data.uns:
             raise ValueError("Metadata file not loaded.")
 
-        spdis = set([item for sublist in self.grouped_data.var["SPDI"].values for item in sublist])
+        spdis = set([item for sublist in self.oligo_data.var["SPDI"].values for item in sublist])
 
         df = {"ID": [], "REF": [], "ALT": []}
         for spdi in spdis:
             df["ID"].append(spdi)
-            spdi_data = self.grouped_data[:, self.grouped_data.var["SPDI"].apply(lambda x: spdi in x)]
+            spdi_data = self.oligo_data[:, self.oligo_data.var["SPDI"].apply(lambda x: spdi in x)]
             spdi_idx = spdi_data.var["SPDI"].apply(lambda x: x.index(spdi))
             refs = []
             alts = []
@@ -280,9 +315,9 @@ class MPRAdata:
         return self._element_counts("rna")
 
     def _element_counts(self, layer: str) -> pd.DataFrame:
-        df = {"ID": self.grouped_data.var["oligo"]}
-        for replicate in self.grouped_data.obs_names:
-            df["counts_" + replicate] = self.grouped_data[replicate, :].layers[layer][0]
+        df = {"ID": self.oligo_data.var["oligo"]}
+        for replicate in self.oligo_data.obs_names:
+            df["counts_" + replicate] = self.oligo_data[replicate, :].layers[layer][0]
 
         df = pd.DataFrame(df).set_index("ID")
         return df[(df.T != 0).all()]
@@ -297,16 +332,16 @@ class MPRAdata:
 
     def _variant_counts(self, layer: str) -> pd.DataFrame:
         df = {"ID": []}
-        for replicate in self.grouped_data.obs_names:
+        for replicate in self.oligo_data.obs_names:
             df["counts_" + replicate + "_REF"] = []
             df["counts_" + replicate + "_ALT"] = []
 
         for spdi, row in self.variant_map.iterrows():
             df["ID"].append(spdi)
-            counts_ref = self.grouped_data.layers[layer][:, self.grouped_data.var["oligo"].isin(row["REF"])].sum(axis=1)
-            counts_alt = self.grouped_data.layers[layer][:, self.grouped_data.var["oligo"].isin(row["ALT"])].sum(axis=1)
+            counts_ref = self.oligo_data.layers[layer][:, self.oligo_data.var["oligo"].isin(row["REF"])].sum(axis=1)
+            counts_alt = self.oligo_data.layers[layer][:, self.oligo_data.var["oligo"].isin(row["ALT"])].sum(axis=1)
             idx = 0
-            for replicate in self.grouped_data.obs_names:
+            for replicate in self.oligo_data.obs_names:
                 df["counts_" + replicate + "_REF"].append(counts_ref[idx])
                 df["counts_" + replicate + "_ALT"].append(counts_alt[idx])
                 idx += 1
@@ -339,16 +374,10 @@ class MPRAdata:
         self._add_metadata("metadata_file", metadata_file)
 
         # need to reset grouped data after adding metadata
-        self.grouped_data = None
-
-    def write(self, file_data_path: str, file_grouped_path: str = None) -> None:
-        self.data.write(file_data_path)
-
-        if file_grouped_path and self.grouped_data:
-            self.grouped_data.write(file_grouped_path)
+        self.oligo_data = None
 
     @classmethod
-    def from_file(cls, file_path: str) -> "MPRAdata":
+    def from_file(cls, file_path: str) -> "MPRABarcodeData":
         """
         Create an instance of the class from a file.
         This method reads data from a specified file, processes it, and returns an instance of the class containing the
@@ -391,7 +420,7 @@ class MPRAdata:
         adata.uns["normalized"] = False
         adata.uns["barcode_threshold"] = None
 
-        adata.varm["barcode_filter"] = pd.DataFrame(
+        adata.varm["var_filter"] = pd.DataFrame(
             np.full((adata.n_vars, adata.n_obs), False),
             index=adata.var_names,
             columns=adata.obs_names,
@@ -401,79 +430,64 @@ class MPRAdata:
 
     def _normalize(self):
 
+        self.drop_normalized()
+
         self.LOGGER.info("Normalizing data")
 
         self.data.layers["dna_normalized"] = self._normalize_layer(
-            self.dna_counts, ~self.barcode_filter.T.values, self.SCALING, self.PSEUDOCOUNT
+            self.dna_counts, self.observed, ~self.var_filter.T.values, self.SCALING, self.PSEUDOCOUNT
         )
         self.data.layers["rna_normalized"] = self._normalize_layer(
-            self.rna_counts, ~self.barcode_filter.T.values, self.SCALING, self.PSEUDOCOUNT
+            self.rna_counts, self.observed, ~self.var_filter.T.values, self.SCALING, self.PSEUDOCOUNT
         )
         self._add_metadata("normalized", True)
 
     def _normalize_layer(
-        self, counts: np.ndarray, not_barcode_filter: np.ndarray, scaling: float, pseudocount: int
+        self, counts: np.ndarray, observed: np.ndarray, not_var_filter: np.ndarray, scaling: float, pseudocount: int
     ) -> np.ndarray:
 
         # I do a pseudo count when normalizing to avoid division by zero when computing logfold ratios.
         # barcode filter has to be used again because we want to have a zero on filtered values.
-        total_counts = np.sum((counts + pseudocount) * not_barcode_filter, axis=1)
+        total_counts = np.sum((counts + (pseudocount * observed)) * not_var_filter, axis=1)
 
         # Avoid division by zero when pseudocount is set to 0
         total_counts[total_counts == 0] = 1
-        return ((counts + pseudocount) / total_counts[:, np.newaxis] * scaling) * not_barcode_filter
+        return ((counts + (pseudocount * observed)) / total_counts[:, np.newaxis] * scaling) * not_var_filter
 
-    def _group_data(self):
-
-        if not self.data.uns["normalized"]:
-            self._normalize()
+    def _oligo_data(self) -> "MPRAOligoData":
 
         # Convert the result back to an AnnData object
-        self.grouped_data = ad.AnnData(self._sum_counts_by_oligo(self.rna_counts))
+        oligo_data = ad.AnnData(self._sum_counts_by_oligo(self.rna_counts))
 
-        self.grouped_data.layers["rna"] = self.grouped_data.X.copy()
-        self.grouped_data.layers["dna"] = self._sum_counts_by_oligo(self.dna_counts)
+        oligo_data.layers["rna"] = oligo_data.X.copy()
+        oligo_data.layers["dna"] = self._sum_counts_by_oligo(self.dna_counts)
 
-        self.grouped_data.layers["barcodes"] = self._compute_supporting_barcodes()
+        oligo_data.layers["barcode_counts"] = self._compute_supporting_barcodes()
 
-        self.grouped_data.layers["rna_normalized"] = (
-            self._sum_counts_by_oligo(self.normalized_rna_counts) / self.grouped_data.layers["barcodes"]
-        )
-        self.grouped_data.layers["dna_normalized"] = (
-            self._sum_counts_by_oligo(self.normalized_dna_counts) / self.grouped_data.layers["barcodes"]
-        )
-
-        self.grouped_data.obs_names = self.replicates
-        self.grouped_data.var_names = self.data.var["oligo"].unique().tolist()
+        oligo_data.obs_names = self.obs_names
+        oligo_data.var_names = self.data.var["oligo"].unique().tolist()
 
         # Subset of vars using the firs occurence of oligo name
         indices = self.data.var["oligo"].drop_duplicates(keep="first").index
-        self.grouped_data.var = self.data.var.loc[indices]
+        oligo_data.var = self.data.var.loc[indices]
 
-        if self.barcode_threshold is not None:
-            mask = self.grouped_data.layers["barcodes"] < self.barcode_threshold
-            self.grouped_data.X[mask] = 0
-            for layer_name in self.grouped_data.layers.keys():
-                if self.grouped_data.layers[layer_name].dtype.kind in {"i", "u"}:
-                    self.grouped_data.layers[layer_name][mask] = 0
-                else:
-                    self.grouped_data.layers[layer_name][mask] = np.nan
-        self.grouped_data.obs = self.data.obs
+        oligo_data.obs = self.data.obs
 
-        self.grouped_data.uns = self.data.uns
+        for key, value in self.data.uns.items():
+            oligo_data.uns[f"MPRABarcodeData_{key}"] = value
 
-        self.grouped_data.uns["correlation_log2FoldChange"] = False
-        self.grouped_data.uns["correlation_rna_normalized"] = False
-        self.grouped_data.uns["correlation_dna_normalized"] = False
+        oligo_data.uns["correlation_log2FoldChange"] = False
+        oligo_data.uns["correlation_rna_normalized"] = False
+        oligo_data.uns["correlation_dna_normalized"] = False
 
-        self._compute_activities()
+        return MPRAOligoData(oligo_data, self.barcode_threshold)
 
     def _sum_counts_by_oligo(self, counts):
 
         grouped = pd.DataFrame(
             counts,
-            index=self.replicates,
-            columns=self.barcodes,
+            index=self.obs_names,
+            columns=self.var_names,
         ).T.groupby(self.data.var["oligo"], observed=True)
 
         # Perform an operation on each group, e.g., mean
@@ -482,27 +496,22 @@ class MPRAdata:
     def _compute_supporting_barcodes(self):
 
         grouped = pd.DataFrame(
-            (self.raw_rna_counts + self.raw_dna_counts) * ~self.barcode_filter.T.values,
-            index=self.replicates,
-            columns=self.barcodes,
+            self.observed * ~self.var_filter.T.values,
+            index=self.obs_names,
+            columns=self.var_names,
         ).T.groupby(self.oligos, observed=True)
 
-        return grouped.apply(lambda x: (x != 0).sum()).T
-
-    def _compute_activities(self):
-        self.grouped_data.layers["log2FoldChange"] = np.log2(
-            self.grouped_data.layers["rna_normalized"] / self.grouped_data.layers["dna_normalized"]
-        )
+        return grouped.apply(lambda x: x.sum()).T
 
     def _barcode_filter_rna_zscore(self, times_zscore=3):
 
         barcode_mask = pd.DataFrame(
             self.raw_dna_counts + self.raw_rna_counts,
-            index=self.replicates,
-            columns=self.barcodes,
+            index=self.obs_names,
+            columns=self.var_names,
         ).T.apply(lambda x: (x != 0))
 
-        df_rna = pd.DataFrame(self.raw_rna_counts, index=self.replicates, columns=self.barcodes).T
+        df_rna = pd.DataFrame(self.raw_rna_counts, index=self.obs_names, columns=self.var_names).T
         grouped = df_rna.where(barcode_mask).groupby(self.oligos, observed=True)
 
         mask = ((df_rna - grouped.transform("mean")) / grouped.transform("std")).abs() > times_zscore
@@ -512,8 +521,8 @@ class MPRAdata:
     def _barcode_filter_mad(self, times_mad=3, n_bins=20):
 
         # sum up DNA and RNA counts across replicates
-        DNA_sum = pd.DataFrame(self.raw_dna_counts, index=self.replicates, columns=self.barcodes).T.sum(axis=1)
-        RNA_sum = pd.DataFrame(self.raw_rna_counts, index=self.replicates, columns=self.barcodes).T.sum(axis=1)
+        DNA_sum = pd.DataFrame(self.raw_dna_counts, index=self.obs_names, columns=self.var_names).T.sum(axis=1)
+        RNA_sum = pd.DataFrame(self.raw_rna_counts, index=self.obs_names, columns=self.var_names).T.sum(axis=1)
         df_sums = pd.DataFrame({"DNA_sum": DNA_sum, "RNA_sum": RNA_sum}).fillna(0)
         # removing all barcodes with 0 counts in RNA an more DNA count than number of replicates/observations
         df_sums = df_sums[(df_sums["DNA_sum"] > self.data.n_obs) & (df_sums["RNA_sum"] > 0)]
@@ -545,22 +554,22 @@ class MPRAdata:
         m = df_sums.ratio_diff > times_mad * df_sums.mad
         df_sums = df_sums[~m]
 
-        return self.barcode_filter.apply(lambda col: col | ~self.barcode_filter.index.isin(df_sums.index))
+        return self.var_filter.apply(lambda col: col | ~self.var_filter.index.isin(df_sums.index))
 
     def _barcode_filter_random(self, proportion=1.0, total=None, aggegate_over_replicates=True):
 
         if aggegate_over_replicates and total is None:
-            total = self.barcode_filter.shape[0]
+            total = self.var_filter.shape[0]
         elif total is None:
-            total = self.barcode_filter.size
+            total = self.var_filter.size
 
         num_true_cells = int(total * (1.0 - proportion))
         true_indices = np.random.choice(total, num_true_cells, replace=False)
 
         mask = pd.DataFrame(
             np.full((self.data.n_vars, self.data.n_obs), False),
-            index=self.barcodes,
-            columns=self.replicates,
+            index=self.var_names,
+            columns=self.obs_names,
         )
 
         if aggegate_over_replicates:
@@ -571,9 +580,9 @@ class MPRAdata:
             flat_df[true_indices] = True
 
             mask = pd.DataFrame(
-                flat_df.reshape(self.barcode_filter.shape),
-                index=self.barcodes,
-                columns=self.replicates,
+                flat_df.reshape(self.var_filter.shape),
+                index=self.var_names,
+                columns=self.obs_names,
             )
         return mask
 
@@ -593,9 +602,9 @@ class MPRAdata:
 
     def _barcode_filter_min_max_count(self, barcode_filter, rna_count=None, dna_count=None):
         mask = pd.DataFrame(
-            np.full((self.n_raw_barcodes, self.n_replicates), False),
-            index=self.barcodes,
-            columns=self.replicates,
+            np.full((self.n_vars, self.n_obs), False),
+            index=self.var_names,
+            columns=self.obs_names,
         )
         if rna_count is not None:
             mask = mask | self._barcode_filter_min_max_counts(barcode_filter, self.raw_rna_counts, rna_count)
@@ -615,11 +624,11 @@ class MPRAdata:
 
         filter_func = filter_switch.get(barcode_filter)
         if filter_func:
-            self.barcode_filter = self.barcode_filter | filter_func(**params)
+            self.var_filter = self.var_filter | filter_func(**params)
         else:
             raise ValueError(f"Unsupported barcode filter: {barcode_filter}")
 
-        self._add_metadata("barcode_filter", [barcode_filter.value])
+        self._add_metadata("var_filter", [barcode_filter.value])
 
     def drop_count_sampling(self):
 
@@ -658,7 +667,7 @@ class MPRAdata:
         if total is not None or proportion is not None:
 
             pp = self._calculate_proportions(
-                proportion, total, aggregate_over_replicates, self.data.layers[layer_name], self.n_replicates
+                proportion, total, aggregate_over_replicates, self.data.layers[layer_name], self.n_obs
             )
 
             vectorized_sample_individual_counts = np.vectorize(self._sample_individual_counts)
@@ -700,63 +709,84 @@ class MPRAdata:
             ],
         )
 
-        self.grouped_data = None
+        self.drop_normalized()
+
+
+class MPRAOligoData(MPRAData):
+
+    @property
+    def activity(self):
+        if "log2FoldChange" not in self.data.layers:
+            self._compute_activities()
+        return self.data.layers["log2FoldChange"]
+
+    @property
+    def barcode_counts(self):
+        return self.data.layers["barcode_counts"]
+
+    @property
+    def spearman_correlation_activity(self) -> np.ndarray:
+        """
+        Calculate and return the Spearman correlation for the grouped data.
+
+        This property checks if the Spearman correlation has already been computed
+        and stored in the `grouped_data` attribute. If not, it calls the `_correlation`
+        method to compute it. The computed Spearman correlation is then retrieved
+        from the `grouped_data.obsp` attribute.
+
+        Returns:
+            np.ndarray: The Spearman correlation matrix for the grouped data.
+        """
+
+        return self._correlation("spearman", self.activity, "log2FoldChange")
+
+    @property
+    def pearson_correlation_activity(self) -> np.ndarray:
+        """
+        Computes and returns the Pearson correlation matrix of log2FoldChange.
+
+        This property checks if the Pearson correlation matrix is already computed
+        and stored in the `grouped_data` attribute. If not, it calls the `_correlation`
+        method to compute it. The Pearson correlation matrix is then retrieved from
+        the `grouped_data` attribute.
+
+        Returns:
+            np.ndarray: The Pearson correlation matrix for the grouped data.
+        """
+        return self._correlation("pearson", self.activity, "log2FoldChange")
+
+    @classmethod
+    def from_file(cls, file_path: str) -> "MPRAOligoData":
+
+        return MPRAOligoData(ad.read(file_path))
+
+    def _compute_activities(self) -> None:
+        self.data.layers["log2FoldChange"] = np.log2(self.normalized_rna_counts / self.normalized_dna_counts)
+
+    def _normalize(self):
 
         self.drop_normalized()
 
-    def _add_metadata(self, key, value):
-        if isinstance(value, list):
-            if key not in self.data.uns:
-                self.data.uns[key] = value
-            else:
-                self.data.uns[key] = self.data.uns[key] + value
-        else:
-            self.data.uns[key] = value
+        self.LOGGER.info("Normalizing data")
 
-    def _correlation(self, method, layer):
-        if not self.grouped_data.uns[f"correlation_{layer}"]:
-            self._compute_correlation(layer)
-        return self.grouped_data.obsp[f"{method}_correlation_{layer}"]
+        self.data.layers["dna_normalized"] = self._normalize_layer(
+            self.dna_counts, ~self.var_filter.T.values, self.SCALING, self.PSEUDOCOUNT
+        )
+        self.data.layers["rna_normalized"] = self._normalize_layer(
+            self.rna_counts, ~self.var_filter.T.values, self.SCALING, self.PSEUDOCOUNT
+        )
+        self._add_metadata("normalized", True)
 
-    def _compute_correlation(self, layer):
-        """
-        Compute Pearson and Spearman correlation matrices for the log2FoldChange layer of grouped_data.
-        This method calculates both Pearson and Spearman correlation coefficients and their corresponding p-values
-        for each pair of rows in the log2FoldChange layer of the grouped_data attribute. The results are stored in
-        the obsp attribute of grouped_data with the following keys:
-        - "pearson_correlation": Pearson correlation coefficients matrix.
-        - "pearson_correlation_pvalue": p-values for the Pearson correlation coefficients.
-        - "spearman_correlation": Spearman correlation coefficients matrix.
-        - "spearman_correlation_pvalue": p-values for the Spearman correlation coefficients.
-        Additionally, a flag indicating that the correlation has been computed is stored in the uns attribute of
-        grouped_data with the key "correlation".
-        Returns:
-            None
-        """
-        num_columns = self.grouped_data.shape[0]
-        for correlation in ["pearson", "spearman"]:
-            self.grouped_data.obsp[f"{correlation}_correlation_{layer}"] = np.zeros((num_columns, num_columns))
-            self.grouped_data.obsp[f"{correlation}_correlation_{layer}_pvalue"] = np.zeros((num_columns, num_columns))
+    def _normalize_layer(self, counts: np.ndarray, not_var_filter: np.ndarray, scaling: float, pseudocount: int) -> np.ndarray:
 
-        def compute_correlation(x, y, method) -> tuple:
-            if method == "spearman":
-                return spearmanr(x, y)
-            elif method == "pearson":
-                return pearsonr(x, y)
-            else:
-                raise ValueError(f"Unsupported correlation method: {method}")
+        # I do a pseudo count when normalizing to avoid division by zero when computing logfold ratios.
+        # Pseudocount has also be done per barcode.
+        # var filter has to be used again because we want to have a zero on filtered values.
+        total_counts = np.sum((counts + (pseudocount * self.barcode_counts)) * not_var_filter, axis=1)
 
-        for i in range(num_columns):
-            for j in range(i, num_columns):
-                mask = ~np.isnan(self.grouped_data.layers[layer][i, :]) & ~np.isnan(self.grouped_data.layers[layer][j, :])
-                x = self.grouped_data.layers[layer][i, mask]
-                y = self.grouped_data.layers[layer][j, mask]
-
-                for method in ["spearman", "pearson"]:
-                    corr, pvalue = compute_correlation(x, y, method)
-                    self.grouped_data.obsp[f"{method}_correlation_{layer}"][i, j] = corr
-                    self.grouped_data.obsp[f"{method}_correlation_{layer}_pvalue"][i, j] = pvalue
-                    self.grouped_data.obsp[f"{method}_correlation_{layer}"][j, i] = corr
-                    self.grouped_data.obsp[f"{method}_correlation_{layer}_pvalue"][j, i] = pvalue
-
-        self.grouped_data.uns[f"correlation_{layer}"] = True
+        # Avoid division by zero when pseudocount is set to 0
+        total_counts[total_counts == 0] = 1
+        return (
+            ((counts + (pseudocount * self.barcode_counts)) / total_counts[:, np.newaxis] * scaling)
+            / self.barcode_counts
+        ) * not_var_filter
