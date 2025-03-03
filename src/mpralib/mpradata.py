@@ -65,6 +65,10 @@ class MPRAData(ABC):
         return self.data.n_obs
 
     @property
+    def oligos(self):
+        return self.data.var["oligo"]
+
+    @property
     def raw_rna_counts(self):
         return self.data.layers["rna"]
 
@@ -97,6 +101,15 @@ class MPRAData(ABC):
         if "rna_normalized" not in self.data.layers:
             self._normalize()
         return self.data.layers["rna_normalized"]
+
+    @property
+    def activity(self):
+        if "log2FoldChange" not in self.data.layers:
+            self._compute_activities()
+        return self.data.layers["log2FoldChange"]
+
+    def _compute_activities(self) -> None:
+        self.data.layers["log2FoldChange"] = np.log2(self.normalized_rna_counts / self.normalized_dna_counts)
 
     @property
     def observed(self):
@@ -141,65 +154,21 @@ class MPRAData(ABC):
         self.data.layers.pop("dna_normalized", None)
         self.data.uns["normalized"] = False
 
-    @property
-    def spearman_correlation_dna(self) -> np.ndarray:
+    def correlation(self, method="pearson", count_type="activity") -> np.ndarray:
         """
-        Calculate and return the Spearman correlation for the DNA normalized counts.
-
-        This property checks if the Spearman correlation has already been computed
-        and stored in the `grouped_data` attribute. If not, it calls the `_correlation`
-        method to compute it. The computed Spearman correlation is then retrieved
-        from the `grouped_data.obsp` attribute.
+        Calculates and return the correlation for activity or  normalized counts.
 
         Returns:
-            np.ndarray: The Spearman correlation matrix for the DNA normalized counts.
+            np.ndarray: The Pearson or Spearman correlation matrix.
         """
-        return self._correlation("spearman", self.normalized_dna_counts, "dna_normalized")
-
-    @property
-    def spearman_correlation_rna(self) -> np.ndarray:
-        """
-        Calculate and return the Spearman correlation for the RNA normalized counts.
-
-        This property checks if the Spearman correlation has already been computed
-        and stored in the `grouped_data` attribute. If not, it calls the `_correlation`
-        method to compute it. The computed Spearman correlation is then retrieved
-        from the `grouped_data.obsp` attribute.
-
-        Returns:
-            np.ndarray: The Spearman correlation matrix for the RNA normalized counts.
-        """
-        return self._correlation("spearman", self.normalized_rna_counts, "rna_normalized")
-
-    @property
-    def pearson_correlation_dna(self) -> np.ndarray:
-        """
-        Computes and returns the Pearson correlation matrix for DNA normalized counts.
-
-        This property checks if the Pearson correlation matrix is already computed
-        and stored in the `grouped_data` attribute. If not, it calls the `_correlation`
-        method to compute it. The Pearson correlation matrix is then retrieved from
-        the `grouped_data` attribute.
-
-        Returns:
-            np.ndarray: The Pearson correlation matrix for the DNA normalized counts.
-        """
-        return self._correlation("pearson", self.normalized_dna_counts, "dna_normalized")
-
-    @property
-    def pearson_correlation_rna(self) -> np.ndarray:
-        """
-        Computes and returns the Pearson correlation matrix for RNA normalized counts.
-
-        This property checks if the Pearson correlation matrix is already computed
-        and stored in the `grouped_data` attribute. If not, it calls the `_correlation`
-        method to compute it. The Pearson correlation matrix is then retrieved from
-        the `grouped_data` attribute.
-
-        Returns:
-            np.ndarray: The Pearson correlation matrix for the RNA normalized counts.
-        """
-        return self._correlation("pearson", self.normalized_rna_counts, "rna_normalized")
+        if count_type == "dna":
+            return self._correlation(method, self.normalized_dna_counts, "dna_normalized")
+        elif count_type == "rna":
+            return self._correlation(method, self.normalized_rna_counts, "rna_normalized")
+        elif count_type == "activity":
+            return self._correlation(method, self.activity, "log2FoldChange")
+        else:
+            raise ValueError(f"Unsupported count type: {count_type}")
 
     def _correlation(self, method, data, layer):
         if not self.data.uns[f"correlation_{layer}"]:
@@ -269,10 +238,6 @@ class MPRABarcodeData(MPRAData):
         self.LOGGER.info("Computing oligo data")
 
         return self._oligo_data()
-
-    @property
-    def oligos(self):
-        return self.data.var["oligo"]
 
     @property
     def variant_map(self) -> pd.DataFrame:
@@ -715,53 +680,35 @@ class MPRABarcodeData(MPRAData):
 class MPRAOligoData(MPRAData):
 
     @property
-    def activity(self):
-        if "log2FoldChange" not in self.data.layers:
-            self._compute_activities()
-        return self.data.layers["log2FoldChange"]
-
-    @property
     def barcode_counts(self):
         return self.data.layers["barcode_counts"]
 
-    @property
-    def spearman_correlation_activity(self) -> np.ndarray:
+    def correlation(self, method: str, count_type: str) -> np.ndarray:
         """
-        Calculate and return the Spearman correlation for the grouped data.
-
-        This property checks if the Spearman correlation has already been computed
-        and stored in the `grouped_data` attribute. If not, it calls the `_correlation`
-        method to compute it. The computed Spearman correlation is then retrieved
-        from the `grouped_data.obsp` attribute.
+        Calculates and return the correlation for activity or  normalized counts.
 
         Returns:
-            np.ndarray: The Spearman correlation matrix for the grouped data.
+            np.ndarray: The Pearson or Spearman correlation matrix.
         """
+        if count_type == "dna":
+            filtered = self.normalized_dna_counts.copy()
+            layer_name = "dna_normalized"
+        elif count_type == "rna":
+            layer_name = "rna_normalized"
+            filtered = self.normalized_rna_counts.copy()
+        elif count_type == "activity":
+            filtered = self.activity.copy()
+            layer_name = "log2FoldChange"
+        else:
+            raise ValueError(f"Unsupported count type: {count_type}")
 
-        return self._correlation("spearman", self.activity * (self.barcode_counts >= self.barcode_threshold), "log2FoldChange")
-
-    @property
-    def pearson_correlation_activity(self) -> np.ndarray:
-        """
-        Computes and returns the Pearson correlation matrix of log2FoldChange.
-
-        This property checks if the Pearson correlation matrix is already computed
-        and stored in the `grouped_data` attribute. If not, it calls the `_correlation`
-        method to compute it. The Pearson correlation matrix is then retrieved from
-        the `grouped_data` attribute.
-
-        Returns:
-            np.ndarray: The Pearson correlation matrix for the grouped data.
-        """
-        return self._correlation("pearson", self.activity * (self.barcode_counts >= self.barcode_threshold), "log2FoldChange")
+        filtered[self.barcode_counts < self.barcode_threshold] = np.nan
+        return self._correlation(method, filtered, layer_name)
 
     @classmethod
     def from_file(cls, file_path: str) -> "MPRAOligoData":
 
         return MPRAOligoData(ad.read(file_path))
-
-    def _compute_activities(self) -> None:
-        self.data.layers["log2FoldChange"] = np.log2(self.normalized_rna_counts / self.normalized_dna_counts)
 
     def _normalize(self):
 

@@ -4,7 +4,7 @@ import numpy as np
 import math
 import pysam
 from sklearn.preprocessing import MinMaxScaler
-from mpralib.mpradata import MPRABarcodeData, MPRAOligoData, BarcodeFilter
+from mpralib.mpradata import MPRABarcodeData, BarcodeFilter
 from mpralib.utils import chromosome_map, export_activity_file, export_barcode_file
 
 
@@ -51,6 +51,34 @@ def activities(input_file, bc_threshold, element_level, output_file):
         export_activity_file(mpradata.oligo_data, output_file)
     else:
         export_barcode_file(mpradata, output_file)
+
+
+@cli.command(help="Generating correlation of lo2 folds on barcode threshold.")
+@click.option(
+    "--input",
+    "input_file",
+    required=True,
+    type=click.Path(exists=True, readable=True),
+    help="Input file path of MPRA result in a barcode format.",
+)
+@click.option(
+    "--bc-threshold",
+    "bc_threshold",
+    required=False,
+    default=1,
+    type=int,
+    help="Using a barcode threshold for output (element level only).",
+)
+def correlation(input_file, bc_threshold):
+    mpradata = MPRABarcodeData.from_file(input_file).oligo_data
+
+    mpradata.barcode_threshold = bc_threshold
+
+    print(mpradata.correlation("pearson", "activity"))
+
+    print(mpradata.correlation("pearson", "dna"))
+
+    print(mpradata.correlation("pearson", "rna"))
 
 
 @cli.command()
