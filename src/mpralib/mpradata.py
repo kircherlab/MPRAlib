@@ -738,7 +738,7 @@ class MPRAOligoData(MPRAData):
             np.ndarray: The Spearman correlation matrix for the grouped data.
         """
 
-        return self._correlation("spearman", self.activity, "log2FoldChange")
+        return self._correlation("spearman", self.activity * (self.barcode_counts >= self.barcode_threshold), "log2FoldChange")
 
     @property
     def pearson_correlation_activity(self) -> np.ndarray:
@@ -753,7 +753,7 @@ class MPRAOligoData(MPRAData):
         Returns:
             np.ndarray: The Pearson correlation matrix for the grouped data.
         """
-        return self._correlation("pearson", self.activity, "log2FoldChange")
+        return self._correlation("pearson", self.activity * (self.barcode_counts >= self.barcode_threshold), "log2FoldChange")
 
     @classmethod
     def from_file(cls, file_path: str) -> "MPRAOligoData":
