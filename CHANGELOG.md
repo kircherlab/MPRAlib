@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.3.0](https://github.com/kircherlab/MPRAlib/compare/v0.2.2...v0.3.0) (2025-03-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* splitting oligo and barcode counts resulting in different interface
+
+### Features
+
+* adding qc metric notebook ([ab17436](https://github.com/kircherlab/MPRAlib/commit/ab17436634d4b4ea83a788d3583531db96cd562f))
+
+
+### Documentation
+
+* qc metric update ([eda4ca4](https://github.com/kircherlab/MPRAlib/commit/eda4ca477ec8cc24dc88e9e7229ce9c19ca3e24f))
+
+
+### Code Refactoring
+
+* splitting oligo and barcode counts resulting in different interface ([ef09d7a](https://github.com/kircherlab/MPRAlib/commit/ef09d7a15a002748b09e771a0230fe56ab33dc7f))
+
 ## [0.2.2](https://github.com/kircherlab/MPRAlib/compare/v0.2.1...v0.2.2) (2025-02-27)
 
 
