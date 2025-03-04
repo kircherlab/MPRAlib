@@ -12,7 +12,7 @@ from Bio import SeqIO
 @click.option("--barcode", "barcode_file", type=click.Path(exists=True), required=True, help="Path to the barcode count file.")
 @click.option("--design", "design_file", type=click.Path(exists=True), required=True, help="Path to the design file.")
 @click.option("--output", "output_file", type=click.Path(), help="Path to the output file for the metrics.")
-def cli(assignment_file, barcode_file, design_file):
+def cli(assignment_file, barcode_file, design_file, output_file):
 
     click.echo("===============Assignment===============")
     # median_assigned_barocdes
@@ -73,6 +73,9 @@ def cli(assignment_file, barcode_file, design_file):
         ignore_index=True,
     )
     print(assignment_metrics_df)
+
+    if output_file:
+        assignment_metrics_df.to_csv(output_file, sep='\t', index=False)
 
 
 def pct_oligos_passing(mpra_oligo_data, assigned_oligos):
