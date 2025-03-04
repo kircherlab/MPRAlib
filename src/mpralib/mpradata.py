@@ -109,7 +109,15 @@ class MPRAData(ABC):
         return self.data.layers["log2FoldChange"]
 
     def _compute_activities(self) -> None:
-        self.data.layers["log2FoldChange"] = np.log2(self.normalized_rna_counts / self.normalized_dna_counts)
+        ratio = np.divide(
+            self.normalized_rna_counts,
+            self.normalized_dna_counts,
+            where=self.normalized_dna_counts != 0,
+        )
+        with np.errstate(divide='ignore'):
+            log2ratio = np.log2(ratio)
+            log2ratio[np.isneginf(log2ratio)] = np.nan
+        self.data.layers["log2FoldChange"] = log2ratio * ~self.var_filter.T.values
 
     @property
     def observed(self):
@@ -136,11 +144,12 @@ class MPRAData(ABC):
 
     @property
     def barcode_threshold(self) -> int:
-        return self.data.uns["barcode_threshold"]
+        return self._get_metadata("barcode_threshold")
 
     @barcode_threshold.setter
     def barcode_threshold(self, barcode_threshold: int) -> None:
         self._add_metadata("barcode_threshold", barcode_threshold)
+        self._drop_correlation()
 
     @abstractmethod
     def _normalize(self):
@@ -152,7 +161,7 @@ class MPRAData(ABC):
 
         self.data.layers.pop("rna_normalized", None)
         self.data.layers.pop("dna_normalized", None)
-        self.data.uns["normalized"] = False
+        self._add_metadata("normalized", False)
 
     def correlation(self, method="pearson", count_type="activity") -> np.ndarray:
         """
@@ -171,7 +180,7 @@ class MPRAData(ABC):
             raise ValueError(f"Unsupported count type: {count_type}")
 
     def _correlation(self, method, data, layer):
-        if not self.data.uns[f"correlation_{layer}"]:
+        if not self._get_metadata(f"correlation_{layer}"):
             self._compute_correlation(data, layer)
         return self.data.obsp[f"{method}_correlation_{layer}"]
 
@@ -218,6 +227,17 @@ class MPRAData(ABC):
 
         self._add_metadata(f"correlation_{layer}", True)
 
+    def _drop_correlation(self) -> None:
+
+        for layer in ["rna_normalized", "dna_normalized", "log2FoldChange"]:
+            if self._get_metadata(f"correlation_{layer}"):
+                self.LOGGER.info(f"Dropping correlation for layer {layer}")
+
+                self._add_metadata(f"correlation_{layer}", False)
+                for method in ["pearson", "spearman"]:
+                    del self.data.obsp[f"{method}_correlation_{layer}"]
+                    del self.data.obsp[f"{method}_correlation_{layer}_pvalue"]
+
     def write(self, file_data_path: str) -> None:
         self.data.write(file_data_path)
 
@@ -229,6 +249,12 @@ class MPRAData(ABC):
                 self.data.uns[key] = self.data.uns[key] + value
         else:
             self.data.uns[key] = value
+
+    def _get_metadata(self, key):
+        if key in self.data.uns:
+            return self.data.uns[key]
+        else:
+            return None
 
 
 class MPRABarcodeData(MPRAData):
@@ -683,7 +709,7 @@ class MPRAOligoData(MPRAData):
     def barcode_counts(self):
         return self.data.layers["barcode_counts"]
 
-    def correlation(self, method: str, count_type: str) -> np.ndarray:
+    def correlation(self, method="pearson", count_type="activity") -> np.ndarray:
         """
         Calculates and return the correlation for activity or  normalized counts.
 
@@ -733,7 +759,8 @@ class MPRAOligoData(MPRAData):
 
         # Avoid division by zero when pseudocount is set to 0
         total_counts[total_counts == 0] = 1
+        scaled_counts = (counts + (pseudocount * self.barcode_counts)) / total_counts[:, np.newaxis] * scaling
         return (
-            ((counts + (pseudocount * self.barcode_counts)) / total_counts[:, np.newaxis] * scaling)
-            / self.barcode_counts
-        ) * not_var_filter
+            np.divide(scaled_counts, self.barcode_counts, where=self.barcode_counts != 0, out=np.zeros_like(scaled_counts))
+            * not_var_filter
+        )
