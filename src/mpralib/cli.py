@@ -257,7 +257,8 @@ def get_counts(input_file, metadata_file, filter, output_file):
             }"
     )
 
-    # TODO: Implement a barcode_threhold_filter silimar to var_filter marks barcodes/oligis with less than a certain number of counts
+
+    # TODO: Implement a barcode_threhold_filter silimar to var_filter marks barcodes/oligos with lessthan a certain number of counts
     if output_file:
         export_counts_file(mpradata, output_file)
 
