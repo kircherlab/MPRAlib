@@ -5,7 +5,7 @@ import math
 import pysam
 from sklearn.preprocessing import MinMaxScaler
 from mpralib.mpradata import MPRABarcodeData, BarcodeFilter
-from mpralib.utils import chromosome_map, export_activity_file, export_barcode_file
+from mpralib.utils import chromosome_map, export_activity_file, export_barcode_file, export_counts_file
 
 
 @click.group(help="Command line interface of MPRAlib, a library for MPRA data analysis.")
@@ -187,6 +187,8 @@ def get_variant_map(input_file, metadata_file, output_file):
     """Reads a file and generates an MPRAdata object."""
     mpradata = MPRABarcodeData.from_file(input_file)
 
+    mpradata = mpradata.oligo_data
+
     mpradata.add_metadata_file(metadata_file)
 
     variant_map = mpradata.variant_map
@@ -212,48 +214,47 @@ def get_variant_map(input_file, metadata_file, output_file):
     help="Input file path of MPRA results.",
 )
 @click.option(
-    "--output-dna",
-    "output_dna_file",
-    required=True,
-    type=click.Path(writable=True),
-    help="Output file of dna counts.",
-)
-@click.option(
-    "--output-rna",
-    "output_rna_file",
-    required=True,
-    type=click.Path(writable=True),
-    help="Output file of rna counts.",
-)
-@click.option(
-    "--output-mpra-data",
-    "output_mpra_data_file",
+    "--filter",
+    "filter",
     required=False,
-    type=(click.Path(writable=True), click.Path(writable=True)),
-    help="Output file of MPRA data object.",
+    type=click.Choice(["variants", "elements"]),
+    help="If set put out only counts from variants or elements defined in the metadata format.",
 )
-def get_element_counts(input_file, metadata_file, output_dna_file, output_rna_file, output_mpra_data_file):
+@click.option(
+    "--output",
+    "output_file",
+    required=False,
+    type=click.Path(writable=True),
+    help="Output file of all non zero counts, which are tagged as elements.",
+)
+def get_counts(input_file, metadata_file, filter, output_file):
 
-    mpradata = MPRABarcodeData.from_file(input_file)
+    mpradata = MPRABarcodeData.from_file(input_file).oligo_data
 
     mpradata.add_metadata_file(metadata_file)
 
     mpradata.barcode_threshold = 10
 
-    mpradata.apply_barcode_filter(BarcodeFilter.RNA_ZSCORE, {"times_zscore": 3})
+    click.echo(
+        f"Pearson correlation log2FoldChange, all oligos: {
+            mpradata.correlation("pearson", "activity").flatten()[[1, 2, 5]]
+            }"
+    )
+    print(np.sum(mpradata.dna_counts, axis=1))
 
     mask = mpradata.data.var["allele"].apply(lambda x: "ref" in x).values | (mpradata.data.var["category"] == "element")
 
     mpradata.var_filter = mpradata.var_filter | ~np.repeat(np.array(mask)[:, np.newaxis], 3, axis=1)
 
-    click.echo("After correlate filtering:")
-    click.echo(mpradata.pearson_correlation_activity)
+    click.echo(
+        f"Pearson correlation log2FoldChange, element oligos: {
+            mpradata.correlation("pearson", "activity").flatten()[[1, 2, 5]]
+            }"
+    )
 
-    mpradata.element_dna_counts.to_csv(output_dna_file, sep="\t", index=True)
-    mpradata.element_rna_counts.to_csv(output_rna_file, sep="\t", index=True)
-
-    if output_mpra_data_file:
-        mpradata.write(output_mpra_data_file[0], output_mpra_data_file[1])
+    # TODO: Implement a barcode_threhold_filter silimar to var_filter marks barcodes/oligis with less than a certain number of counts
+    if output_file:
+        export_counts_file(mpradata, output_file)
 
 
 @cli.command()

@@ -114,7 +114,7 @@ class MPRAData(ABC):
             self.normalized_dna_counts,
             where=self.normalized_dna_counts != 0,
         )
-        with np.errstate(divide='ignore'):
+        with np.errstate(divide="ignore"):
             log2ratio = np.log2(ratio)
             log2ratio[np.isneginf(log2ratio)] = np.nan
         self.data.layers["log2FoldChange"] = log2ratio * ~self.var_filter.T.values
@@ -151,6 +151,33 @@ class MPRAData(ABC):
         self._add_metadata("barcode_threshold", barcode_threshold)
         self._drop_correlation()
 
+    @property
+    def variant_map(self) -> pd.DataFrame:
+        # raise ValueError if metadata format not loaded.
+        if not self._get_metadata("metadata_file") and not (
+            isinstance(self, MPRAOligoData) and self._get_metadata("MPRABarcodeData_metadata_file")
+        ):
+            raise ValueError("Metadata file not loaded.")
+
+        spdis = set([item for sublist in self.data.var["SPDI"].values for item in sublist])
+
+        df = {"ID": [], "REF": [], "ALT": []}
+        for spdi in spdis:
+            df["ID"].append(spdi)
+            spdi_data = self.data[:, self.data.var["SPDI"].apply(lambda x: spdi in x)]
+            spdi_idx = spdi_data.var["SPDI"].apply(lambda x: x.index(spdi))
+            refs = []
+            alts = []
+            for idx, value in spdi_data.var["allele"].items():
+                if "ref" == value[spdi_idx[idx]]:
+                    refs.append(self.oligos[idx])
+                else:
+                    alts.append(self.oligos[idx])
+            df["REF"].append(refs)
+            df["ALT"].append(alts)
+
+        return pd.DataFrame(df, index=df["ID"]).set_index("ID")
+
     @abstractmethod
     def _normalize(self):
         pass
@@ -161,6 +188,9 @@ class MPRAData(ABC):
 
         self.data.layers.pop("rna_normalized", None)
         self.data.layers.pop("dna_normalized", None)
+
+        self._drop_correlation()
+
         self._add_metadata("normalized", False)
 
     def correlation(self, method="pearson", count_type="activity") -> np.ndarray:
@@ -185,20 +215,10 @@ class MPRAData(ABC):
         return self.data.obsp[f"{method}_correlation_{layer}"]
 
     def _compute_correlation(self, data, layer):
-        """
-        Compute Pearson and Spearman correlation matrices for the log2FoldChange layer of grouped_data.
-        This method calculates both Pearson and Spearman correlation coefficients and their corresponding p-values
-        for each pair of rows in the log2FoldChange layer of the grouped_data attribute. The results are stored in
-        the obsp attribute of grouped_data with the following keys:
-        - "pearson_correlation": Pearson correlation coefficients matrix.
-        - "pearson_correlation_pvalue": p-values for the Pearson correlation coefficients.
-        - "spearman_correlation": Spearman correlation coefficients matrix.
-        - "spearman_correlation_pvalue": p-values for the Spearman correlation coefficients.
-        Additionally, a flag indicating that the correlation has been computed is stored in the uns attribute of
-        grouped_data with the key "correlation".
-        Returns:
-            None
-        """
+
+        # apply var filter to data
+        data[self.var_filter.T] = np.nan
+
         num_columns = self.n_obs
         for correlation in ["pearson", "spearman"]:
             self.data.obsp[f"{correlation}_correlation_{layer}"] = np.zeros((num_columns, num_columns))
@@ -256,6 +276,31 @@ class MPRAData(ABC):
         else:
             return None
 
+    def add_metadata_file(self, metadata_file):
+        df_metadata = pd.read_csv(metadata_file, sep="\t", header=0, na_values=["NA"]).drop_duplicates()
+        df_metadata["name"] = pd.Categorical(df_metadata["name"].str.replace(" ", "_"))
+        df_metadata.set_index("name", inplace=True)
+        df_metadata["variant_class"] = df_metadata["variant_class"].fillna("[]").apply(ast.literal_eval)
+        df_metadata["variant_pos"] = df_metadata["variant_pos"].fillna("[]").apply(ast.literal_eval)
+        df_metadata["SPDI"] = df_metadata["SPDI"].fillna("[]").apply(ast.literal_eval)
+        df_metadata["allele"] = df_metadata["allele"].fillna("[]").apply(ast.literal_eval)
+
+        df_matched_metadata = df_metadata.loc[self.oligos]
+
+        self.data.var["category"] = pd.Categorical(df_matched_metadata["category"])
+        self.data.var["class"] = pd.Categorical(df_matched_metadata["class"])
+        self.data.var["ref"] = pd.Categorical(df_matched_metadata["ref"])
+        self.data.var["chr"] = pd.Categorical(df_matched_metadata["chr"])
+        self.data.var["start"] = df_matched_metadata["start"].values
+        self.data.var["end"] = df_matched_metadata["end"].values
+        self.data.var["strand"] = pd.Categorical(df_matched_metadata["strand"])
+        self.data.var["variant_class"] = df_matched_metadata["variant_class"].values
+        self.data.var["variant_pos"] = df_matched_metadata["variant_pos"].values
+        self.data.var["SPDI"] = df_matched_metadata["SPDI"].values
+        self.data.var["allele"] = df_matched_metadata["allele"].values
+
+        self._add_metadata("metadata_file", metadata_file)
+
 
 class MPRABarcodeData(MPRAData):
 
@@ -264,54 +309,6 @@ class MPRABarcodeData(MPRAData):
         self.LOGGER.info("Computing oligo data")
 
         return self._oligo_data()
-
-    @property
-    def variant_map(self) -> pd.DataFrame:
-        """
-        Generates a DataFrame mapping variant IDs to their reference and alternate alleles.
-        Returns:
-            pd.DataFrame: A DataFrame with columns 'REF' and 'ALT', indexed by variant IDs ('ID').
-                          'REF' contains lists of reference alleles, and 'ALT' contains lists of alternate alleles.
-        Raises:
-            ValueError: If the metadata file is not loaded in `self.data.uns`.
-        """
-        if "metadata_file" not in self.data.uns:
-            raise ValueError("Metadata file not loaded.")
-
-        spdis = set([item for sublist in self.oligo_data.var["SPDI"].values for item in sublist])
-
-        df = {"ID": [], "REF": [], "ALT": []}
-        for spdi in spdis:
-            df["ID"].append(spdi)
-            spdi_data = self.oligo_data[:, self.oligo_data.var["SPDI"].apply(lambda x: spdi in x)]
-            spdi_idx = spdi_data.var["SPDI"].apply(lambda x: x.index(spdi))
-            refs = []
-            alts = []
-            for idx, value in spdi_data.var["allele"].items():
-                if "ref" == value[spdi_idx[idx]]:
-                    refs.append(self.oligos[idx])
-                else:
-                    alts.append(self.oligos[idx])
-            df["REF"].append(refs)
-            df["ALT"].append(alts)
-
-        return pd.DataFrame(df, index=df["ID"]).set_index("ID")
-
-    @property
-    def element_dna_counts(self) -> pd.DataFrame:
-        return self._element_counts("dna")
-
-    @property
-    def element_rna_counts(self) -> pd.DataFrame:
-        return self._element_counts("rna")
-
-    def _element_counts(self, layer: str) -> pd.DataFrame:
-        df = {"ID": self.oligo_data.var["oligo"]}
-        for replicate in self.oligo_data.obs_names:
-            df["counts_" + replicate] = self.oligo_data[replicate, :].layers[layer][0]
-
-        df = pd.DataFrame(df).set_index("ID")
-        return df[(df.T != 0).all()]
 
     @property
     def variant_dna_counts(self) -> pd.DataFrame:
@@ -338,34 +335,6 @@ class MPRABarcodeData(MPRAData):
                 idx += 1
         df = pd.DataFrame(df).set_index("ID")
         return df[(df.T != 0).all()]
-
-    def add_metadata_file(self, metadata_file):
-        metadata = pd.read_csv(metadata_file, sep="\t", header=0, na_values=["NA"]).drop_duplicates()
-        metadata["name"] = pd.Categorical(metadata["name"].str.replace(" ", "_"))
-        metadata.set_index("name", inplace=True)
-        metadata["variant_class"] = metadata["variant_class"].fillna("[]").apply(ast.literal_eval)
-        metadata["variant_pos"] = metadata["variant_pos"].fillna("[]").apply(ast.literal_eval)
-        metadata["SPDI"] = metadata["SPDI"].fillna("[]").apply(ast.literal_eval)
-        metadata["allele"] = metadata["allele"].fillna("[]").apply(ast.literal_eval)
-
-        matched_metadata = metadata.loc[self.oligos]
-
-        self.data.var["category"] = pd.Categorical(matched_metadata["category"])
-        self.data.var["class"] = pd.Categorical(matched_metadata["class"])
-        self.data.var["ref"] = pd.Categorical(matched_metadata["ref"])
-        self.data.var["chr"] = pd.Categorical(matched_metadata["chr"])
-        self.data.var["start"] = matched_metadata["start"].values
-        self.data.var["end"] = matched_metadata["end"].values
-        self.data.var["strand"] = pd.Categorical(matched_metadata["strand"])
-        self.data.var["variant_class"] = matched_metadata["variant_class"].values
-        self.data.var["variant_pos"] = matched_metadata["variant_pos"].values
-        self.data.var["SPDI"] = matched_metadata["SPDI"].values
-        self.data.var["allele"] = matched_metadata["allele"].values
-
-        self._add_metadata("metadata_file", metadata_file)
-
-        # need to reset grouped data after adding metadata
-        self.oligo_data = None
 
     @classmethod
     def from_file(cls, file_path: str) -> "MPRABarcodeData":
