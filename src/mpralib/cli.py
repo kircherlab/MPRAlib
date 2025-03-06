@@ -69,16 +69,40 @@ def activities(input_file, bc_threshold, element_level, output_file):
     type=int,
     help="Using a barcode threshold for output (element level only).",
 )
-def correlation(input_file, bc_threshold):
+@click.option(
+    "--correlation-method",
+    "correlation_method",
+    required=False,
+    default="all",
+    type=click.Choice(["pearson", "spearman", "all"]),
+    help="Computing pearson, spearman or both.",
+)
+@click.option(
+    "--correlation-on",
+    "correlation_on",
+    required=False,
+    default="all",
+    type=click.Choice(["dna", "rna", "activity", "all"]),
+    help="Using a barcode threshold for output (element level only).",
+)
+def correlation(input_file, bc_threshold, correlation_on, correlation_method):
     mpradata = MPRABarcodeData.from_file(input_file).oligo_data
 
     mpradata.barcode_threshold = bc_threshold
 
-    print(mpradata.correlation("pearson", "activity"))
+    if correlation_on == "all":
+        correlation_on = ["dna", "rna", "activity"]
+    else:
+        correlation_on = [correlation_on]
 
-    print(mpradata.correlation("pearson", "dna"))
+    if correlation_method == "all":
+        correlation_method = ["pearson", "spearman"]
+    else:
+        correlation_method = [correlation_method]
 
-    print(mpradata.correlation("pearson", "rna"))
+    for method in correlation_method:
+        for on in correlation_on:
+            click.echo(f"{method} correlation on {on}: {mpradata.correlation(method, on).flatten()[[1, 2, 5]]}")
 
 
 @cli.command()
@@ -107,7 +131,7 @@ def correlation(input_file, bc_threshold):
 @click.option(
     "--output",
     "output_file",
-    required=True,
+    required=False,
     type=click.Path(writable=True),
     help="Output file of results.",
 )
@@ -117,36 +141,24 @@ def filter_outliers(input_file, rna_zscore_times, bc_threshold, output_file):
 
     mpradata.barcode_threshold = bc_threshold
 
-    # mpradata.apply_barcode_filter(OutlierFilter.MAD, {})
+    oligo_data = mpradata.oligo_data
+
+    click.echo(
+        f"Pearson correlation log2FoldChange BEFORE outlier removal: {
+            oligo_data.correlation("pearson", "activity").flatten()[[1, 2, 5]]
+            }"
+    )
 
     mpradata.apply_barcode_filter(BarcodeFilter.RNA_ZSCORE, {"times_zscore": rna_zscore_times})
 
-    print(mpradata.spearman_correlation_activity)
-    print(mpradata.pearson_correlation_activity)
-
-    data = mpradata.oligo_data
-
-    print(data.layers["barcodes"].sum())
-    print((data.layers["barcodes"] == 0).sum())
-
-    output = pd.DataFrame()
-
-    for replicate in data.obs["replicate"]:
-        replicate_data = data[replicate, :]
-        replicate_data = replicate_data[:, replicate_data.layers["barcodes"] >= bc_threshold]
-        df = {
-            "replicate": np.repeat(replicate, replicate_data.var_names.size),
-            "oligo_name": replicate_data.var_names.values,
-            "dna_counts": replicate_data.layers["dna"][0, :],
-            "rna_counts": replicate_data.layers["rna"][0, :],
-            "dna_normalized": np.round(replicate_data.layers["dna_normalized"][0, :], 4),
-            "rna_normalized": np.round(replicate_data.layers["rna_normalized"][0, :], 4),
-            "log2FoldChange": np.round(replicate_data.layers["log2FoldChange"][0, :], 4),
-            "n_bc": replicate_data.layers["barcodes"][0, :],
-        }
-        output = pd.concat([output, pd.DataFrame(df)], axis=0)
-
-    output.to_csv(output_file, sep="\t", index=False)
+    oligo_data = mpradata.oligo_data
+    click.echo(
+        f"Pearson correlation log2FoldChange AFTER outlier removal: {
+            oligo_data.correlation("pearson", "activity").flatten()[[1, 2, 5]]
+            }"
+    )
+    if output_file:
+        export_activity_file(oligo_data, output_file)
 
 
 @cli.command()
