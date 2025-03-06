@@ -242,9 +242,14 @@ def get_counts(input_file, metadata_file, filter, output_file):
     )
     print(np.sum(mpradata.dna_counts, axis=1))
 
-    mask = mpradata.data.var["allele"].apply(lambda x: "ref" in x).values | (mpradata.data.var["category"] == "element")
+    if filter == "elements":
 
-    mpradata.var_filter = mpradata.var_filter | ~np.repeat(np.array(mask)[:, np.newaxis], 3, axis=1)
+        mask = mpradata.data.var["allele"].apply(lambda x: "ref" in x).values | (mpradata.data.var["category"] == "element")
+        mpradata.var_filter = mpradata.var_filter | ~np.repeat(np.array(mask)[:, np.newaxis], 3, axis=1)
+
+    if filter == "variants":
+        pass
+        # TODO variants filtering
 
     click.echo(
         f"Pearson correlation log2FoldChange, element oligos: {
