@@ -63,4 +63,4 @@ names <- c("ID", colnames(mpra_element))
 mpra_element$ID <- rownames(mpra_element)
 mpra_element <- mpra_element[, names]
 
-write.table(mpra_element, "test_mpralm_out.tsv.gz", row.names = FALSE, sep = "\t", quote = FALSE)
+write.table(mpra_element, "test/test_bc_element_bcalm.tsv.gz", row.names = FALSE, sep = "\t", quote = FALSE)
