@@ -53,7 +53,7 @@ def activities(input_file, bc_threshold, element_level, output_file):
         export_barcode_file(mpradata, output_file)
 
 
-@cli.command(help="Generating correlation of lo2 folds on barcode threshold.")
+@cli.command(help="Compute pairwise correlations under a certain barcode threshold.")
 @click.option(
     "--input",
     "input_file",
@@ -105,7 +105,7 @@ def correlation(input_file, bc_threshold, correlation_on, correlation_method):
             click.echo(f"{method} correlation on {on}: {mpradata.correlation(method, on).flatten()[[1, 2, 5]]}")
 
 
-@cli.command()
+@cli.command(help="Filter out outliers based on RNA z-score and copute correlations before and afterwards.")
 @click.option(
     "--input",
     "input_file",
@@ -161,7 +161,7 @@ def filter_outliers(input_file, rna_zscore_times, bc_threshold, output_file):
         export_activity_file(oligo_data, output_file)
 
 
-@cli.command()
+@cli.command(help="Using a metadata file to generate a oligo to variant mapping.")
 @click.option(
     "--input",
     "input_file",
@@ -198,7 +198,7 @@ def get_variant_map(input_file, metadata_file, output_file):
     variant_map.to_csv(output_file, sep="\t", index=True)
 
 
-@cli.command()
+@cli.command(help="Return DNA and RNA counts for all oligos or only thosed tagges as elements/ref snvs.")
 @click.option(
     "--input",
     "input_file",
@@ -214,42 +214,47 @@ def get_variant_map(input_file, metadata_file, output_file):
     help="Input file path of MPRA results.",
 )
 @click.option(
-    "--filter",
-    "filter",
+    "--oligos/--barcodes",
+    "use_oligos",
     required=False,
-    type=click.Choice(["variants", "elements"]),
-    help="If set put out only counts from variants or elements defined in the metadata format.",
+    type=click.BOOL,
+    default=True,
+    help="Return counst per oligo or per barcode.",
+)
+@click.option(
+    "--elements-only/--all-oligos",
+    "elements_only",
+    required=False,
+    type=click.BOOL,
+    default=False,
+    help="Only return count data for elements and ref sequence of variants.",
 )
 @click.option(
     "--output",
     "output_file",
     required=False,
     type=click.Path(writable=True),
-    help="Output file of all non zero counts, which are tagged as elements.",
+    help="Output file of all non zero counts.",
 )
-def get_counts(input_file, metadata_file, filter, output_file):
+def get_counts(input_file, metadata_file, use_oligos, elements_only, output_file):
 
-    mpradata = MPRABarcodeData.from_file(input_file).oligo_data
+    mpradata = MPRABarcodeData.from_file(input_file)
+
+    if use_oligos:
+        mpradata = mpradata.oligo_data
 
     mpradata.add_metadata_file(metadata_file)
-
-    mpradata.barcode_threshold = 10
 
     click.echo(
         f"Pearson correlation log2FoldChange, all oligos: {
             mpradata.correlation("pearson", "activity").flatten()[[1, 2, 5]]
             }"
     )
-    print(np.sum(mpradata.dna_counts, axis=1))
 
-    if filter == "elements":
+    if elements_only:
 
         mask = mpradata.data.var["allele"].apply(lambda x: "ref" in x).values | (mpradata.data.var["category"] == "element")
         mpradata.var_filter = mpradata.var_filter | ~np.repeat(np.array(mask)[:, np.newaxis], 3, axis=1)
-
-    if filter == "variants":
-        pass
-        # TODO variants filtering
 
     click.echo(
         f"Pearson correlation log2FoldChange, element oligos: {
@@ -257,13 +262,12 @@ def get_counts(input_file, metadata_file, filter, output_file):
             }"
     )
 
-
     # TODO: Implement a barcode_threhold_filter silimar to var_filter marks barcodes/oligos with lessthan a certain number of counts
     if output_file:
         export_counts_file(mpradata, output_file)
 
 
-@cli.command()
+@cli.command(help="Write out DNA and RNA counts for REF and ALT oligos.")
 @click.option(
     "--input",
     "input_file",
@@ -279,40 +283,48 @@ def get_counts(input_file, metadata_file, filter, output_file):
     help="Input file path of MPRA results.",
 )
 @click.option(
-    "--output-dna",
-    "output_dna_file",
+    "--output",
+    "output_file",
     required=True,
     type=click.Path(writable=True),
-    help="Output file of dna counts.",
+    help="Output file of all non zero counts, divided by ref and alt.",
 )
-@click.option(
-    "--output-rna",
-    "output_rna_file",
-    required=True,
-    type=click.Path(writable=True),
-    help="Output file of rna counts.",
-)
-def get_variant_counts(input_file, metadata_file, output_dna_file, output_rna_file):
+def get_variant_counts(input_file, metadata_file, output_file):
     """Reads a file and generates an MPRAdata object."""
-    mpradata = MPRABarcodeData.from_file(input_file)
+    mpradata = MPRABarcodeData.from_file(input_file).oligo_data
 
     mpradata.add_metadata_file(metadata_file)
 
-    click.echo("Initial Pearson correlation:")
-    click.echo(mpradata.pearson_correlation_activity)
+    mask = mpradata.data.var["category"] == "variant"
+    mpradata.var_filter = mpradata.var_filter | ~np.repeat(np.array(mask)[:, np.newaxis], 3, axis=1)
 
-    mpradata.barcode_threshold = 10
+    df = {"ID": []}
+    for replicate in mpradata.obs_names:
+        df["dna_counts_" + replicate + "_REF"] = []
+        df["dna_counts_" + replicate + "_ALT"] = []
+        df["rna_counts_" + replicate + "_REF"] = []
+        df["rna_counts_" + replicate + "_ALT"] = []
 
-    click.echo("After BC-threshold filtering:")
-    click.echo(mpradata.pearson_correlation_activity)
+    for spdi, row in mpradata.variant_map.iterrows():
+        df["ID"].append(spdi)
+        mask_ref = mpradata.oligos.isin(row["REF"])
+        mask_alt = mpradata.oligos.isin(row["ALT"])
+        dna_counts_ref = mpradata.dna_counts[:, mask_ref].sum(axis=1)
+        dna_counts_alt = mpradata.dna_counts[:, mask_alt].sum(axis=1)
+        rna_counts_ref = mpradata.rna_counts[:, mask_ref].sum(axis=1)
+        rna_counts_alt = mpradata.rna_counts[:, mask_alt].sum(axis=1)
+        idx = 0
+        for idx, replicate in enumerate(mpradata.obs_names):
+            df["dna_counts_" + replicate + "_REF"].append(dna_counts_ref[idx])
+            df["dna_counts_" + replicate + "_ALT"].append(dna_counts_alt[idx])
+            df["rna_counts_" + replicate + "_REF"].append(rna_counts_ref[idx])
+            df["rna_counts_" + replicate + "_ALT"].append(rna_counts_alt[idx])
+    df = pd.DataFrame(df).set_index("ID")
 
-    mpradata.apply_barcode_filter(BarcodeFilter.RNA_ZSCORE, {"times_zscore": 3})
+    # remove IDs which are all zero
+    df = df[(df.T != 0).all()]
 
-    click.echo("After ZSCORE filtering:")
-    click.echo(mpradata.pearson_correlation_activity)
-
-    mpradata.variant_dna_counts.to_csv(output_dna_file, sep="\t", index=True)
-    mpradata.variant_rna_counts.to_csv(output_rna_file, sep="\t", index=True)
+    df.to_csv(output_file, sep="\t", index=True)
 
 
 @cli.command()

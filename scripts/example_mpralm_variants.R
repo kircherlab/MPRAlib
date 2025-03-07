@@ -5,8 +5,12 @@ library(tidyr)
 
 
 # read in the data
-DNA <- read.table("test_dna.tsv.gz", header = T, row.names = "ID")
-RNA <- read.table("test_rna.tsv.gz", header = T, row.names = "ID")
+COUNTS <- read.table("test_variant_counts.tsv.gz", header = T, row.names = "ID")
+
+DNA <- COUNTS[, grepl("dna", colnames(COUNTS))]
+colnames(DNA) <- gsub("dna_", "", colnames(DNA))
+RNA <- COUNTS[, grepl("rna", colnames(COUNTS))]
+colnames(RNA) <- gsub("rna_", "", colnames(RNA))
 
 
 # create the MPRASet object
@@ -24,7 +28,7 @@ design <- data.frame(
     alleleB = grepl("ALT", colnames(DNA))
 )
 # create the block vector
-block_vector <- rep(1:3, each = 2)
+block_vector <- rep(1:(ncol(DNA) / 2), each = 2)
 
 # run the mpralm analysis
 mpralm_allele_fit <- mpralm(
@@ -93,4 +97,4 @@ names <- c("ID", colnames(toptab))
 toptab$ID <- rownames(toptab)
 toptab <- toptab[, names]
 
-write.table(toptab, "test_mpralm_out.tsv.gz", row.names = FALSE, sep = "\t", quote = FALSE)
+write.table(toptab, "test_variants_mpralm_out.tsv.gz", row.names = FALSE, sep = "\t", quote = FALSE)

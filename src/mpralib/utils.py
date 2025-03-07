@@ -95,15 +95,15 @@ def export_counts_file(mpradata: MPRAData, output_file_path: str) -> None:
     if isinstance(mpradata, MPRAOligoData):
         df = {"ID": mpradata.oligos}
     else:
-        df = {"ID": mpradata.var_names}
+        df = {"ID": mpradata.var_names, "name": mpradata.oligos}
     dna_counts = mpradata.dna_counts
     rna_counts = mpradata.rna_counts
     for idx, replicate in enumerate(mpradata.obs_names):
-        df["dna_counts_" + replicate] = dna_counts[idx, :]
-        df["rna_counts_" + replicate] = rna_counts[idx, :]
+        df["dna_count_" + replicate] = dna_counts[idx, :]
+        df["rna_count_" + replicate] = rna_counts[idx, :]
 
     df = pd.DataFrame(df).set_index("ID")
     # remove IDs which are all zero
     df = df[(df.T != 0).all()]
 
-    df.to_csv(output_file_path, sep="\t", index=False)
+    df.to_csv(output_file_path, sep="\t", index=True)

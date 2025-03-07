@@ -1,45 +1,28 @@
-library(mpra)
+library(BCalm)
 library(dplyr)
 library(ggplot2)
 library(tidyr)
 
-
 # read in the data
-COUNTS <- read.table("test_counts.tsv.gz", header = T, row.names = "ID")
+COUNTS <- read.table("test/test_bc_element_counts.tsv.gz", header = T)
 
-DNA <- COUNTS[, grepl("dna", colnames(COUNTS))]
-colnames(DNA) <- gsub("dna_", "", colnames(DNA))
-RNA <- COUNTS[, grepl("rna", colnames(COUNTS))]
-colnames(RNA) <- gsub("rna_", "", colnames(RNA))
+dna_elem <- create_dna_df(COUNTS, id_column_name = "oligos")
+rna_elem <- create_rna_df(COUNTS, id_column_name = "oligos")
 
+# BcLabelMPRASetExample <- MPRASet(DNA = dna_elem, RNA = rna_elem, eid = row.names(dna_elem), barcode = NULL, label=LabelExample))
 
 # create the MPRASet object
-mpraset <- MPRASet(
-    DNA = DNA,
-    RNA = RNA,
-    eid = rownames(DNA),
-    eseq = NULL,
-    barcode = NULL
-)
+mpraset <- MPRASet(DNA = dna_elem, RNA = rna_elem, eid = row.names(dna_elem), barcode = NULL)
 
-# create the design matrix
-design <- model.matrix(~1, data = data.frame(sample = 1:ncol(DNA)))
+nr_reps <- 3
+bcs <- ncol(dna_elem) / nr_reps
+block_vector <- rep(1:nr_reps, each = bcs)
+
+mpralm_fit_elem <- fit_elements(object = mpraset, normalize = TRUE, block = block_vector, plot = FALSE)
 
 
-# run the mpralm analysis
-fit_element <- mpralm(
-    object = mpraset,
-    design = design,
-    aggregate = "none",
-    normalize = TRUE,
-    model_type = "indep_groups",
-    plot = TRUE
-)
-
-toptab_element <- topTable(fit_element, coef = 1, number = Inf)
+toptab_element <- topTable(mpralm_fit_elem, coef = 1, number = Inf)
 toptab_element %>% head()
-
-
 
 
 pos_ctrl <- toptab_element[grep("^Positive_", rownames(toptab_element)), ]
@@ -59,7 +42,7 @@ lines(density(pos_ctrl$logFC), col = "green", lwd = 1.5)
 thr <- quantile(neg_ctrl$logFC, 0.9)
 
 # Re-evaluate
-tr <- treat(fit_element, lfc = thr)
+tr <- treat(mpralm_fit_elem, lfc = thr)
 mpra_element <- topTreat(tr, coef = 1, number = Inf)
 
 # Make volcano plot with cutoff of FDR < 0.01

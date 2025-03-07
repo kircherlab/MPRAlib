@@ -310,32 +310,6 @@ class MPRABarcodeData(MPRAData):
 
         return self._oligo_data()
 
-    @property
-    def variant_dna_counts(self) -> pd.DataFrame:
-        return self._variant_counts("dna")
-
-    @property
-    def variant_rna_counts(self) -> pd.DataFrame:
-        return self._variant_counts("rna")
-
-    def _variant_counts(self, layer: str) -> pd.DataFrame:
-        df = {"ID": []}
-        for replicate in self.oligo_data.obs_names:
-            df["counts_" + replicate + "_REF"] = []
-            df["counts_" + replicate + "_ALT"] = []
-
-        for spdi, row in self.variant_map.iterrows():
-            df["ID"].append(spdi)
-            counts_ref = self.oligo_data.layers[layer][:, self.oligo_data.var["oligo"].isin(row["REF"])].sum(axis=1)
-            counts_alt = self.oligo_data.layers[layer][:, self.oligo_data.var["oligo"].isin(row["ALT"])].sum(axis=1)
-            idx = 0
-            for replicate in self.oligo_data.obs_names:
-                df["counts_" + replicate + "_REF"].append(counts_ref[idx])
-                df["counts_" + replicate + "_ALT"].append(counts_alt[idx])
-                idx += 1
-        df = pd.DataFrame(df).set_index("ID")
-        return df[(df.T != 0).all()]
-
     @classmethod
     def from_file(cls, file_path: str) -> "MPRABarcodeData":
         """
