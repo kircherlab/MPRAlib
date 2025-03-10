@@ -97,7 +97,9 @@ def export_counts_file(mpradata: MPRAData, output_file_path: str) -> None:
     else:
         df = {"ID": mpradata.var_names, "name": mpradata.oligos}
     dna_counts = mpradata.dna_counts
+    dna_counts[mpradata.barcode_counts < mpradata.barcode_threshold] = 0
     rna_counts = mpradata.rna_counts
+    rna_counts[mpradata.barcode_counts < mpradata.barcode_threshold] = 0
     for idx, replicate in enumerate(mpradata.obs_names):
         df["dna_count_" + replicate] = dna_counts[idx, :]
         df["rna_count_" + replicate] = rna_counts[idx, :]

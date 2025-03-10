@@ -143,6 +143,11 @@ class MPRAData(ABC):
         self.drop_normalized()
 
     @property
+    @abstractmethod
+    def barcode_counts(self):
+        pass
+
+    @property
     def barcode_threshold(self) -> int:
         return self._get_metadata("barcode_threshold")
 
@@ -188,26 +193,30 @@ class MPRAData(ABC):
 
         self.data.layers.pop("rna_normalized", None)
         self.data.layers.pop("dna_normalized", None)
-
         self._drop_correlation()
-
         self._add_metadata("normalized", False)
 
     def correlation(self, method="pearson", count_type="activity") -> np.ndarray:
         """
-        Calculates and return the correlation for activity or  normalized counts.
+        Calculates and return the correlation for activity or normalized counts.
 
         Returns:
             np.ndarray: The Pearson or Spearman correlation matrix.
         """
         if count_type == "dna":
-            return self._correlation(method, self.normalized_dna_counts, "dna_normalized")
+            filtered = self.normalized_dna_counts.copy()
+            layer_name = "dna_normalized"
         elif count_type == "rna":
-            return self._correlation(method, self.normalized_rna_counts, "rna_normalized")
+            layer_name = "rna_normalized"
+            filtered = self.normalized_rna_counts.copy()
         elif count_type == "activity":
-            return self._correlation(method, self.activity, "log2FoldChange")
+            filtered = self.activity.copy()
+            layer_name = "log2FoldChange"
         else:
             raise ValueError(f"Unsupported count type: {count_type}")
+
+        filtered[self.barcode_counts < self.barcode_threshold] = np.nan
+        return self._correlation(method, filtered, layer_name)
 
     def _correlation(self, method, data, layer):
         if not self._get_metadata(f"correlation_{layer}"):
@@ -305,6 +314,17 @@ class MPRAData(ABC):
 class MPRABarcodeData(MPRAData):
 
     @property
+    def barcode_counts(self):
+        return self._barcode_counts()
+
+    def _barcode_counts(self):
+        return pd.DataFrame(
+            self.observed * ~self.var_filter.T.values,
+            index=self.obs_names,
+            columns=self.var_names,
+        ).T.groupby(self.oligos, observed=True).transform("sum").T
+
+    @property
     def oligo_data(self) -> ad.AnnData:
         self.LOGGER.info("Computing oligo data")
 
@@ -396,7 +416,7 @@ class MPRABarcodeData(MPRAData):
         oligo_data.layers["rna"] = oligo_data.X.copy()
         oligo_data.layers["dna"] = self._sum_counts_by_oligo(self.dna_counts)
 
-        oligo_data.layers["barcode_counts"] = self._compute_supporting_barcodes()
+        oligo_data.layers["barcode_counts"] = self._supporting_barcodes_per_oligo()
 
         oligo_data.obs_names = self.obs_names
         oligo_data.var_names = self.data.var["oligo"].unique().tolist()
@@ -427,7 +447,7 @@ class MPRABarcodeData(MPRAData):
         # Perform an operation on each group, e.g., mean
         return grouped.sum().T
 
-    def _compute_supporting_barcodes(self):
+    def _supporting_barcodes_per_oligo(self):
 
         grouped = pd.DataFrame(
             self.observed * ~self.var_filter.T.values,
@@ -651,28 +671,6 @@ class MPRAOligoData(MPRAData):
     @property
     def barcode_counts(self):
         return self.data.layers["barcode_counts"]
-
-    def correlation(self, method="pearson", count_type="activity") -> np.ndarray:
-        """
-        Calculates and return the correlation for activity or  normalized counts.
-
-        Returns:
-            np.ndarray: The Pearson or Spearman correlation matrix.
-        """
-        if count_type == "dna":
-            filtered = self.normalized_dna_counts.copy()
-            layer_name = "dna_normalized"
-        elif count_type == "rna":
-            layer_name = "rna_normalized"
-            filtered = self.normalized_rna_counts.copy()
-        elif count_type == "activity":
-            filtered = self.activity.copy()
-            layer_name = "log2FoldChange"
-        else:
-            raise ValueError(f"Unsupported count type: {count_type}")
-
-        filtered[self.barcode_counts < self.barcode_threshold] = np.nan
-        return self._correlation(method, filtered, layer_name)
 
     @classmethod
     def from_file(cls, file_path: str) -> "MPRAOligoData":

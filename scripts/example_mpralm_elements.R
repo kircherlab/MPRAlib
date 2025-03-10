@@ -5,7 +5,7 @@ library(tidyr)
 
 
 # read in the data
-COUNTS <- read.table("test_counts.tsv.gz", header = T, row.names = "ID")
+COUNTS <- read.table("test/test_oligo_element_counts.tsv.gz", header = T, row.names = "ID")
 
 DNA <- COUNTS[, grepl("dna", colnames(COUNTS))]
 colnames(DNA) <- gsub("dna_", "", colnames(DNA))
@@ -33,7 +33,7 @@ fit_element <- mpralm(
     aggregate = "none",
     normalize = TRUE,
     model_type = "indep_groups",
-    plot = TRUE
+    plot <- FALSE
 )
 
 toptab_element <- topTable(fit_element, coef = 1, number = Inf)
@@ -80,4 +80,4 @@ names <- c("ID", colnames(mpra_element))
 mpra_element$ID <- rownames(mpra_element)
 mpra_element <- mpra_element[, names]
 
-write.table(mpra_element, "test_mpralm_out.tsv.gz", row.names = FALSE, sep = "\t", quote = FALSE)
+write.table(mpra_element, "test/test_oligo_element_mpralm.tsv.gz", row.names = FALSE, sep = "\t", quote = FALSE)

@@ -4,10 +4,10 @@ library(ggplot2)
 library(tidyr)
 
 # read in the data
-COUNTS <- read.table("test/test_bc_element_counts.tsv.gz", header = T)
+COUNTS <- read.table("test/test_bc_element_counts_bc10.tsv.gz", header = T)
 
-dna_elem <- create_dna_df(COUNTS, id_column_name = "oligos")
-rna_elem <- create_rna_df(COUNTS, id_column_name = "oligos")
+dna_elem <- create_dna_df(COUNTS, id_column_name = "name")
+rna_elem <- create_rna_df(COUNTS, id_column_name = "name")
 
 # BcLabelMPRASetExample <- MPRASet(DNA = dna_elem, RNA = rna_elem, eid = row.names(dna_elem), barcode = NULL, label=LabelExample))
 
@@ -63,4 +63,4 @@ names <- c("ID", colnames(mpra_element))
 mpra_element$ID <- rownames(mpra_element)
 mpra_element <- mpra_element[, names]
 
-write.table(mpra_element, "test/test_bc_element_bcalm.tsv.gz", row.names = FALSE, sep = "\t", quote = FALSE)
+write.table(mpra_element, "test/test_bc_element_bcalm_bc10.tsv.gz", row.names = FALSE, sep = "\t", quote = FALSE)

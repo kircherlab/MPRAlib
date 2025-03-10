@@ -103,7 +103,7 @@ class TestMPRAdataSampling(unittest.TestCase):
 
     def test_compute_supporting_barcodes(self):
         # Manually set grouped_data for testing
-        supporting_barcodes = self.mpra_data._compute_supporting_barcodes()
+        supporting_barcodes = self.mpra_data._supporting_barcodes_per_oligo()
 
         expected_barcodes = np.array([[2, 1, 2], [2, 1, 2], [2, 1, 2]])
 
@@ -111,7 +111,7 @@ class TestMPRAdataSampling(unittest.TestCase):
 
     def test_compute_supporting_barcodes_with_filter(self):
 
-        supporting_barcodes = self.mpra_data_with_bc_filter._compute_supporting_barcodes()
+        supporting_barcodes = self.mpra_data_with_bc_filter._supporting_barcodes_per_oligo()
 
         expected_barcodes = np.array([[2, 0, 2], [1, 1, 2], [2, 1, 0]])
 
