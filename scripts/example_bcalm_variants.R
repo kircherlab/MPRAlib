@@ -5,7 +5,9 @@ library(tidyr)
 
 # read in the data
 COUNTS <- read.table("test/test_bc_variant_counts.tsv.gz", header = T)
-MAP <- read.table("test/test_variant_map.tsv.gz", header = T)
+colnames(COUNTS) <- c("Barcode", "name", "dna_count_1", "rna_count_1", "dna_count_2", "rna_count_2", "dna_count_3", "rna_count_3")
+
+MAP <- read.table("test/test_variant_map_fix.tsv.gz", header = T)
 
 var_df <- create_var_df(COUNTS, MAP)
 
@@ -19,7 +21,7 @@ nr_reps <- 3
 bcs <- ncol(dna_var) / nr_reps
 design <- data.frame(intcpt = 1, alt = grepl("alt", colnames(mpraset)))
 block_vector <- rep(1:nr_reps, each = bcs)
-mpralm_fit_var <- mpralm(object = BcVariantMmprasetPRASetExample, design = design, aggregate = "none", normalize = TRUE, model_type = "corr_groups", plot = FALSE, block = block_vector)
+mpralm_fit_var <- mpralm(object = mpraset, design = design, aggregate = "none", normalize = TRUE, model_type = "corr_groups", plot = FALSE, block = block_vector)
 
 top_var <- topTable(mpralm_fit_var, coef = 2, number = Inf)
 
