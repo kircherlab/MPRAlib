@@ -7,6 +7,7 @@ from sklearn.preprocessing import MinMaxScaler
 from mpralib.mpradata import MPRABarcodeData, BarcodeFilter
 from mpralib.utils import chromosome_map, export_activity_file, export_barcode_file, export_counts_file
 
+pd.options.mode.copy_on_write = True
 
 @click.group(help="Command line interface of MPRAlib, a library for MPRA data analysis.")
 def cli():
@@ -193,6 +194,7 @@ def get_variant_map(input_file, metadata_file, output_file):
 
     variant_map = mpradata.variant_map
     for key in ["REF", "ALT"]:
+        # TODO: what happens a variant has multiple alt alleles? Right now joined by comma. But maybe I hould use one row per ref/alt pai?
         variant_map[key] = [",".join(i) for i in variant_map[key]]
 
     variant_map.to_csv(output_file, sep="\t", index=True)
@@ -327,6 +329,7 @@ def get_variant_counts(input_file, metadata_file, bc_threshold, use_oligos, outp
     variant_map = mpradata.variant_map()
 
     if use_oligos:
+        # TODO adapt to Barcode thresholds
 
         mpradata = mpradata.oligo_data
 
@@ -335,21 +338,14 @@ def get_variant_counts(input_file, metadata_file, bc_threshold, use_oligos, outp
             for rna_or_dna in ["dna", "rna"]:
                 df[f"{rna_or_dna}_count_{replicate}_REF"] = []
                 df[f"{rna_or_dna}_count_{replicate}_ALT"] = []
-    else:
-        df = {"variant_id": [], "allele": [], "barcode": [] }
-        for rna_or_dna in ["dna", "rna"]:
-            for replicate in mpradata.obs_names:
-                df[f"{rna_or_dna}_count_{replicate}"] = []
 
-    dna_counts = mpradata.dna_counts.copy()
-    rna_counts = mpradata.dna_counts.copy()
+        dna_counts = mpradata.dna_counts.copy()
+        rna_counts = mpradata.dna_counts.copy()
 
-    for spdi, row in variant_map.iterrows():
+        for spdi, row in variant_map.iterrows():
 
-        mask_ref = mpradata.oligos.isin(row["REF"])
-        mask_alt = mpradata.oligos.isin(row["ALT"])
-
-        if use_oligos:
+            mask_ref = mpradata.oligos.isin(row["REF"])
+            mask_alt = mpradata.oligos.isin(row["ALT"])
 
             df["variant_id"].append(spdi)
 
@@ -365,18 +361,12 @@ def get_variant_counts(input_file, metadata_file, bc_threshold, use_oligos, outp
                 df[f"dna_counts_{replicate}_ALT"].append(dna_counts_alt[idx])
                 df[f"rna_counts_{replicate}_ALT"].append(rna_counts_alt[idx])
 
-    if use_oligos:
         df = pd.DataFrame(df).set_index("variant_id")
+        # remove IDs which are all zero
+        df = df[(df.T != 0).all()].dropna()
+        df.to_csv(output_file, sep="\t", index=True)
     else:
-        df = pd.DataFrame(df).set_index(["variant_id", "allele", "barcode"])
-    # remove IDs which are all zero
-    df = df[(df.T != 0).all()].dropna()
-
-    # TODO add BC output for variants
-    # TODO adapt to Barcode thresholds
-
-    df.to_csv(output_file, sep="\t", index=True)
-
+        export_counts_file(mpradata, output_file)
 
 @cli.command()
 @click.option(
@@ -417,8 +407,6 @@ def get_variant_counts(input_file, metadata_file, bc_threshold, use_oligos, outp
 )
 def get_reporter_elements(input_file, metadata_file, mpralm_file, bc_threshold, output_reporter_elements_file):
 
-    # TODO: remove warning
-
     mpradata = MPRABarcodeData.from_file(input_file).oligo_data
 
     mpradata.add_metadata_file(metadata_file)
@@ -440,12 +428,12 @@ def get_reporter_elements(input_file, metadata_file, mpralm_file, bc_threshold, 
     mpradata.data.varm["mpralm_element"] = df
 
     out_df = mpradata.data.varm["mpralm_element"][["oligo", "logFC", "P.Value", "adj.P.Val"]]
-    out_df["inputCount"] = mpradata.normalized_dna_counts.mean(axis=0)
-    out_df["outputCount"] = mpradata.normalized_rna_counts.mean(axis=0)
+    out_df.loc[:, "inputCount"] = mpradata.normalized_dna_counts.mean(axis=0)
+    out_df.loc[:, "outputCount"] = mpradata.normalized_rna_counts.mean(axis=0)
     out_df.dropna(inplace=True)
-    out_df["minusLog10PValue"] = -np.log10(out_df["P.Value"])
-    out_df["minusLog10QValue"] = -np.log10(out_df["adj.P.Val"])
-    out_df.rename(columns={"oligo": "oligo_name", "logFC": "log2FoldChange"}, inplace=True)
+    out_df.loc[:, "minusLog10PValue"] = -np.log10(out_df.loc[:, "P.Value"])
+    out_df.loc[:, "minusLog10QValue"] = -np.log10(out_df.loc[:, "adj.P.Val"])
+    out_df = out_df.rename(columns={"oligo": "oligo_name", "logFC": "log2FoldChange"})
     out_df[
         [
             "oligo_name",
