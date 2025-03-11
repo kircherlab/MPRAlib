@@ -326,10 +326,9 @@ def get_variant_counts(input_file, metadata_file, bc_threshold, use_oligos, outp
     mask = mpradata.data.var["category"] == "variant"
     mpradata.var_filter = mpradata.var_filter | ~np.repeat(np.array(mask)[:, np.newaxis], 3, axis=1)
 
-    variant_map = mpradata.variant_map()
-
     if use_oligos:
         # TODO adapt to Barcode thresholds
+        variant_map = mpradata.variant_map()
 
         mpradata = mpradata.oligo_data
 
