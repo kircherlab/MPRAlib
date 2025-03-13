@@ -197,6 +197,10 @@ def get_variant_map(input_file, metadata_file, output_file):
         # TODO: what happens a variant has multiple alt alleles? Right now joined by comma. But maybe I hould use one row per ref/alt pai?
         variant_map[key] = [",".join(i) for i in variant_map[key]]
 
+    variant_map.dropna(inplace=True)
+
+    variant_map = variant_map[variant_map.apply(lambda x: all(x != ""), axis=1)]
+
     variant_map.to_csv(output_file, sep="\t", index=True)
 
 
