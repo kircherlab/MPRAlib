@@ -41,7 +41,7 @@ mpralm_fit_var <- mpralm(object = mpraset, design = design, aggregate = "none", 
 top_var <- topTable(mpralm_fit_var, coef = 2, number = Inf)
 
 if (!is.null(args$output_plot)) {
-    png(filename = args$output, width = 800, height = 600)
+    png(filename = args$output_plot, width = 800, height = 600)
 
     plot(top_var$logFC, -log10(top_var$adj.P.Val),
         pch = ".", cex = 3,
@@ -58,8 +58,8 @@ if (!is.null(args$output_plot)) {
     dev.off()
 }
 
-names <- c("ID", colnames(toptab))
-toptab$ID <- rownames(toptab)
-toptab <- toptab[, names]
+names <- c("ID", colnames(top_var))
+top_var$ID <- rownames(top_var)
+top_var <- top_var[, names]
 
-write.table(toptab, args$output, row.names = FALSE, sep = "\t", quote = FALSE)
+write.table(top_var, args$output, row.names = FALSE, sep = "\t", quote = FALSE)
