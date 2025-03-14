@@ -332,7 +332,7 @@ def get_variant_counts(input_file, metadata_file, bc_threshold, use_oligos, outp
 
     if use_oligos:
         # TODO adapt to Barcode thresholds
-        variant_map = mpradata.variant_map()
+        variant_map = mpradata.variant_map
 
         mpradata = mpradata.oligo_data
 
