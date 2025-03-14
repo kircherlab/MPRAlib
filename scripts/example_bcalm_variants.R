@@ -18,7 +18,6 @@ suppressPackageStartupMessages(library(tidyr))
 
 # read in the data
 counts_df <- read.table(args$counts, header = TRUE)
-counts_df <- counts_df[sample(nrow(counts_df), size = 0.1 * nrow(counts_df)), ]
 colnames(counts_df)[1:2] <- c("Barcode", "name")
 
 variant_map <- read.table(args$map, header = TRUE)

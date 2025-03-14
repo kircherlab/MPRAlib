@@ -47,9 +47,9 @@ bcs <- ncol(dna_elem) / nr_reps
 block_vector <- rep(1:nr_reps, each = bcs)
 
 cat("Fit elements...\n")
-mpralm_fit_elem <- fit_elements(object = mpraset, normalize = TRUE, block = block_vector, plot = FALSE)
+fit_elem <- fit_elements(object = mpraset, normalize = TRUE, block = block_vector, plot = FALSE)
 
-toptab_element <- topTable(mpralm_fit_elem, coef = 1, number = Inf)
+toptab_element <- topTable(fit_elem, coef = 1, number = Inf)
 percentile <- args$percentile
 
 if (!is.null(args$output_density_plot)) {
@@ -83,7 +83,7 @@ if (!is.null(args$output_density_plot)) {
 }
 
 # # Re-evaluate
-tr <- mpra_treat(mpralm_fit_elem, percentile, neg_label = args$control_label)
+tr <- mpra_treat(fit_elem, percentile, neg_label = args$control_label)
 mpra_element <- topTreat(tr, coef = 1, number = Inf)
 
 # Make volcano plot with cutoff of FDR < 0.01

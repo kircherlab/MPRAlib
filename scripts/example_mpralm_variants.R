@@ -1,23 +1,35 @@
-library(mpra)
-library(dplyr)
-library(ggplot2)
-library(tidyr)
+# Argument parser
+suppressPackageStartupMessages(library(argparse))
 
+parser <- ArgumentParser(description = "Process BCALM variant data")
+parser$add_argument("--counts", type = "character", required = TRUE, help = "Path to the counts file")
+parser$add_argument("--output", type = "character", required = TRUE, help = "Path to the output file")
+parser$add_argument("--output-plot", type = "character", required = FALSE, help = "Path to the output file")
+
+args <- parser$parse_args()
+
+suppressPackageStartupMessages(library(mpra))
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(tidyr))
+suppressPackageStartupMessages(library(tibble))
 
 # read in the data
-COUNTS <- read.table("test_variant_counts.tsv.gz", header = T, row.names = "ID")
+counts_df <- read.table(args$counts, header = TRUE)
+colnames(counts_df)[1] <- c("ID")
+counts_df <- counts_df %>% column_to_rownames(var = "ID")
 
-DNA <- COUNTS[, grepl("dna", colnames(COUNTS))]
-colnames(DNA) <- gsub("dna_", "", colnames(DNA))
-RNA <- COUNTS[, grepl("rna", colnames(COUNTS))]
-colnames(RNA) <- gsub("rna_", "", colnames(RNA))
+dna_elem <- counts_df[, grepl("dna", colnames(counts_df))]
+colnames(dna_elem) <- gsub("dna_", "", colnames(dna_elem))
+rna_elem <- counts_df[, grepl("rna", colnames(counts_df))]
+colnames(rna_elem) <- gsub("rna_", "", colnames(rna_elem))
 
 
 # create the MPRASet object
 mpraset <- MPRASet(
-    DNA = DNA,
-    RNA = RNA,
-    eid = rownames(DNA),
+    DNA = dna_elem,
+    RNA = rna_elem,
+    eid = rownames(dna_elem),
     eseq = NULL,
     barcode = NULL
 )
@@ -25,10 +37,10 @@ mpraset <- MPRASet(
 # create the design matrix
 design <- data.frame(
     intcpt = 1,
-    alleleB = grepl("ALT", colnames(DNA))
+    alleleB = grepl("ALT", colnames(dna_elem))
 )
 # create the block vector
-block_vector <- rep(1:(ncol(DNA) / 2), each = 2)
+block_vector <- rep(1:(ncol(dna_elem) / 2), each = 2)
 
 # run the mpralm analysis
 mpralm_allele_fit <- mpralm(
@@ -41,60 +53,25 @@ mpralm_allele_fit <- mpralm(
     plot = TRUE
 )
 
-toptab <- topTable(mpralm_allele_fit, coef = 2, number = Inf, confint = TRUE)
+mpra_variants <- topTable(mpralm_allele_fit, coef = 2, number = Inf, confint = TRUE)
 
-toptab %>% head()
 
-analyze_var <- function(var, A1, A2) {
-    dna_exp <- assay(norm_counts, 1)[var, ]
-    rna_exp <- assay(norm_counts, 2)[var, ]
-    n_rep <- length(dna_exp) / 2
-    ratio <- as.numeric(log2(rna_exp / dna_exp))
+if (!is.null(args$output_plot)) {
+    p <- ggplot(mpra_variants, aes(x = logFC, y = -log10(adj.P.Val))) +
+        geom_point(alpha = 0.5) +
+        geom_hline(yintercept = 2, linetype = "dashed", color = "red") +
+        geom_point(data = subset(mpra_variants, adj.P.Val < 0.01), aes(x = logFC, y = -log10(adj.P.Val)), color = "red") +
+        labs(x = "log2 fold change", y = "-log10(p-value)") +
+        theme_minimal()
 
-    variant <- data.frame(ratio,
-        allele = rep(c(A1, A2), n_rep),
-        sample = as.character(rep(1:n_rep, each = 2))
-    )
-    variant$allele <- factor(variant$allele, levels = c(A1, A2))
-
-    g <- variant %>%
-        ggplot(aes(allele, ratio, color = sample)) +
-        geom_point() +
-        geom_line(aes(group = sample, color = sample)) +
-        # geom_text(aes(label=ifelse(allele=="C",sample,'')),col="black",hjust=2,vjust=0) +
-        scale_color_discrete(
-            name = "Sample",
-            breaks = c("1", "2", "3"),
-            labels = c("Rep 1", "Rep 2", "Rep 3")
-        ) +
-        ggtitle(var) +
-        ylab("log2(RNA/DNA)") +
-        theme(
-            text = element_text(size = 15),
-            plot.title = element_text(hjust = 0.5),
-            legend.title = element_text(hjust = 0.5)
-        )
-    return(g)
+    ggsave(filename = args$output_plot, plot = p, width = 8, height = 6)
 }
-var <- "NC_000003.11:187930322:TT:T"
-norm_counts <- normalize_counts(mpraset, block = block_vector)
-analyze_var(var, "TT", "T")
-
-plot(toptab$logFC, -log10(toptab$adj.P.Val),
-    pch = ".", cex = 3,
-    xlab = "log2 fold change",
-    ylab = "-log10(p-value)"
-)
-
-abline(2, 0, col = "red", lty = 2)
-
-idx <- toptab$adj.P.Val < 0.01
-
-points(toptab$logFC[idx], -log10(toptab$adj.P.Val[idx]), col = "red", pch = ".", cex = 3)
 
 
-names <- c("ID", colnames(toptab))
-toptab$ID <- rownames(toptab)
-toptab <- toptab[, names]
+names <- c("ID", colnames(mpra_variants))
+mpra_variants$ID <- rownames(mpra_variants)
+mpra_variants <- mpra_variants[, names]
 
-write.table(toptab, "test_variants_mpralm_out.tsv.gz", row.names = FALSE, sep = "\t", quote = FALSE)
+gzfile_output <- gzfile(args$output, "w")
+write.table(mpra_variants, gzfile_output, row.names = FALSE, sep = "\t", quote = FALSE)
+close(gzfile_output)
