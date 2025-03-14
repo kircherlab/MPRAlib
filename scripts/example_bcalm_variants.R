@@ -17,13 +17,13 @@ suppressPackageStartupMessages(library(tidyr))
 
 
 # read in the data
-COUNTS <- read.table(args$counts, header = TRUE)
-# TODO change this colnames to be more general
-colnames(COUNTS) <- c("Barcode", "name", "dna_count_1", "rna_count_1", "dna_count_2", "rna_count_2", "dna_count_3", "rna_count_3")
+counts_df <- read.table(args$counts, header = TRUE)
+counts_df <- counts_df[sample(nrow(counts_df), size = 0.1 * nrow(counts_df)), ]
+colnames(counts_df)[1:2] <- c("Barcode", "name")
 
-MAP <- read.table(args$map, header = TRUE)
+variant_map <- read.table(args$map, header = TRUE)
 
-var_df <- create_var_df(COUNTS, MAP)
+var_df <- create_var_df(counts_df, variant_map)
 
 dna_var <- create_dna_df(var_df)
 rna_var <- create_rna_df(var_df)
@@ -31,35 +31,32 @@ rna_var <- create_rna_df(var_df)
 # create the MPRASet object
 mpraset <- MPRASet(DNA = dna_var, RNA = rna_var, eid = row.names(dna_var), barcode = NULL)
 
-# TODO make number of replicates also general
-nr_reps <- 3
+nr_reps <- as.integer((ncol(counts_df) - 2) / 2)
 bcs <- ncol(dna_var) / nr_reps
 design <- data.frame(intcpt = 1, alt = grepl("alt", colnames(mpraset)))
 block_vector <- rep(1:nr_reps, each = bcs)
-mpralm_fit_var <- mpralm(object = mpraset, design = design, aggregate = "none", normalize = TRUE, model_type = "corr_groups", plot = FALSE, block = block_vector)
+mpralm_fit_var <- mpralm(
+    object = mpraset, design = design, aggregate = "none",
+    normalize = TRUE, model_type = "corr_groups", plot = FALSE, block = block_vector
+)
 
-top_var <- topTable(mpralm_fit_var, coef = 2, number = Inf)
+mpra_variants <- topTable(mpralm_fit_var, coef = 2, number = Inf)
 
 if (!is.null(args$output_plot)) {
-    png(filename = args$output_plot, width = 800, height = 600)
+    p <- ggplot(mpra_variants, aes(x = logFC, y = -log10(adj.P.Val))) +
+        geom_point(alpha = 0.5) +
+        geom_hline(yintercept = 2, linetype = "dashed", color = "red") +
+        geom_point(data = subset(mpra_variants, adj.P.Val < 0.01), aes(x = logFC, y = -log10(adj.P.Val)), color = "red") +
+        labs(x = "log2 fold change", y = "-log10(p-value)") +
+        theme_minimal()
 
-    plot(top_var$logFC, -log10(top_var$adj.P.Val),
-        pch = ".", cex = 3,
-        xlab = "log2 fold change",
-        ylab = "-log10(p-value)"
-    )
-
-    abline(2, 0, col = "red", lty = 2)
-
-    idx <- top_var$adj.P.Val < 0.01
-
-    points(top_var$logFC[idx], -log10(top_var$adj.P.Val[idx]), col = "red", pch = ".", cex = 3)
-
-    dev.off()
+    ggsave(filename = args$output_plot, plot = p, width = 8, height = 6)
 }
 
-names <- c("ID", colnames(top_var))
-top_var$ID <- rownames(top_var)
-top_var <- top_var[, names]
+names <- c("ID", colnames(mpra_variants))
+mpra_variants$ID <- rownames(mpra_variants)
+mpra_variants <- mpra_variants[, names]
 
-write.table(top_var, args$output, row.names = FALSE, sep = "\t", quote = FALSE)
+gzfile_output <- gzfile(args$output, "w")
+write.table(mpra_variants, gzfile_output, row.names = FALSE, sep = "\t", quote = FALSE)
+close(gzfile_output)
