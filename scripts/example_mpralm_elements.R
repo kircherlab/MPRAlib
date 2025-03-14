@@ -52,7 +52,7 @@ mpraset <- MPRASet(
 )
 
 # create the design matrix
-design <- model.matrix(~1, data = data.frame(sample = 1:ncol(dna_elem)))
+design <- model.matrix(~1, data = data.frame(sample = seq_len(ncol(dna_elem))))
 
 
 # run the mpralm analysis
@@ -67,8 +67,6 @@ fit_elem <- mpralm(
 
 toptab_element <- topTable(fit_elem, coef = 1, number = Inf)
 percentile <- args$percentile
-
-
 
 if (!is.null(args$output_density_plot)) {
     cat("Plot density elements...\n")
