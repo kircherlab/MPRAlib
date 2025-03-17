@@ -332,9 +332,9 @@ def get_variant_counts(input_file, metadata_file, bc_threshold, use_oligos, outp
 
     if use_oligos:
         # TODO adapt to Barcode thresholds
-        variant_map = mpradata.variant_map
-
         mpradata = mpradata.oligo_data
+
+        variant_map = mpradata.variant_map
 
         df = {"variant_id": []}
         for replicate in mpradata.obs_names:
@@ -343,7 +343,7 @@ def get_variant_counts(input_file, metadata_file, bc_threshold, use_oligos, outp
                 df[f"{rna_or_dna}_count_{replicate}_ALT"] = []
 
         dna_counts = mpradata.dna_counts.copy()
-        rna_counts = mpradata.dna_counts.copy()
+        rna_counts = mpradata.rna_counts.copy()
 
         for spdi, row in variant_map.iterrows():
 
@@ -359,10 +359,10 @@ def get_variant_counts(input_file, metadata_file, bc_threshold, use_oligos, outp
             rna_counts_alt = rna_counts[:, mask_alt].sum(axis=1)
 
             for idx, replicate in enumerate(mpradata.obs_names):
-                df[f"dna_counts_{replicate}_REF"].append(dna_counts_ref[idx])
-                df[f"rna_counts_{replicate}_REF"].append(rna_counts_ref[idx])
-                df[f"dna_counts_{replicate}_ALT"].append(dna_counts_alt[idx])
-                df[f"rna_counts_{replicate}_ALT"].append(rna_counts_alt[idx])
+                df[f"dna_count_{replicate}_REF"].append(dna_counts_ref[idx])
+                df[f"rna_count_{replicate}_REF"].append(rna_counts_ref[idx])
+                df[f"dna_count_{replicate}_ALT"].append(dna_counts_alt[idx])
+                df[f"rna_count_{replicate}_ALT"].append(rna_counts_alt[idx])
 
         df = pd.DataFrame(df).set_index("variant_id")
         # remove IDs which are all zero

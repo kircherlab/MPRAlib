@@ -19,17 +19,16 @@ counts_df <- read.table(args$counts, header = TRUE)
 colnames(counts_df)[1] <- c("ID")
 counts_df <- counts_df %>% column_to_rownames(var = "ID")
 
-dna_elem <- counts_df[, grepl("dna", colnames(counts_df))]
-colnames(dna_elem) <- gsub("dna_", "", colnames(dna_elem))
-rna_elem <- counts_df[, grepl("rna", colnames(counts_df))]
-colnames(rna_elem) <- gsub("rna_", "", colnames(rna_elem))
-
+dna_var <- counts_df[, grepl("dna", colnames(counts_df))]
+colnames(dna_var) <- gsub("dna_", "", colnames(dna_var))
+rna_var <- counts_df[, grepl("rna", colnames(counts_df))]
+colnames(rna_var) <- gsub("rna_", "", colnames(rna_var))
 
 # create the MPRASet object
 mpraset <- MPRASet(
-    DNA = dna_elem,
-    RNA = rna_elem,
-    eid = rownames(dna_elem),
+    DNA = dna_var,
+    RNA = rna_var,
+    eid = rownames(dna_var),
     eseq = NULL,
     barcode = NULL
 )
@@ -37,10 +36,10 @@ mpraset <- MPRASet(
 # create the design matrix
 design <- data.frame(
     intcpt = 1,
-    alleleB = grepl("ALT", colnames(dna_elem))
+    alleleB <- grepl("ALT", colnames(dna_var))
 )
 # create the block vector
-block_vector <- rep(1:(ncol(dna_elem) / 2), each = 2)
+block_vector <- rep(1:(ncol(dna_var) / 2), each = 2)
 
 # run the mpralm analysis
 mpralm_allele_fit <- mpralm(
@@ -50,7 +49,7 @@ mpralm_allele_fit <- mpralm(
     normalize = TRUE,
     block = block_vector,
     model_type = "corr_groups",
-    plot = TRUE
+    plot <- FALSE
 )
 
 mpra_variants <- topTable(mpralm_allele_fit, coef = 2, number = Inf, confint = TRUE)

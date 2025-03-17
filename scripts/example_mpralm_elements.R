@@ -60,7 +60,7 @@ fit_elem <- mpralm(
     object = mpraset,
     design = design,
     aggregate = "none",
-    normalize = TRUE,
+    normalize = FALSE,
     model_type = "indep_groups",
     plot <- FALSE
 )
