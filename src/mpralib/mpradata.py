@@ -318,11 +318,16 @@ class MPRABarcodeData(MPRAData):
         return self._barcode_counts()
 
     def _barcode_counts(self):
-        return pd.DataFrame(
-            self.observed * ~self.var_filter.T.values,
-            index=self.obs_names,
-            columns=self.var_names,
-        ).T.groupby(self.oligos, observed=True).transform("sum").T
+        return (
+            pd.DataFrame(
+                self.observed * ~self.var_filter.T.values,
+                index=self.obs_names,
+                columns=self.var_names,
+            )
+            .T.groupby(self.oligos, observed=True)
+            .transform("sum")
+            .T
+        )
 
     @property
     def oligo_data(self) -> ad.AnnData:

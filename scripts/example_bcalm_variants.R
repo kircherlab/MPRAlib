@@ -39,7 +39,7 @@ mpralm_fit_var <- mpralm(
     normalize = TRUE, model_type = "corr_groups", plot = FALSE, block = block_vector
 )
 
-mpra_variants <- topTable(mpralm_fit_var, coef = 2, number = Inf)
+mpra_variants <- topTable(mpralm_fit_var, coef = 2, number = Inf, confint = TRUE)
 
 if (!is.null(args$output_plot)) {
     p <- ggplot(mpra_variants, aes(x = logFC, y = -log10(adj.P.Val))) +

@@ -9,6 +9,7 @@ from mpralib.utils import chromosome_map, export_activity_file, export_barcode_f
 
 pd.options.mode.copy_on_write = True
 
+
 @click.group(help="Command line interface of MPRAlib, a library for MPRA data analysis.")
 def cli():
     pass
@@ -371,6 +372,7 @@ def get_variant_counts(input_file, metadata_file, bc_threshold, use_oligos, outp
     else:
         export_counts_file(mpradata, output_file)
 
+
 @cli.command()
 @click.option(
     "--input",
@@ -387,11 +389,19 @@ def get_variant_counts(input_file, metadata_file, bc_threshold, use_oligos, outp
     help="Input file path of MPRA results.",
 )
 @click.option(
-    "--mpralm",
-    "mpralm_file",
+    "--elements-only/--all-oligos",
+    "elements_only",
+    required=False,
+    type=click.BOOL,
+    default=False,
+    help="Only return count data for elements and ref sequence of variants.",
+)
+@click.option(
+    "--statistics",
+    "statistics_file",
     required=True,
     type=click.Path(exists=True, readable=True),
-    help="Input file path of MPRA lm file.",
+    help="Input file of mpralm or BCalm results.",
 )
 @click.option(
     "--bc-threshold",
@@ -408,7 +418,9 @@ def get_variant_counts(input_file, metadata_file, bc_threshold, use_oligos, outp
     type=click.Path(writable=True),
     help="Output file of MPRA data object.",
 )
-def get_reporter_elements(input_file, metadata_file, mpralm_file, bc_threshold, output_reporter_elements_file):
+def get_reporter_elements(
+    input_file, metadata_file, statistics_file, elements_only, bc_threshold, output_reporter_elements_file
+):
 
     mpradata = MPRABarcodeData.from_file(input_file).oligo_data
 
@@ -416,11 +428,12 @@ def get_reporter_elements(input_file, metadata_file, mpralm_file, bc_threshold, 
 
     mpradata.barcode_threshold = bc_threshold
 
-    mask = mpradata.data.var["allele"].apply(lambda x: "ref" in x).values | (mpradata.data.var["category"] == "element")
+    if elements_only:
 
-    mpradata.var_filter = mpradata.var_filter | ~np.repeat(np.array(mask)[:, np.newaxis], 3, axis=1)
+        mask = mpradata.data.var["allele"].apply(lambda x: "ref" in x).values | (mpradata.data.var["category"] == "element")
+        mpradata.var_filter = mpradata.var_filter | ~np.repeat(np.array(mask)[:, np.newaxis], 3, axis=1)
 
-    df = pd.read_csv(mpralm_file, sep="\t", header=0, compression=None)
+    df = pd.read_csv(statistics_file, sep="\t", header=0)
 
     indexes_in_order = [mpradata.oligos[mpradata.oligos == ID].index.tolist() for ID in df["ID"]]
     indexes_in_order = [index for sublist in indexes_in_order for index in sublist]
@@ -436,6 +449,8 @@ def get_reporter_elements(input_file, metadata_file, mpralm_file, bc_threshold, 
     out_df.dropna(inplace=True)
     out_df.loc[:, "minusLog10PValue"] = -np.log10(out_df.loc[:, "P.Value"])
     out_df.loc[:, "minusLog10QValue"] = -np.log10(out_df.loc[:, "adj.P.Val"])
+    out_df["minusLog10PValue"] = out_df["minusLog10PValue"].apply(lambda x: 0 if x == -0 else x)
+    out_df["minusLog10QValue"] = out_df["minusLog10QValue"].apply(lambda x: 0 if x == -0 else x)
     out_df = out_df.rename(columns={"oligo": "oligo_name", "logFC": "log2FoldChange"})
     out_df[
         [
@@ -446,7 +461,7 @@ def get_reporter_elements(input_file, metadata_file, mpralm_file, bc_threshold, 
             "minusLog10PValue",
             "minusLog10QValue",
         ]
-    ].to_csv(output_reporter_elements_file, sep="\t", index=False)
+    ].to_csv(output_reporter_elements_file, sep="\t", index=False, float_format='%.4f')
 
 
 @cli.command()
@@ -465,11 +480,19 @@ def get_reporter_elements(input_file, metadata_file, mpralm_file, bc_threshold, 
     help="Input file path of MPRA results.",
 )
 @click.option(
-    "--mpralm",
-    "mpralm_file",
+    "--statistics",
+    "statistics_file",
     required=True,
     type=click.Path(exists=True, readable=True),
-    help="Input file path of MPRA lm file.",
+    help="Input file of the result from mpralm or BCalm.",
+)
+@click.option(
+    "--bc-threshold",
+    "bc_threshold",
+    required=False,
+    default=1,
+    type=int,
+    help="Using a barcode threshold for output.",
 )
 @click.option(
     "--output-reporter-variants",
@@ -478,7 +501,7 @@ def get_reporter_elements(input_file, metadata_file, mpralm_file, bc_threshold, 
     type=click.Path(writable=True),
     help="Output file of MPRA data object.",
 )
-def get_reporter_variants(input_file, metadata_file, mpralm_file, output_reporter_variants_file):
+def get_reporter_variants(input_file, metadata_file, statistics_file, bc_threshold, output_reporter_variants_file):
 
     # TODO: Fix method
 
@@ -486,42 +509,49 @@ def get_reporter_variants(input_file, metadata_file, mpralm_file, output_reporte
 
     mpradata.add_metadata_file(metadata_file)
 
-    mpradata.barcode_threshold = 10
+    mpradata.barcode_threshold = bc_threshold
 
-    mpradata.apply_barcode_filter(BarcodeFilter.RNA_ZSCORE, {"times_zscore": 3})
+    mask = mpradata.data.var["category"] == "variant"
+    mpradata.var_filter = mpradata.var_filter | ~np.repeat(np.array(mask)[:, np.newaxis], 3, axis=1)
 
-    spdi_map = mpradata.variant_map
+    mpradata = mpradata.oligo_data
 
-    df = pd.read_csv(mpralm_file, sep="\t", header=0, index_col=0)
+    variant_map = mpradata.variant_map
 
-    variant_dna_counts = mpradata.variant_dna_counts
-    variant_rna_counts = mpradata.variant_rna_counts
+    df = pd.read_csv(statistics_file, sep="\t", header=0, index_col=0)
 
-    columns_ref = []
-    columns_alt = []
-    for replicate in mpradata.oligo_data.obs_names:
-        columns_ref.append("counts_" + replicate + "_REF")
-        columns_alt.append("counts_" + replicate + "_ALT")
+    dna_counts = mpradata.dna_counts.copy()
+    rna_counts = mpradata.rna_counts.copy()
 
-    dna_counts = np.array(variant_dna_counts[columns_ref].sum()) + np.array(variant_dna_counts[columns_alt].sum())
-    rna_counts = np.array(variant_rna_counts[columns_ref].sum()) + np.array(variant_rna_counts[columns_alt].sum())
+    rna_counts_sum = rna_counts.sum(axis=1)
+    dna_counts_sum = dna_counts.sum(axis=1)
 
-    for spdi, row in spdi_map.iterrows():
+    for spdi, row in variant_map.iterrows():
+
+        mask_ref = mpradata.oligos.isin(row["REF"])
+        mask_alt = mpradata.oligos.isin(row["ALT"])
+
+        dna_counts_ref = dna_counts[:, mask_ref].sum(axis=1)
+        rna_counts_ref = rna_counts[:, mask_ref].sum(axis=1)
+
+        dna_counts_alt = dna_counts[:, mask_alt].sum(axis=1)
+        rna_counts_alt = rna_counts[:, mask_alt].sum(axis=1)
+
         if spdi in df.index:
             df.loc[spdi, "inputCountRef"] = (
-                (variant_dna_counts.loc[spdi][columns_ref] / dna_counts) * MPRABarcodeData.SCALING
+                (dna_counts_ref / dna_counts_sum) * MPRABarcodeData.SCALING
             ).mean()
             df.loc[spdi, "inputCountAlt"] = (
-                (variant_dna_counts.loc[spdi][columns_alt] / dna_counts) * MPRABarcodeData.SCALING
+                (dna_counts_alt / dna_counts_sum) * MPRABarcodeData.SCALING
             ).mean()
             df.loc[spdi, "outputCountRef"] = (
-                (variant_rna_counts.loc[spdi][columns_ref] / rna_counts) * MPRABarcodeData.SCALING
+                (rna_counts_ref / rna_counts_sum) * MPRABarcodeData.SCALING
             ).mean()
             df.loc[spdi, "outputCountAlt"] = (
-                (variant_rna_counts.loc[spdi][columns_alt] / rna_counts) * MPRABarcodeData.SCALING
+                (rna_counts_alt / rna_counts_sum) * MPRABarcodeData.SCALING
             ).mean()
             df.loc[spdi, "variantPos"] = int(
-                mpradata.oligo_data.var["variant_pos"][mpradata.oligos.isin(row["REF"])].values[0][0]
+                mpradata.data.var["variant_pos"][mpradata.oligos.isin(row["REF"])].values[0][0]
             )
 
     df["minusLog10PValue"] = -np.log10(df["P.Value"])
@@ -557,7 +587,7 @@ def get_reporter_variants(input_file, metadata_file, mpralm_file, output_reporte
             "refAllele",
             "altAllele",
         ]
-    ].to_csv(output_reporter_variants_file, sep="\t", index=False)
+    ].to_csv(output_reporter_variants_file, sep="\t", index=False, float_format='%.4f')
 
 
 @cli.command()
@@ -613,9 +643,7 @@ def get_reporter_genomic_elements(input_file, metadata_file, mpralm_file, bc_thr
 
     df = pd.read_csv(mpralm_file, sep="\t", header=0, compression=None)
 
-    indexes_in_order = [
-        mpradata.oligos[mpradata.oligos == ID].index.tolist() for ID in df["ID"]
-    ]
+    indexes_in_order = [mpradata.oligos[mpradata.oligos == ID].index.tolist() for ID in df["ID"]]
     indexes_in_order = [index for sublist in indexes_in_order for index in sublist]
     df.index = indexes_in_order
 
