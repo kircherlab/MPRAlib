@@ -657,7 +657,7 @@ def get_reporter_genomic_elements(
 
     out_df.dropna(inplace=True)
     scaler = MinMaxScaler(feature_range=(0, 1000))
-    out_df["score"] = scaler.fit_transform(out_df[["logFC"]]).astype(int)
+    out_df["score"] = scaler.fit_transform(np.abs(out_df[["logFC"]])).astype(int)
     out_df.loc[out_df["P.Value"] == 0, "P.Value"] = np.finfo(float).eps
     out_df.loc[out_df["adj.P.Val"] == 0, "adj.P.Val"] = np.finfo(float).eps
     out_df["minusLog10PValue"] = np.abs(np.log10(out_df["P.Value"]))
@@ -790,7 +790,7 @@ def get_reporter_genomic_variants(
     df.dropna(inplace=True)
 
     scaler = MinMaxScaler(feature_range=(0, 1000))
-    df["score"] = scaler.fit_transform(df[["log2FoldChange"]]).astype(int)
+    df["score"] = scaler.fit_transform(np.abs(df[["log2FoldChange"]])).astype(int)
 
     df = df[
         [
