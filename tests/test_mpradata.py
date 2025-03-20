@@ -305,7 +305,7 @@ class TestMPRAOligoDataNormalization(unittest.TestCase):
     def test_normalize_counts_with_bc_filter(self):
 
         dna_normalized = self.mpra_data_with_bc_filter.normalized_dna_counts
-        expected_normalized = np.array([[2.5, np.nan, 2.5], [2.5, 2.917, 2.292], [3.148, 3.704, np.nan]])
+        expected_normalized = np.array([[2.5, 0., 2.5], [2.5, 2.917, 2.292], [3.148, 3.704, 0.]])
         np.testing.assert_almost_equal(dna_normalized, expected_normalized, decimal=3)
 
         rna_normalized = self.mpra_data_with_bc_filter.normalized_rna_counts
@@ -326,9 +326,9 @@ class TestMPRAdataCorrelation(unittest.TestCase):
         self.assertIn("spearman_correlation_log2FoldChange", self.mpra_data.data.obsp)
 
     def test_pearson_correlation(self):
-        x = self.mpra_data.pearson_correlation_activity
-        y = self.mpra_data.pearson_correlation_rna
-        z = self.mpra_data.pearson_correlation_dna
+        x = self.mpra_data.correlation(method="pearson", count_type="activity")
+        y = self.mpra_data.correlation(method="pearson", count_type="rna")
+        z = self.mpra_data.correlation(method="pearson", count_type="dna")
         np.testing.assert_equal(x, np.array([[1.0, np.nan, np.nan], [np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan]]))
         np.testing.assert_almost_equal(
             y, np.array([[1.0, 1.0, -0.475752], [1.0, 1.0, -0.475752], [-0.475752, -0.475752, 1.0]]), decimal=3
@@ -336,9 +336,9 @@ class TestMPRAdataCorrelation(unittest.TestCase):
         np.testing.assert_almost_equal(z, np.array([[1.0, 1.0, -0.476], [1.0, 1.0, -0.476], [-0.476, -0.476, 1.0]]), decimal=3)
 
     def test_spearman_correlation(self):
-        x = self.mpra_data.spearman_correlation_activity
-        y = self.mpra_data.spearman_correlation_rna
-        z = self.mpra_data.spearman_correlation_dna
+        x = self.mpra_data.correlation(method="spearman", count_type="activity")
+        y = self.mpra_data.correlation(method="spearman", count_type="rna")
+        z = self.mpra_data.correlation(method="spearman", count_type="dna")
         np.testing.assert_equal(x, np.array([[1.0, np.nan, np.nan], [np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan]]))
         np.testing.assert_almost_equal(y, np.array([[1.0, 1.0, 0.0], [1.0, 1.0, 0.0], [0.0, 0.0, 1.0]]), decimal=3)
         np.testing.assert_equal(z, np.array([[1.0, 1.0, 0.0], [1.0, 1.0, 0.0], [0.0, 0.0, 1.0]]))
