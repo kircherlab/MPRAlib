@@ -170,13 +170,7 @@ class MPRAData(ABC):
 
         alleles = np.concatenate(self.data.var["allele"].values)
 
-        df = pd.DataFrame(
-            {
-                "ID": spdis,
-                "allele": alleles,
-                "oligo": oligos
-             }
-        )
+        df = pd.DataFrame({"ID": spdis, "allele": alleles, "oligo": oligos})
         df["REF"] = df.apply(lambda row: row["oligo"] if row["allele"] == "ref" else None, axis=1)
         df["ALT"] = df.apply(lambda row: row["oligo"] if row["allele"] == "alt" else None, axis=1)
         df = df.groupby("ID").agg({"REF": lambda x: list(filter(None, x)), "ALT": lambda x: list(filter(None, x))})
