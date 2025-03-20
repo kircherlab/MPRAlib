@@ -164,24 +164,24 @@ class MPRAData(ABC):
         ):
             raise ValueError("Metadata file not loaded.")
 
-        spdis = set([item for sublist in self.data.var["SPDI"].values for item in sublist])
+        oligos = self.data.var["oligo"].repeat(self.data.var["SPDI"].apply(lambda x: len(x)))
 
-        df = {"ID": [], "REF": [], "ALT": []}
-        for spdi in spdis:
-            df["ID"].append(spdi)
-            spdi_data = self.data[:, self.data.var["SPDI"].apply(lambda x: spdi in x)]
-            spdi_idx = spdi_data.var["SPDI"].apply(lambda x: x.index(spdi))
-            refs = []
-            alts = []
-            for idx, value in spdi_data.var["allele"].items():
-                if "ref" == value[spdi_idx[idx]]:
-                    refs.append(self.oligos[idx])
-                else:
-                    alts.append(self.oligos[idx])
-            df["REF"].append(refs)
-            df["ALT"].append(alts)
+        spdis = np.concatenate(self.data.var["SPDI"].values)
 
-        return pd.DataFrame(df, index=df["ID"]).set_index("ID")
+        alleles = np.concatenate(self.data.var["allele"].values)
+
+        df = pd.DataFrame(
+            {
+                "ID": spdis,
+                "allele": alleles,
+                "oligo": oligos
+             }
+        )
+        df["REF"] = df.apply(lambda row: row["oligo"] if row["allele"] == "ref" else None, axis=1)
+        df["ALT"] = df.apply(lambda row: row["oligo"] if row["allele"] == "alt" else None, axis=1)
+        df = df.groupby("ID").agg({"REF": lambda x: list(filter(None, x)), "ALT": lambda x: list(filter(None, x))})
+
+        return df
 
     @abstractmethod
     def _normalize(self):
@@ -287,7 +287,7 @@ class MPRAData(ABC):
 
     def add_metadata_file(self, metadata_file):
         df_metadata = pd.read_csv(metadata_file, sep="\t", header=0, na_values=["NA"]).drop_duplicates()
-        df_metadata["name"] = pd.Categorical(df_metadata["name"].str.replace(" ", "_"))
+        df_metadata["name"] = pd.Categorical(df_metadata["name"].str.replace(r"[\s\[\]]", "_", regex=True))
         df_metadata.set_index("name", inplace=True)
         df_metadata["variant_class"] = df_metadata["variant_class"].fillna("[]").apply(ast.literal_eval)
         df_metadata["variant_pos"] = df_metadata["variant_pos"].fillna("[]").apply(ast.literal_eval)
