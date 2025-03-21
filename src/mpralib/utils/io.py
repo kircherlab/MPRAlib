@@ -52,7 +52,7 @@ def export_activity_file(mpradata: MPRAOligoData, output_file_path: str) -> None
             "rna_counts": replicate_data.layers["rna"][0, :],
             "dna_normalized": np.round(replicate_data.layers["dna_normalized"][0, :], 4),
             "rna_normalized": np.round(replicate_data.layers["rna_normalized"][0, :], 4),
-            "log2FoldChange": np.round(replicate_data.layers["log2FoldChange"][0, :], 4),
+            "log2FoldChange": np.round(replicate_data.layers["activity"][0, :], 4),
             "n_bc": replicate_data.layers["barcode_counts"][0, :],
         }
         output = pd.concat([output, pd.DataFrame(df)], axis=0)

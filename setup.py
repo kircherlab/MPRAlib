@@ -17,6 +17,8 @@ setup(
         'scikit-learn',
         'scipy',
         'anndata',
+        'seaborn',
+        'matplotlib',
     ],
     author='Max Schubach',
     author_email='max.schubach@bih-charite.de',

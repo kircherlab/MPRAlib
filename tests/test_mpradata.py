@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import anndata as ad
 import copy
-from mpralib.mpradata import MPRABarcodeData, CountSampling, BarcodeFilter
+from mpralib.mpradata import MPRABarcodeData, CountSampling, BarcodeFilter, CountType
 
 
 OBS = pd.DataFrame(index=["rep1", "rep2", "rep3"])
