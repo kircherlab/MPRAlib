@@ -10,3 +10,6 @@ authors = [
   { name="Max Schubach", email="max.schubach@bih-charite.de" }
 ]
 license = { text="MIT" }
+
+[project.scripts]
+mpralib = "mpralib.cli:cli"

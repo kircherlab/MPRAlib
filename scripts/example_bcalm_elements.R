@@ -1,4 +1,3 @@
-# Argument parser
 suppressPackageStartupMessages(library(argparse))
 
 parser <- ArgumentParser(description = "Process BCALM variant data")
@@ -16,7 +15,7 @@ parser$add_argument("--output-density-plot", type = "character", required = FALS
 
 args <- parser$parse_args()
 
-suppressPackageStartupMessages(library(mpra))
+# Load the required libraries
 suppressPackageStartupMessages(library(BCalm))
 suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(ggplot2))
@@ -26,13 +25,10 @@ suppressPackageStartupMessages(library(tibble))
 
 # read in the data
 counts_df <- read.table(args$counts, header = TRUE)
-colnames(counts_df)[1] <- c("ID")
-counts_df <- counts_df %>% column_to_rownames(var = "ID")
+colnames(counts_df)[1:2] <- c("Barcode", "name")
 
-dna_elem <- counts_df[, grepl("dna", colnames(counts_df))]
-colnames(dna_elem) <- gsub("dna_", "", colnames(dna_elem))
-rna_elem <- counts_df[, grepl("rna", colnames(counts_df))]
-colnames(rna_elem) <- gsub("rna_", "", colnames(rna_elem))
+dna_elem <- create_dna_df(counts_df, id_column_name = "name")
+rna_elem <- create_rna_df(counts_df, id_column_name = "name")
 
 labels <- read.table(args$labels, header = FALSE, sep = "\t", col.names = c("name", "label"))
 
@@ -43,34 +39,21 @@ labels_vec <- labels_vec[rownames(dna_elem)]
 
 
 # create the MPRASet object
-mpraset <- MPRASet(
-    DNA = dna_elem,
-    RNA = rna_elem,
-    eid = rownames(dna_elem),
-    eseq = NULL,
-    barcode = NULL,
-)
+cat("Creating MPRASet object...\n")
+mpraset <- MPRASet(DNA = dna_elem, RNA = rna_elem, eid = row.names(dna_elem), barcode = NULL, label = labels_vec)
 
-# create the design matrix
-design <- model.matrix(~1, data = data.frame(sample = seq_len(ncol(dna_elem))))
+nr_reps <- as.integer((ncol(counts_df) - 2) / 2)
+bcs <- ncol(dna_elem) / nr_reps
+block_vector <- rep(1:nr_reps, each = bcs)
 
-
-# run the mpralm analysis
-fit_elem <- mpralm(
-    object = mpraset,
-    design = design,
-    aggregate = "none",
-    normalize = FALSE,
-    model_type = "indep_groups",
-    plot <- FALSE
-)
+cat("Fit elements...\n")
+fit_elem <- fit_elements(object = mpraset, normalize = TRUE, block = block_vector, plot = FALSE)
 
 toptab_element <- topTable(fit_elem, coef = 1, number = Inf)
 percentile <- args$percentile
 
 if (!is.null(args$output_density_plot)) {
     cat("Plot density elements...\n")
-
     toptab_element_label <- toptab_element %>%
         rownames_to_column(var = "name") %>%
         left_join(labels, by = "name") %>%
@@ -99,10 +82,7 @@ if (!is.null(args$output_density_plot)) {
     ggsave(filename = args$output_density_plot, plot = density_plot, width = 8, height = 6)
 }
 
-
-# Re-evaluate
-# tr <- treat(fit_elem, lfc = percentile_up)
-fit_elem$label <- labels_vec
+# # Re-evaluate
 tr <- mpra_treat(fit_elem, percentile, neg_label = args$control_label)
 mpra_element <- topTreat(tr, coef = 1, number = Inf)
 

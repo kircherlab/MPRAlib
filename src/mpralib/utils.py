@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import os
-from mpralib.mpradata import MPRABarcodeData, MPRAOligoData
+from mpralib.mpradata import MPRABarcodeData, MPRAOligoData, MPRAData
 
 
 def chromosome_map() -> pd.DataFrame:
@@ -89,3 +89,23 @@ def export_barcode_file(mpradata: MPRABarcodeData, output_file_path: str) -> Non
         output[f"rna_count_{replicate}"] = rna_counts[i]
     output.replace(0, "", inplace=True)
     output.to_csv(output_file_path, sep="\t", index=False)
+
+
+def export_counts_file(mpradata: MPRAData, output_file_path: str) -> None:
+    if isinstance(mpradata, MPRAOligoData):
+        df = {"ID": mpradata.oligos}
+    else:
+        df = {"ID": mpradata.var_names, "name": mpradata.oligos}
+    dna_counts = mpradata.dna_counts
+    dna_counts[mpradata.barcode_counts < mpradata.barcode_threshold] = 0
+    rna_counts = mpradata.rna_counts
+    rna_counts[mpradata.barcode_counts < mpradata.barcode_threshold] = 0
+    for idx, replicate in enumerate(mpradata.obs_names):
+        df["dna_count_" + replicate] = dna_counts[idx, :]
+        df["rna_count_" + replicate] = rna_counts[idx, :]
+
+    df = pd.DataFrame(df).set_index("ID")
+    # remove IDs which are all zero
+    df = df[(df.T != 0).all()]
+
+    df.to_csv(output_file_path, sep="\t", index=True)

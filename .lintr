@@ -1,0 +1,3 @@
+linters: linters_with_defaults(
+    line_length_linter = line_length_linter(127),
+    indentation_linter = indentation_linter(indent = 4L, hanging_indent_style = c("tidy", "always", "never"), assignment_as_infix = TRUE))
