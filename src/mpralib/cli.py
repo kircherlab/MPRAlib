@@ -5,7 +5,7 @@ import math
 import pysam
 from sklearn.preprocessing import MinMaxScaler
 from mpralib.mpradata import MPRABarcodeData, BarcodeFilter
-from mpralib.utils import chromosome_map, export_activity_file, export_barcode_file, export_counts_file
+from mpralib.utils.io import chromosome_map, export_activity_file, export_barcode_file, export_counts_file
 
 pd.options.mode.copy_on_write = True
 
