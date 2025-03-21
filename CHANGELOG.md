@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.4.0](https://github.com/kircherlab/MPRAlib/compare/v0.3.0...v0.4.0) (2025-03-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* the whole code
+
+### refactoring
+
+* the whole code ([6f2f2b7](https://github.com/kircherlab/MPRAlib/commit/6f2f2b75ab3b1c3206527b88c629fa29fd472304))
+
+
+### Features
+
+* add filtering options for elements and variants in get_counts function ([971986b](https://github.com/kircherlab/MPRAlib/commit/971986b2593a1bf04e4c906a0000696e759a4dd5))
+* full cli functionality ([6f2f2b7](https://github.com/kircherlab/MPRAlib/commit/6f2f2b75ab3b1c3206527b88c629fa29fd472304))
+
+
+### Bug Fixes
+
+* broken cli methods ([8386f83](https://github.com/kircherlab/MPRAlib/commit/8386f83fc1a9189ef9c6eb5c16343dac3ed4589c))
+
 ## [0.3.0](https://github.com/kircherlab/MPRAlib/compare/v0.2.2...v0.3.0) (2025-03-04)
 
 
