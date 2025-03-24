@@ -1,5 +1,6 @@
 
 import numpy as np
+import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
@@ -10,11 +11,7 @@ custom_palette = sns.color_palette(["#3498db", "#e74c3c", "#2ecc71", "#f1c40f", 
 sns.set_theme(style="whitegrid", rc=custom_params, palette=custom_palette)
 
 
-def correlation(data: MPRAData, layer: CountType, x, y) -> Figure:
-    fig, ax = plt.subplots()
-
-    idx_x = data.obs_names.get_loc(x)
-    idx_y = data.obs_names.get_loc(y)
+def correlation(data: MPRAData, layer: CountType, x=None, y=None) -> Figure:
 
     counts = None
     if layer == CountType.DNA:
@@ -30,13 +27,30 @@ def correlation(data: MPRAData, layer: CountType, x, y) -> Figure:
 
     counts = np.ma.masked_array(counts, mask=[data.barcode_counts < data.barcode_threshold])
 
-    sns.scatterplot(x=counts[idx_x], y=counts[idx_y], s=5, color=".15")
-    sns.histplot(x=counts[idx_x], y=counts[idx_y], bins=50, pthresh=.1, cmap="mako")
-    sns.kdeplot(x=counts[idx_x], y=counts[idx_y], levels=5, color="w", linewidths=1)
+    if x is None or y is None:
+        g = sns.PairGrid(
+            pd.DataFrame(counts.T, columns=[f"Replicate {i}" for i in data.obs_names], index=data.var_names)
+        )
 
-    ax.set_title("Correlation Plot")
-    ax.set_xlabel(f'Replicate {x}')
-    ax.set_ylabel(f'Replicate {y}')
+        g.map_upper(sns.histplot, cmap="mako")
+        g.map_diag(sns.kdeplot)
+        g.map_lower(sns.kdeplot, legend=False)
+        g.figure.suptitle("Correlation Plot")
+        return g
 
-    # Return the figure object
-    return fig
+    else:
+        fig, ax = plt.subplots()
+
+        idx_x = data.obs_names.get_loc(x)
+        idx_y = data.obs_names.get_loc(y)
+
+        sns.scatterplot(x=counts[idx_x], y=counts[idx_y], s=5, color=".15")
+        sns.histplot(x=counts[idx_x], y=counts[idx_y], bins=50, pthresh=.1, cmap="mako")
+        sns.kdeplot(x=counts[idx_x], y=counts[idx_y], levels=5, color="w", linewidths=1)
+
+        ax.set_title("Correlation Plot")
+        ax.set_xlabel(f'Replicate {x}')
+        ax.set_ylabel(f'Replicate {y}')
+
+        # Return the figure object
+        return fig

@@ -17,8 +17,7 @@ class CountType(Enum):
 
     def __new__(self, value):
         obj = object.__new__(self)
-        obj._value_ = value
-        value = value.lower()
+        obj._value_ = value.lower()
         return obj
 
     @classmethod
@@ -220,13 +219,13 @@ class MPRAData(ABC):
         """
         if count_type == CountType.DNA_NORMALIZED:
             filtered = self.normalized_dna_counts.copy()
-            layer_name = count_type.to_string()
+            layer_name = count_type.value
         elif count_type == CountType.RNA_NORMALIZED:
-            layer_name = count_type.to_string()
+            layer_name = count_type.value
             filtered = self.normalized_rna_counts.copy()
         elif count_type == CountType.ACTIVITY:
             filtered = self.activity.copy()
-            layer_name = count_type.to_string()
+            layer_name = count_type.value
         else:
             raise ValueError(f"Unsupported count type: {count_type}")
 

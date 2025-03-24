@@ -4,8 +4,9 @@ import numpy as np
 import math
 import pysam
 from sklearn.preprocessing import MinMaxScaler
-from mpralib.mpradata import MPRABarcodeData, BarcodeFilter
+from mpralib.mpradata import MPRABarcodeData, BarcodeFilter, CountType
 from mpralib.utils.io import chromosome_map, export_activity_file, export_barcode_file, export_counts_file
+import mpralib.utils.plot as plt
 
 pd.options.mode.copy_on_write = True
 
@@ -84,7 +85,7 @@ def activities(input_file, bc_threshold, element_level, output_file):
     "correlation_on",
     required=False,
     default="all",
-    type=click.Choice(["dna", "rna", "activity", "all"]),
+    type=click.Choice(["dna_normalized", "rna_normalized", "activity", "all"]),
     help="Using a barcode threshold for output (element level only).",
 )
 def correlation(input_file, bc_threshold, correlation_on, correlation_method):
@@ -93,9 +94,9 @@ def correlation(input_file, bc_threshold, correlation_on, correlation_method):
     mpradata.barcode_threshold = bc_threshold
 
     if correlation_on == "all":
-        correlation_on = ["dna", "rna", "activity"]
+        correlation_on = [CountType.DNA_NORMALIZED, CountType.RNA_NORMALIZED, CountType.ACTIVITY]
     else:
-        correlation_on = [correlation_on]
+        correlation_on = [CountType.from_string(correlation_on)]
 
     if correlation_method == "all":
         correlation_method = ["pearson", "spearman"]
@@ -822,6 +823,50 @@ def get_reporter_genomic_variants(
 
     with pysam.BGZFile(output_reporter_genomic_variants_file, "ab") as f:
         f.write(df.to_csv(sep="\t", index=False, header=False, float_format="%.4f").encode())
+
+
+@cli.command()
+@click.option(
+    "--input",
+    "input_file",
+    required=True,
+    type=click.Path(exists=True, readable=True),
+    help="Input file path of MPRA results.",
+)
+@click.option(
+    "--oligos/--barcodes",
+    "use_oligos",
+    required=False,
+    type=click.BOOL,
+    default=True,
+    help="Return counst per oligo or per barcode.",
+)
+@click.option(
+    "--bc-threshold",
+    "bc_threshold",
+    required=False,
+    default=1,
+    type=int,
+    help="Using a barcode threshold for output.",
+)
+@click.option(
+    "--output",
+    "output_file",
+    required=True,
+    type=click.Path(writable=True),
+    help="Output plot file.",
+)
+def plot_correlatios(input_file, use_oligos, bc_threshold, output_file):
+    mpradata = MPRABarcodeData.from_file(input_file)
+
+    mpradata.barcode_threshold = bc_threshold
+
+    if use_oligos:
+        mpradata = mpradata.oligo_data
+
+    fig = plt.correlation(mpradata, CountType.ACTIVITY)
+
+    fig.savefig(output_file)
 
 
 if __name__ == "__main__":
