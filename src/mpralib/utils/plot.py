@@ -36,7 +36,7 @@ def correlation(data: MPRAData, layer: CountType, x=None, y=None) -> Figure:
 
         g.map_upper(sns.scatterplot, s=1)
         g.map_diag(sns.kdeplot)
-        g.map.lower(sns.kdeplot, fill=True)
+        g.map_lower(sns.kdeplot, fill=True)
         g.figure.suptitle("Correlation Plot")
         return g
 
