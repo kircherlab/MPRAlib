@@ -7,7 +7,7 @@ from matplotlib.figure import Figure
 from mpralib.mpradata import MPRAData, CountType
 
 custom_params = {"axes.spines.right": False, "axes.spines.top": False}
-custom_palette = sns.color_palette(["#3498db", "#e74c3c", "#2ecc71", "#f1c40f", "#9b59b6"])
+custom_palette = sns.color_palette(["#72ACBF", "#BF2675", "#2ecc71", "#f1c40f", "#9b59b6"])
 sns.set_theme(style="whitegrid", rc=custom_params, palette=custom_palette)
 
 
@@ -27,14 +27,16 @@ def correlation(data: MPRAData, layer: CountType, x=None, y=None) -> Figure:
 
     counts = np.ma.masked_array(counts, mask=[data.barcode_counts < data.barcode_threshold])
 
+    cmap = sns.light_palette('#BF2675', as_cmap=True)
+
     if x is None or y is None:
         g = sns.PairGrid(
             pd.DataFrame(counts.T, columns=[f"Replicate {i}" for i in data.obs_names], index=data.var_names)
         )
 
-        g.map_upper(sns.histplot, cmap="mako")
+        g.map_upper(sns.scatterplot, s=1)
         g.map_diag(sns.kdeplot)
-        g.map_lower(sns.kdeplot, legend=False)
+        g.map.lower(sns.kdeplot, fill=True)
         g.figure.suptitle("Correlation Plot")
         return g
 
@@ -44,9 +46,8 @@ def correlation(data: MPRAData, layer: CountType, x=None, y=None) -> Figure:
         idx_x = data.obs_names.get_loc(x)
         idx_y = data.obs_names.get_loc(y)
 
-        sns.scatterplot(x=counts[idx_x], y=counts[idx_y], s=5, color=".15")
-        sns.histplot(x=counts[idx_x], y=counts[idx_y], bins=50, pthresh=.1, cmap="mako")
-        sns.kdeplot(x=counts[idx_x], y=counts[idx_y], levels=5, color="w", linewidths=1)
+        sns.scatterplot(x=counts[idx_x], y=counts[idx_y], s=5)
+        sns.histplot(x=counts[idx_x], y=counts[idx_y], bins=50, pthresh=.1, cmap=cmap)
 
         ax.set_title("Correlation Plot")
         ax.set_xlabel(f'Replicate {x}')
