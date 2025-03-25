@@ -104,6 +104,6 @@ def barcodes_per_oligo(data: MPRAOligoData, replicates=None) -> sns.JointGrid:
         ax.text(ax.get_xlim()[1] * 0.5, ax.get_ylim()[1] * 0.9, f"{intercept_median[i]:.0f}", color="red", ha="left")
         ax.text(ax.get_xlim()[1] * 0.5, ax.get_ylim()[1] * 0.8, f"{intercept_mean[i]:.2f}", color="blue", ha="left")
         i = i + 1
-    g.set_axis_labels("Frequency", "arcodes per oligo")
+    g.set_axis_labels("Frequency", "Barcodes per oligo")
 
     return g
