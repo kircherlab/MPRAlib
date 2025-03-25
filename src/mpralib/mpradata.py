@@ -8,7 +8,7 @@ from enum import Enum
 import logging
 
 
-class CountType(Enum):
+class Modality(Enum):
     DNA = "DNA"
     RNA = "RNA"
     DNA_NORMALIZED = "DNA_NORMALIZED"
@@ -210,20 +210,20 @@ class MPRAData(ABC):
         self._drop_correlation()
         self._add_metadata("normalized", False)
 
-    def correlation(self, method="pearson", count_type=CountType.ACTIVITY) -> np.ndarray:
+    def correlation(self, method="pearson", count_type=Modality.ACTIVITY) -> np.ndarray:
         """
         Calculates and return the correlation for activity or normalized counts.
 
         Returns:
             np.ndarray: The Pearson or Spearman correlation matrix.
         """
-        if count_type == CountType.DNA_NORMALIZED:
+        if count_type == Modality.DNA_NORMALIZED:
             filtered = self.normalized_dna_counts.copy()
             layer_name = count_type.value
-        elif count_type == CountType.RNA_NORMALIZED:
+        elif count_type == Modality.RNA_NORMALIZED:
             layer_name = count_type.value
             filtered = self.normalized_rna_counts.copy()
-        elif count_type == CountType.ACTIVITY:
+        elif count_type == Modality.ACTIVITY:
             filtered = self.activity.copy()
             layer_name = count_type.value
         else:

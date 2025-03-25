@@ -4,7 +4,7 @@ import numpy as np
 import math
 import pysam
 from sklearn.preprocessing import MinMaxScaler
-from mpralib.mpradata import MPRABarcodeData, BarcodeFilter, CountType
+from mpralib.mpradata import MPRABarcodeData, BarcodeFilter, Modality
 from mpralib.utils.io import chromosome_map, export_activity_file, export_barcode_file, export_counts_file
 import mpralib.utils.plot as plt
 
@@ -16,7 +16,12 @@ def cli():
     pass
 
 
-@cli.command(help="Generating element activity or barcode count files.")
+@cli.group(help="General functionality.")
+def functional():
+    pass
+
+
+@functional.command(help="Generating element activity or barcode count files.")
 @click.option(
     "--input",
     "input_file",
@@ -56,7 +61,7 @@ def activities(input_file, bc_threshold, element_level, output_file):
         export_barcode_file(mpradata, output_file)
 
 
-@cli.command(help="Compute pairwise correlations under a certain barcode threshold.")
+@functional.command(help="Compute pairwise correlations under a certain barcode threshold.")
 @click.option(
     "--input",
     "input_file",
@@ -88,15 +93,15 @@ def activities(input_file, bc_threshold, element_level, output_file):
     type=click.Choice(["dna_normalized", "rna_normalized", "activity", "all"]),
     help="Using a barcode threshold for output (element level only).",
 )
-def correlation(input_file, bc_threshold, correlation_on, correlation_method):
+def compute_correlation(input_file, bc_threshold, correlation_on, correlation_method):
     mpradata = MPRABarcodeData.from_file(input_file).oligo_data
 
     mpradata.barcode_threshold = bc_threshold
 
     if correlation_on == "all":
-        correlation_on = [CountType.DNA_NORMALIZED, CountType.RNA_NORMALIZED, CountType.ACTIVITY]
+        correlation_on = [Modality.DNA_NORMALIZED, Modality.RNA_NORMALIZED, Modality.ACTIVITY]
     else:
-        correlation_on = [CountType.from_string(correlation_on)]
+        correlation_on = [Modality.from_string(correlation_on)]
 
     if correlation_method == "all":
         correlation_method = ["pearson", "spearman"]
@@ -108,7 +113,9 @@ def correlation(input_file, bc_threshold, correlation_on, correlation_method):
             click.echo(f"{method} correlation on {on}: {mpradata.correlation(method, on).flatten()[[1, 2, 5]]}")
 
 
-@cli.command(help="Filter out outliers based on RNA z-score and copute correlations before and afterwards.")
+functional.command(help="Filter out outliers based on RNA z-score and copute correlations before and afterwards.")
+
+
 @click.option(
     "--input",
     "input_file",
@@ -164,7 +171,12 @@ def filter_outliers(input_file, rna_zscore_times, bc_threshold, output_file):
         export_activity_file(oligo_data, output_file)
 
 
-@cli.command(help="Using a metadata file to generate a oligo to variant mapping.")
+@cli.group(help="MPRA metadata file functionality.")
+def metadata():
+    pass
+
+
+@metadata.command(help="Using a metadata file to generate a oligo to variant mapping.")
 @click.option(
     "--input",
     "input_file",
@@ -210,7 +222,7 @@ def get_variant_map(input_file, metadata_file, output_file):
     variant_map.to_csv(output_file, sep="\t", index=True)
 
 
-@cli.command(help="Return DNA and RNA counts for all oligos or only thosed tagges as elements/ref snvs.")
+@metadata.command(help="Return DNA and RNA counts for all oligos or only thosed tagges as elements/ref snvs.")
 @click.option(
     "--input",
     "input_file",
@@ -287,7 +299,7 @@ def get_counts(input_file, metadata_file, bc_threshold, use_oligos, elements_onl
         export_counts_file(mpradata, output_file)
 
 
-@cli.command(help="Write out DNA and RNA counts for REF and ALT oligos.")
+@metadata.command(help="Write out DNA and RNA counts for REF and ALT oligos.")
 @click.option(
     "--input",
     "input_file",
@@ -378,7 +390,7 @@ def get_variant_counts(input_file, metadata_file, bc_threshold, use_oligos, outp
         export_counts_file(mpradata, output_file)
 
 
-@cli.command()
+@metadata.command()
 @click.option(
     "--input",
     "input_file",
@@ -469,7 +481,7 @@ def get_reporter_elements(
     ].to_csv(output_reporter_elements_file, sep="\t", index=False, float_format="%.4f")
 
 
-@cli.command()
+@metadata.command()
 @click.option(
     "--input",
     "input_file",
@@ -585,7 +597,7 @@ def get_reporter_variants(input_file, metadata_file, statistics_file, bc_thresho
     ].to_csv(output_reporter_variants_file, sep="\t", index=False, float_format="%.4f")
 
 
-@cli.command()
+@metadata.command()
 @click.option(
     "--input",
     "input_file",
@@ -688,7 +700,7 @@ def get_reporter_genomic_elements(
         f.write(out_df.to_csv(sep="\t", index=False, header=False, float_format="%.4f").encode())
 
 
-@cli.command()
+@metadata.command()
 @click.option(
     "--input",
     "input_file",
@@ -825,7 +837,12 @@ def get_reporter_genomic_variants(
         f.write(df.to_csv(sep="\t", index=False, header=False, float_format="%.4f").encode())
 
 
-@cli.command()
+@cli.group(help="Plotting functions.")
+def plot():
+    pass
+
+
+@plot.command()
 @click.option(
     "--input",
     "input_file",
@@ -850,13 +867,29 @@ def get_reporter_genomic_variants(
     help="Using a barcode threshold for output.",
 )
 @click.option(
+    "--modality",
+    "modality",
+    required=False,
+    default="activity",
+    type=click.Choice(["dna_normalized", "rna_normalized", "activity"]),
+    help="What modality should be plotted.",
+)
+@click.option(
+    "--replicate",
+    "replicates",
+    required=False,
+    multiple=True,
+    type=str,
+    help="Copare only these two replicates. Ottheriwse all.",
+)
+@click.option(
     "--output",
     "output_file",
     required=True,
     type=click.Path(writable=True),
     help="Output plot file.",
 )
-def plot_correlatios(input_file, use_oligos, bc_threshold, output_file):
+def correlation(input_file, use_oligos, bc_threshold, modality, replicates, output_file):
     mpradata = MPRABarcodeData.from_file(input_file)
 
     mpradata.barcode_threshold = bc_threshold
@@ -864,7 +897,101 @@ def plot_correlatios(input_file, use_oligos, bc_threshold, output_file):
     if use_oligos:
         mpradata = mpradata.oligo_data
 
-    fig = plt.correlation(mpradata, CountType.ACTIVITY)
+    modality = Modality.from_string(modality)
+
+    if replicates:
+        fig = plt.correlation(mpradata, modality, replicates)
+    else:
+        fig = plt.correlation(mpradata, modality)
+
+    fig.savefig(output_file)
+
+
+@plot.command(help="Plotting the DNA vs RNA counts (log10, median on  multiple replicates).")
+@click.option(
+    "--input",
+    "input_file",
+    required=True,
+    type=click.Path(exists=True, readable=True),
+    help="Input file path of MPRA results.",
+)
+@click.option(
+    "--oligos/--barcodes",
+    "use_oligos",
+    required=False,
+    type=click.BOOL,
+    default=True,
+    help="Return counst per oligo or per barcode.",
+)
+@click.option(
+    "--bc-threshold",
+    "bc_threshold",
+    required=False,
+    default=1,
+    type=int,
+    help="Using a barcode threshold for output.",
+)
+@click.option(
+    "--replicate",
+    "replicates",
+    required=False,
+    multiple=True,
+    type=str,
+    help="Copare only these two replicates. Ottheriwse all.",
+)
+@click.option(
+    "--output",
+    "output_file",
+    required=True,
+    type=click.Path(writable=True),
+    help="Output plot file.",
+)
+def dna_vs_rna(input_file, use_oligos, bc_threshold, replicates, output_file):
+    mpradata = MPRABarcodeData.from_file(input_file)
+
+    mpradata.barcode_threshold = bc_threshold
+
+    if use_oligos:
+        mpradata = mpradata.oligo_data
+
+    if replicates:
+        fig = plt.dna_vs_rna(mpradata, replicates)
+    else:
+        fig = plt.dna_vs_rna(mpradata)
+
+    fig.savefig(output_file)
+
+
+@plot.command(help="Histogramm of barcodes per oligo.")
+@click.option(
+    "--input",
+    "input_file",
+    required=True,
+    type=click.Path(exists=True, readable=True),
+    help="Input file path of MPRA results.",
+)
+@click.option(
+    "--replicate",
+    "replicates",
+    required=False,
+    multiple=True,
+    type=str,
+    help="Show only these replicates. Otheriwse all.",
+)
+@click.option(
+    "--output",
+    "output_file",
+    required=True,
+    type=click.Path(writable=True),
+    help="Output plot file.",
+)
+def barcodes_per_oligo(input_file, replicates, output_file):
+    mpradata = MPRABarcodeData.from_file(input_file).oligo_data
+
+    if replicates:
+        fig = plt.barcodes_per_oligo(mpradata, replicates)
+    else:
+        fig = plt.barcodes_per_oligo(mpradata)
 
     fig.savefig(output_file)
 
