@@ -5,7 +5,7 @@ from mpralib.mpradata import MPRAData, Modality, MPRAOligoData
 
 custom_params = {"axes.spines.right": False, "axes.spines.top": False}
 custom_palette = sns.color_palette(["#72ACBF", "#BF2675", "#2ecc71", "#f1c40f", "#9b59b6"])
-sns.set_theme(style="whitegrid", rc=custom_params, palette=custom_palette)
+sns.set_theme(style="white", rc=custom_params, palette=custom_palette)
 
 
 def correlation(data: MPRAData, layer: Modality, replicates=None) -> sns.JointGrid:
@@ -66,7 +66,7 @@ def dna_vs_rna(data: MPRAData, replicates=None) -> sns.JointGrid:
         [df["DNA [log10]"].min(), df["DNA [log10]"].max()],
         [df["RNA [log10]"].min(), df["RNA [log10]"].max()],
         linestyle="--",
-        color="red",
+        color="#BF2675",
     )
     g.figure.suptitle("Median normalized counts across replicates")
     g.figure.subplots_adjust(top=0.95)
