@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from mpralib.mpradata import MPRAData, Modality, MPRAOligoData
+import matplotlib.pyplot as plt
+from mpralib.mpradata import MPRAData, Modality, MPRAOligoData, MPRABarcodeData
 
 custom_params = {"axes.spines.right": False, "axes.spines.top": False}
 custom_palette = sns.color_palette(["#72ACBF", "#BF2675", "#2ecc71", "#f1c40f", "#9b59b6"])
@@ -107,3 +108,57 @@ def barcodes_per_oligo(data: MPRAOligoData, replicates=None) -> sns.JointGrid:
     g.set_axis_labels("Frequency", "Barcodes per oligo")
 
     return g
+
+
+def barcodes_outlier(data: MPRABarcodeData):
+
+    counts_dna = data.dna_counts.copy()
+    counts_rna = data.rna_counts.copy()
+    # counts_activity = data.activity.copy()
+
+    counts_dna_sum = counts_dna.sum(axis=0)
+    counts_rna_sum = counts_rna.sum(axis=0)
+
+    print(np.any([counts_dna_sum <= 10, counts_rna_sum <= 0], axis = 0))
+    mask = np.any([np.any(data.barcode_counts < data.barcode_threshold, axis=0) == 1, np.any([counts_dna_sum <= 10, counts_rna_sum <= 0], axis = 0)], axis=0)
+
+    print(np.shape(mask))
+    print(np.sum(mask))
+
+    # counts_dna = np.ma.masked_array(counts_dna, mask=mask)
+    # counts_rna = np.ma.masked_array(counts_rna, mask=mask)
+    # counts_activity = np.ma.masked_array(counts_activity, mask=mask)
+    counts_dna_sum = np.ma.masked_array(counts_dna_sum, mask=mask)
+    counts_rna_sum = np.ma.masked_array(counts_rna_sum, mask=mask)
+
+    counts_ratio = np.log2(counts_rna_sum / counts_dna_sum)
+    counts = pd.DataFrame(
+        {
+            "dna": counts_dna_sum,
+            "ratio": counts_ratio,
+            "oligo": data.oligos,
+        },
+    )
+
+    counts = counts[~mask]
+
+    counts['ratio_med'] = counts.groupby('oligo')['ratio'].transform('median')
+    counts['ratio_diff'] = counts['ratio'] - counts['ratio_med']
+
+    nbin = 20
+    qs = np.quantile(np.log10(counts['dna']), np.arange(0, nbin + 1) / nbin)
+    counts['bin'] = pd.cut(np.log10(counts['dna']), bins=qs, include_lowest=True, labels=range(1, nbin + 1))
+
+    stats = counts.groupby('bin').agg(mean_diff=('ratio_diff', 'mean'), sd_diff=('ratio_diff', 'std')).reset_index()
+
+    # Plotting
+    plt.figure(figsize=(10, 6))
+    sns.scatterplot(data=counts.sample(n=min(10000, len(counts))), x='bin', y='ratio_diff', alpha=0.1)
+    sns.scatterplot(data=counts[(counts['ratio_diff'] > 5) & (counts['bin'].isin(range(11, 21)))], x='bin', y='ratio_diff', alpha=0.5)
+    plt.errorbar(x=stats['bin'], y=stats['mean_diff'], yerr=2 * stats['sd_diff'], fmt='o', color='dodgerblue', linewidth=1)
+    plt.axhline(y=5, color='red')
+    plt.xlabel('Bin')
+    plt.ylabel('Ratio Difference')
+    plt.title('Ratio Difference by Bin')
+    plt.show()
+

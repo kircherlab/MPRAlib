@@ -995,6 +995,23 @@ def barcodes_per_oligo(input_file, replicates, output_file):
 
     fig.savefig(output_file)
 
+@plot.command(help="Outlier plot.")
+@click.option(
+    "--input",
+    "input_file",
+    required=True,
+    type=click.Path(exists=True, readable=True),
+    help="Input file path of MPRA results.",
+)
+def outlier(input_file):
+    mpradata = MPRABarcodeData.from_file(input_file)
+
+    mpradata.barcode_threshold = 10
+
+    plt.barcodes_outlier(mpradata)
+
+    # fig.savefig(output_file)
+
 
 if __name__ == "__main__":
     cli()
