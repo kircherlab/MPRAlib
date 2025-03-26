@@ -995,6 +995,7 @@ def barcodes_per_oligo(input_file, replicates, output_file):
 
     fig.savefig(output_file)
 
+
 @plot.command(help="Outlier plot.")
 @click.option(
     "--input",
