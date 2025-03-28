@@ -1031,10 +1031,18 @@ def barcodes_per_oligo(input_file, replicates, output_file):
     type=click.Path(exists=True, readable=True),
     help="Input file path of MPRA results.",
 )
-def outlier(input_file):
+@click.option(
+    "--bc-threshold",
+    "bc_threshold",
+    required=False,
+    default=1,
+    type=int,
+    help="Using a barcode threshold for output.",
+)
+def outlier(input_file, bc_threshold):
     mpradata = MPRABarcodeData.from_file(input_file)
 
-    mpradata.barcode_threshold = 10
+    mpradata.barcode_threshold = bc_threshold
 
     plt.barcodes_outlier(mpradata)
 

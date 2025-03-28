@@ -116,16 +116,15 @@ def barcodes_outlier(data: MPRABarcodeData):
     # counts_rna = data.normalized_rna_counts.copy()
     counts_dna = data.dna_counts.copy()
     counts_rna = data.rna_counts.copy()
-    # counts_activity = data.activity.copy()
 
     counts_dna_sum = counts_dna.sum(axis=0)
     counts_rna_sum = counts_rna.sum(axis=0)
 
-    print(np.any([counts_dna_sum <= 10, counts_rna_sum <= 0], axis=0))
     mask = np.any(
         [
-            np.any(data.barcode_counts < data.barcode_threshold, axis=0) == 1,
+            np.any(data.barcode_counts < data.barcode_threshold, axis=0),
             np.any([counts_dna_sum <= 10, counts_rna_sum <= 0], axis=0),
+            ~np.any(data.observed, axis=0),
         ],
         axis=0,
     )
@@ -133,9 +132,6 @@ def barcodes_outlier(data: MPRABarcodeData):
     print(np.shape(mask))
     print(np.sum(mask))
 
-    # counts_dna = np.ma.masked_array(counts_dna, mask=mask)
-    # counts_rna = np.ma.masked_array(counts_rna, mask=mask)
-    # counts_activity = np.ma.masked_array(counts_activity, mask=mask)
     counts_dna_sum = np.ma.masked_array(counts_dna_sum, mask=mask)
     counts_rna_sum = np.ma.masked_array(counts_rna_sum, mask=mask)
 
@@ -150,22 +146,25 @@ def barcodes_outlier(data: MPRABarcodeData):
 
     counts = counts[~mask]
 
+    print(len(counts))
+
     counts["ratio_med"] = counts.groupby("oligo")["ratio"].transform("median")
     counts["ratio_diff"] = counts["ratio"] - counts["ratio_med"]
 
     nbin = 20
-    qs = np.unique(np.quantile(np.log10(counts["dna"]), np.arange(0, nbin + 1) / nbin))
+    qs = np.quantile(np.log10(counts["dna"]), np.arange(0, nbin + 1) / nbin)
     counts["bin"] = pd.cut(
         np.log10(counts["dna"]), bins=qs, include_lowest=True, labels=[str(i) for i in range(0, len(qs) - 1)]
     )
 
     stats = counts.groupby("bin").agg(mean_diff=("ratio_diff", "mean"), sd_diff=("ratio_diff", "std")).reset_index()
 
+    # Get the last n categories of ordered categories
     # Plotting
     plt.figure(figsize=(10, 6))
     sns.scatterplot(data=counts.sample(n=min(10000, len(counts))), x="bin", y="ratio_diff", alpha=0.3)
     sns.scatterplot(
-        data=counts[(counts["ratio_diff"] > 5) & (counts["bin"].isin(range(11, 21)))],
+        data=counts[(counts["ratio_diff"] > 5) & (counts["bin"].isin(counts["bin"].cat.categories[9:]))],
         x="bin",
         y="ratio_diff",
         alpha=1,
