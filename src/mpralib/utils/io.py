@@ -1,7 +1,9 @@
 import pandas as pd
 import numpy as np
+import ast
 import os
 from mpralib.mpradata import MPRABarcodeData, MPRAOligoData, MPRAData
+from mpralib.exception import SequenceDesignException
 
 
 def chromosome_map() -> pd.DataFrame:
@@ -109,3 +111,83 @@ def export_counts_file(mpradata: MPRAData, output_file_path: str) -> None:
     df = df[(df.T != 0).all()]
 
     df.to_csv(output_file_path, sep="\t", index=True)
+
+
+def read_sequence_design_file(file_path: str) -> pd.DataFrame:
+    """
+    Read sequence design from a tab-separated values (TSV) file.
+
+    This function reads metadata from a TSV file and returns it as a pandas DataFrame.
+    The metadata file should contain columns for sample ID, replicate, and any additional
+    metadata. The sample ID should correspond to the oligo name in the MPRA data object.
+
+    Parameters:
+    file_path (str): The file path of the metadata TSV file.
+
+    Returns:
+    pd.DataFrame: A DataFrame containing the metadata.
+    """
+
+    df = pd.read_csv(
+        file_path,
+        sep="\t",
+        header=0,
+        na_values=["NA"],
+        usecols=[
+            "name",
+            "sequence",
+            "category",
+            "class",
+            "source",
+            "ref",
+            "chr",
+            "start",
+            "end",
+            "strand",
+            "variant_class",
+            "variant_pos",
+            "SPDI",
+            "allele",
+            "info",
+        ],
+    ).drop_duplicates()
+
+    # Set specific columns as arrays
+    df["variant_class"] = df["variant_class"].fillna("[]").apply(ast.literal_eval)
+    df["variant_pos"] = df["variant_pos"].fillna("[]").apply(ast.literal_eval)
+    df["SPDI"] = df["SPDI"].fillna("[]").apply(ast.literal_eval)
+    df["allele"] = df["allele"].fillna("[]").apply(ast.literal_eval)
+
+    # Set specific columns as categorical or integer types
+    df["category"] = pd.Categorical(df["category"])
+    df["class"] = pd.Categorical(df["class"])
+    df["chr"] = pd.Categorical(df["chr"])
+    df["strand"] = pd.Categorical(df["strand"])
+    df["start"] = df["start"].astype("Int64")  # Nullable integer type
+    df["end"] = df["end"].astype("Int64")  # Nullable integer type
+    df["name"] = pd.Categorical(df["name"].str.replace(r"[\s\[\]]", "_", regex=True))
+
+    # oligo name as index
+    df.set_index("name", inplace=True)
+
+    # Validate that the 'sequence' column contains only valid DNA characters
+    if np.any(~df["sequence"].str.match(r"^[ATGCatgc]+$", na=False)):
+        raise SequenceDesignException("sequence", file_path)
+
+    # Validate that the 'class' column contains only 'variant', 'element', 'synthetic' or 'scrambled'
+    valid_categories = {"variant", "element", "synthetic", "scrambled"}
+    if not set(df["category"].cat.categories).issubset(valid_categories):
+        raise SequenceDesignException("category", file_path)
+
+    # Validate that the 'category' column contains only:
+    valid_classes = {
+        "test",
+        "variant positive control",
+        "variant negative control",
+        "element active control",
+        "element inactive control",
+    }
+    if not set(df["class"].cat.categories).issubset(valid_classes):
+        raise SequenceDesignException("class", file_path)
+
+    return df

@@ -5,7 +5,13 @@ import math
 import pysam
 from sklearn.preprocessing import MinMaxScaler
 from mpralib.mpradata import MPRABarcodeData, BarcodeFilter, Modality
-from mpralib.utils.io import chromosome_map, export_activity_file, export_barcode_file, export_counts_file
+from mpralib.utils.io import (
+    chromosome_map,
+    export_activity_file,
+    export_barcode_file,
+    export_counts_file,
+    read_sequence_design_file,
+)
 import mpralib.utils.plot as plt
 
 pd.options.mode.copy_on_write = True
@@ -171,25 +177,25 @@ def filter_outliers(input_file, rna_zscore_times, bc_threshold, output_file):
         export_activity_file(oligo_data, output_file)
 
 
-@cli.group(help="MPRA metadata file functionality.")
-def metadata():
+@cli.group(help="MPRA sequence design file functionality.")
+def sequence_design():
     pass
 
 
-@metadata.command(help="Using a metadata file to generate a oligo to variant mapping.")
+@sequence_design.command(help="Using a metadata file to generate a oligo to variant mapping.")
 @click.option(
     "--input",
     "input_file",
-    required=True,
+    required=False,
     type=click.Path(exists=True, readable=True),
-    help="Input file path of MPRA results.",
+    help="Input file path of MPRA results (barcode output file). If set only map of present oligos in the barcode count file will be generated.",
 )
 @click.option(
-    "--metadata",
-    "metadata_file",
+    "--sequence-design",
+    "sequence_design_file",
     required=True,
     type=click.Path(exists=True, readable=True),
-    help="Input file path of MPRA results.",
+    help="Sequence design file.",
 )
 @click.option(
     "--output",
@@ -198,31 +204,52 @@ def metadata():
     type=click.Path(writable=True),
     help="Output file of results.",
 )
-def get_variant_map(input_file, metadata_file, output_file):
-    """Reads a file and generates an MPRAdata object."""
-    mpradata = MPRABarcodeData.from_file(input_file)
+def get_variant_map(input_file, sequence_design_file, output_file):
 
-    print("Generating oligo data...")
-    mpradata = mpradata.oligo_data
+    df_sequence_design = read_sequence_design_file(sequence_design_file)
 
-    print("Adding metadata file...")
-    mpradata.add_metadata_file(metadata_file)
+    if input_file:
+        print("Read barcode count file...")
+        mpradata = MPRABarcodeData.from_file(input_file)
 
-    print("Generating variant map...")
-    variant_map = mpradata.variant_map
+        print("Generating oligo data...")
+        mpradata = mpradata.oligo_data
+
+        print("Adding metadata file...")
+        mpradata.add_sequence_design(df_sequence_design, sequence_design_file)
+
+        print(mpradata.data.var["SPDI"])
+        print(type(mpradata.data.var["SPDI"]))
+        print(mpradata.data.var["SPDI"].values)
+
+        print("Generating variant map...")
+        variant_map = mpradata.variant_map
+    else:
+        variant_map = pd.DataFrame(
+            {
+                "ID": np.concatenate(df_sequence_design["SPDI"].values),
+                "allele": np.concatenate(df_sequence_design["allele"].values),
+                "oligo": df_sequence_design.index.values.repeat(df_sequence_design["SPDI"].apply(lambda x: len(x))),
+            }
+        )
+        variant_map["REF"] = variant_map.apply(lambda row: row["oligo"] if row["allele"] == "ref" else None, axis=1)
+        variant_map["ALT"] = variant_map.apply(lambda row: row["oligo"] if row["allele"] == "alt" else None, axis=1)
+        variant_map = variant_map.groupby("ID").agg(
+            {"REF": lambda x: list(filter(None, x)), "ALT": lambda x: list(filter(None, x))}
+        )
 
     print("Prepair output file...")
     for key in ["REF", "ALT"]:
         # TODO: what happens a variant has multiple alt alleles?
         # Right now joined by comma. But maybe I hould use one row per ref/alt pai?
-        variant_map[key] = [",".join(i) for i in variant_map[key]]
+        variant_map.loc[:, key] = variant_map[key].apply(lambda x: ",".join(x))
 
     variant_map = variant_map[variant_map.apply(lambda x: all(x != ""), axis=1)]
 
     variant_map.to_csv(output_file, sep="\t", index=True)
 
 
-@metadata.command(help="Return DNA and RNA counts for all oligos or only thosed tagges as elements/ref snvs.")
+@sequence_design.command(help="Return DNA and RNA counts for all oligos or only thosed tagges as elements/ref snvs.")
 @click.option(
     "--input",
     "input_file",
@@ -231,11 +258,11 @@ def get_variant_map(input_file, metadata_file, output_file):
     help="Input file path of MPRA results.",
 )
 @click.option(
-    "--metadata",
-    "metadata_file",
+    "--sequence-design",
+    "sequence_design_file",
     required=True,
     type=click.Path(exists=True, readable=True),
-    help="Input file path of MPRA results.",
+    help="Sequence design file.",
 )
 @click.option(
     "--bc-threshold",
@@ -268,7 +295,7 @@ def get_variant_map(input_file, metadata_file, output_file):
     type=click.Path(writable=True),
     help="Output file of all non zero counts.",
 )
-def get_counts(input_file, metadata_file, bc_threshold, use_oligos, elements_only, output_file):
+def get_counts(input_file, sequence_design_file, bc_threshold, use_oligos, elements_only, output_file):
 
     mpradata = MPRABarcodeData.from_file(input_file)
 
@@ -277,7 +304,7 @@ def get_counts(input_file, metadata_file, bc_threshold, use_oligos, elements_onl
     if use_oligos:
         mpradata = mpradata.oligo_data
 
-    mpradata.add_metadata_file(metadata_file)
+    mpradata.add_sequence_design(read_sequence_design_file(sequence_design_file), sequence_design_file)
 
     click.echo(
         f"Pearson correlation log2FoldChange, all oligos: {
@@ -299,7 +326,7 @@ def get_counts(input_file, metadata_file, bc_threshold, use_oligos, elements_onl
         export_counts_file(mpradata, output_file)
 
 
-@metadata.command(help="Write out DNA and RNA counts for REF and ALT oligos.")
+@sequence_design.command(help="Write out DNA and RNA counts for REF and ALT oligos.")
 @click.option(
     "--input",
     "input_file",
@@ -308,11 +335,11 @@ def get_counts(input_file, metadata_file, bc_threshold, use_oligos, elements_onl
     help="Input file path of MPRA results.",
 )
 @click.option(
-    "--metadata",
-    "metadata_file",
+    "--sequence-design",
+    "sequence_design_file",
     required=True,
     type=click.Path(exists=True, readable=True),
-    help="Input file path of MPRA results.",
+    help="Sequence design file.",
 )
 @click.option(
     "--bc-threshold",
@@ -337,11 +364,11 @@ def get_counts(input_file, metadata_file, bc_threshold, use_oligos, elements_onl
     type=click.Path(writable=True),
     help="Output file of all non zero counts, divided by ref and alt.",
 )
-def get_variant_counts(input_file, metadata_file, bc_threshold, use_oligos, output_file):
+def get_variant_counts(input_file, sequence_design_file, bc_threshold, use_oligos, output_file):
     """Reads a file and generates an MPRAdata object."""
     mpradata = MPRABarcodeData.from_file(input_file)
 
-    mpradata.add_metadata_file(metadata_file)
+    mpradata.add_sequence_design(read_sequence_design_file(sequence_design_file), sequence_design_file)
 
     mpradata.barcode_threshold = bc_threshold
 
@@ -390,7 +417,7 @@ def get_variant_counts(input_file, metadata_file, bc_threshold, use_oligos, outp
         export_counts_file(mpradata, output_file)
 
 
-@metadata.command()
+@sequence_design.command()
 @click.option(
     "--input",
     "input_file",
@@ -399,11 +426,11 @@ def get_variant_counts(input_file, metadata_file, bc_threshold, use_oligos, outp
     help="Input file path of MPRA results.",
 )
 @click.option(
-    "--metadata",
-    "metadata_file",
+    "--sequence-design",
+    "sequence_design_file",
     required=True,
     type=click.Path(exists=True, readable=True),
-    help="Input file path of MPRA results.",
+    help="Sequence design file.",
 )
 @click.option(
     "--elements-only/--all-oligos",
@@ -436,12 +463,12 @@ def get_variant_counts(input_file, metadata_file, bc_threshold, use_oligos, outp
     help="Output file of MPRA data object.",
 )
 def get_reporter_elements(
-    input_file, metadata_file, statistics_file, elements_only, bc_threshold, output_reporter_elements_file
+    input_file, sequence_design_file, statistics_file, elements_only, bc_threshold, output_reporter_elements_file
 ):
 
     mpradata = MPRABarcodeData.from_file(input_file).oligo_data
 
-    mpradata.add_metadata_file(metadata_file)
+    mpradata.add_sequence_design(read_sequence_design_file(sequence_design_file), sequence_design_file)
 
     mpradata.barcode_threshold = bc_threshold
 
@@ -481,7 +508,7 @@ def get_reporter_elements(
     ].to_csv(output_reporter_elements_file, sep="\t", index=False, float_format="%.4f")
 
 
-@metadata.command()
+@sequence_design.command()
 @click.option(
     "--input",
     "input_file",
@@ -490,11 +517,11 @@ def get_reporter_elements(
     help="Input file path of MPRA results.",
 )
 @click.option(
-    "--metadata",
-    "metadata_file",
+    "--sequence-design",
+    "sequence_design_file",
     required=True,
     type=click.Path(exists=True, readable=True),
-    help="Input file path of MPRA results.",
+    help="Sequence design file.",
 )
 @click.option(
     "--statistics",
@@ -518,11 +545,11 @@ def get_reporter_elements(
     type=click.Path(writable=True),
     help="Output file of MPRA data object.",
 )
-def get_reporter_variants(input_file, metadata_file, statistics_file, bc_threshold, output_reporter_variants_file):
+def get_reporter_variants(input_file, sequence_design_file, statistics_file, bc_threshold, output_reporter_variants_file):
 
     mpradata = MPRABarcodeData.from_file(input_file)
 
-    mpradata.add_metadata_file(metadata_file)
+    mpradata.add_sequence_design(read_sequence_design_file(sequence_design_file), sequence_design_file)
 
     mpradata.barcode_threshold = bc_threshold
 
@@ -597,7 +624,7 @@ def get_reporter_variants(input_file, metadata_file, statistics_file, bc_thresho
     ].to_csv(output_reporter_variants_file, sep="\t", index=False, float_format="%.4f")
 
 
-@metadata.command()
+@sequence_design.command()
 @click.option(
     "--input",
     "input_file",
@@ -606,11 +633,11 @@ def get_reporter_variants(input_file, metadata_file, statistics_file, bc_thresho
     help="Input file path of MPRA results.",
 )
 @click.option(
-    "--metadata",
-    "metadata_file",
+    "--sequence-design",
+    "sequence_design_file",
     required=True,
     type=click.Path(exists=True, readable=True),
-    help="Input file path of MPRA results.",
+    help="Sequence design file.",
 )
 @click.option(
     "--statistics",
@@ -635,12 +662,12 @@ def get_reporter_variants(input_file, metadata_file, statistics_file, bc_thresho
     help="Output file of MPRA data object.",
 )
 def get_reporter_genomic_elements(
-    input_file, metadata_file, statistics_file, bc_threshold, output_reporter_genomic_elements_file
+    input_file, sequence_design_file, statistics_file, bc_threshold, output_reporter_genomic_elements_file
 ):
 
     mpradata = MPRABarcodeData.from_file(input_file)
 
-    mpradata.add_metadata_file(metadata_file)
+    mpradata.add_sequence_design(read_sequence_design_file(sequence_design_file), sequence_design_file)
 
     mpradata.barcode_threshold = bc_threshold
 
@@ -700,7 +727,7 @@ def get_reporter_genomic_elements(
         f.write(out_df.to_csv(sep="\t", index=False, header=False, float_format="%.4f").encode())
 
 
-@metadata.command()
+@sequence_design.command()
 @click.option(
     "--input",
     "input_file",
@@ -709,11 +736,11 @@ def get_reporter_genomic_elements(
     help="Input file path of MPRA results.",
 )
 @click.option(
-    "--metadata",
-    "metadata_file",
+    "--sequence-design",
+    "sequence_design_file",
     required=True,
     type=click.Path(exists=True, readable=True),
-    help="Input file path of MPRA results.",
+    help="Sequence design file.",
 )
 @click.option(
     "--statistics",
@@ -738,12 +765,12 @@ def get_reporter_genomic_elements(
     help="Output file of MPRA data object.",
 )
 def get_reporter_genomic_variants(
-    input_file, metadata_file, statistics_file, bc_threshold, output_reporter_genomic_variants_file
+    input_file, sequence_design_file, statistics_file, bc_threshold, output_reporter_genomic_variants_file
 ):
 
     mpradata = MPRABarcodeData.from_file(input_file)
 
-    mpradata.add_metadata_file(metadata_file)
+    mpradata.add_sequence_design(read_sequence_design_file(sequence_design_file), sequence_design_file)
 
     mpradata.barcode_threshold = bc_threshold
 

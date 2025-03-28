@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 import numpy as np
-import ast
 import pandas as pd
 import anndata as ad
 from scipy.stats import spearmanr, pearsonr
@@ -179,10 +178,10 @@ class MPRAData(ABC):
     @property
     def variant_map(self) -> pd.DataFrame:
         # raise ValueError if metadata format not loaded.
-        if not self._get_metadata("metadata_file") and not (
-            isinstance(self, MPRAOligoData) and self._get_metadata("MPRABarcodeData_metadata_file")
+        if not self._get_metadata("sequence_design_file") and not (
+            isinstance(self, MPRAOligoData) and self._get_metadata("MPRABarcodeData_sequence_design_file")
         ):
-            raise ValueError("Metadata file not loaded.")
+            raise ValueError("Sequence design file not loaded.")
 
         oligos = self.data.var["oligo"].repeat(self.data.var["SPDI"].apply(lambda x: len(x)))
 
@@ -299,21 +298,14 @@ class MPRAData(ABC):
         else:
             return None
 
-    def add_metadata_file(self, metadata_file):
-        df_metadata = pd.read_csv(metadata_file, sep="\t", header=0, na_values=["NA"]).drop_duplicates()
-        df_metadata["name"] = pd.Categorical(df_metadata["name"].str.replace(r"[\s\[\]]", "_", regex=True))
-        df_metadata.set_index("name", inplace=True)
-        df_metadata["variant_class"] = df_metadata["variant_class"].fillna("[]").apply(ast.literal_eval)
-        df_metadata["variant_pos"] = df_metadata["variant_pos"].fillna("[]").apply(ast.literal_eval)
-        df_metadata["SPDI"] = df_metadata["SPDI"].fillna("[]").apply(ast.literal_eval)
-        df_metadata["allele"] = df_metadata["allele"].fillna("[]").apply(ast.literal_eval)
+    def add_sequence_design(self, df_sequence_design: pd.DataFrame, sequence_design_file_path) -> None:
 
-        df_matched_metadata = df_metadata.loc[self.oligos]
+        df_matched_metadata = df_sequence_design.loc[self.oligos]
 
-        self.data.var["category"] = pd.Categorical(df_matched_metadata["category"])
-        self.data.var["class"] = pd.Categorical(df_matched_metadata["class"])
-        self.data.var["ref"] = pd.Categorical(df_matched_metadata["ref"])
-        self.data.var["chr"] = pd.Categorical(df_matched_metadata["chr"])
+        self.data.var["category"] = df_matched_metadata["category"]
+        self.data.var["class"] = df_matched_metadata["class"]
+        self.data.var["ref"] = df_matched_metadata["ref"]
+        self.data.var["chr"] = df_matched_metadata["chr"]
         self.data.var["start"] = df_matched_metadata["start"].values
         self.data.var["end"] = df_matched_metadata["end"].values
         self.data.var["strand"] = pd.Categorical(df_matched_metadata["strand"])
@@ -322,7 +314,7 @@ class MPRAData(ABC):
         self.data.var["SPDI"] = df_matched_metadata["SPDI"].values
         self.data.var["allele"] = df_matched_metadata["allele"].values
 
-        self._add_metadata("metadata_file", metadata_file)
+        self._add_metadata("sequence_design_file", sequence_design_file_path)
 
 
 class MPRABarcodeData(MPRAData):
