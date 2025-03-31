@@ -10,8 +10,9 @@ parser$add_argument("--percentile",
     help = "Percentile of control to test on. Default is 0.975"
 )
 parser$add_argument("--output", type = "character", required = TRUE, help = "Path to the output file")
-parser$add_argument("--output-vulcano-plot", type = "character", required = FALSE, help = "Path to stroe the vulcano plot")
-parser$add_argument("--output-density-plot", type = "character", required = FALSE, help = "Path to stroe the density plot")
+parser$add_argument("--output-vulcano-plot", type = "character", required = FALSE, help = "Path to store the vulcano plot")
+parser$add_argument("--output-density-plot", type = "character", required = FALSE, help = "Path to store the density plot")
+parser$add_argument("--normalize", type = "logical", default = TRUE, help = "Whether to normalize the data (TRUE or FALSE)")
 
 args <- parser$parse_args()
 
@@ -47,7 +48,7 @@ bcs <- ncol(dna_elem) / nr_reps
 block_vector <- rep(1:nr_reps, each = bcs)
 
 cat("Fit elements...\n")
-fit_elem <- fit_elements(object = mpraset, normalize = TRUE, block = block_vector, plot = FALSE)
+fit_elem <- fit_elements(object = mpraset, normalize = args$normalize, block = block_vector, plot = FALSE)
 
 toptab_element <- topTable(fit_elem, coef = 1, number = Inf)
 percentile <- args$percentile

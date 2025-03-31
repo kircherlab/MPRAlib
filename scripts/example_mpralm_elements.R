@@ -11,8 +11,9 @@ parser$add_argument("--percentile",
     help = "Percentile of control to test on. Default is 0.975"
 )
 parser$add_argument("--output", type = "character", required = TRUE, help = "Path to the output file")
-parser$add_argument("--output-vulcano-plot", type = "character", required = FALSE, help = "Path to stroe the vulcano plot")
-parser$add_argument("--output-density-plot", type = "character", required = FALSE, help = "Path to stroe the density plot")
+parser$add_argument("--output-vulcano-plot", type = "character", required = FALSE, help = "Path to store the vulcano plot")
+parser$add_argument("--output-density-plot", type = "character", required = FALSE, help = "Path to store the density plot")
+parser$add_argument("--normalize", type = "logical", default = TRUE, help = "Whether to normalize the data (TRUE or FALSE)")
 
 args <- parser$parse_args()
 
@@ -60,7 +61,7 @@ fit_elem <- mpralm(
     object = mpraset,
     design = design,
     aggregate = "none",
-    normalize = FALSE,
+    normalize = args$normalize,
     model_type = "indep_groups",
     plot <- FALSE
 )

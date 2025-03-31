@@ -281,6 +281,14 @@ def get_variant_map(input_file, sequence_design_file, output_file):
     help="Return counst per oligo or per barcode.",
 )
 @click.option(
+    "--normalized-counts/--counts",
+    "normalized_counts",
+    required=False,
+    type=click.BOOL,
+    default=False,
+    help="Getting counts or normalized counts.",
+)
+@click.option(
     "--elements-only/--all-oligos",
     "elements_only",
     required=False,
@@ -291,11 +299,11 @@ def get_variant_map(input_file, sequence_design_file, output_file):
 @click.option(
     "--output",
     "output_file",
-    required=False,
+    required=True,
     type=click.Path(writable=True),
     help="Output file of all non zero counts.",
 )
-def get_counts(input_file, sequence_design_file, bc_threshold, use_oligos, elements_only, output_file):
+def get_counts(input_file, sequence_design_file, bc_threshold, normalized_counts, use_oligos, elements_only, output_file):
 
     mpradata = MPRABarcodeData.from_file(input_file)
 
@@ -306,24 +314,15 @@ def get_counts(input_file, sequence_design_file, bc_threshold, use_oligos, eleme
 
     mpradata.add_sequence_design(read_sequence_design_file(sequence_design_file), sequence_design_file)
 
-    click.echo(
-        f"Pearson correlation log2FoldChange, all oligos: {
-            mpradata.correlation("pearson", "activity").flatten()[[1, 2, 5]]
-        }"
-    )
-
+    element_mask = None
     if elements_only:
 
-        mask = mpradata.data.var["allele"].apply(lambda x: "ref" in x).values | (mpradata.data.var["category"] == "element")
-        mpradata.var_filter = mpradata.var_filter | ~np.repeat(np.array(mask)[:, np.newaxis], 3, axis=1)
+        element_mask = mpradata.data.var["allele"].apply(lambda x: "ref" in x).values | (
+            mpradata.data.var["category"] == "element"
+        )
+        element_mask = ~np.repeat(np.array(element_mask)[np.newaxis, :], mpradata.n_obs, axis=0)
 
-    click.echo(
-        f"Pearson correlation log2FoldChange, element oligos: {
-            mpradata.correlation("pearson", "activity").flatten()[[1, 2, 5]]
-        }"
-    )
-    if output_file:
-        export_counts_file(mpradata, output_file)
+    export_counts_file(mpradata, output_file, normalized=normalized_counts, filter=element_mask)
 
 
 @sequence_design.command(help="Write out DNA and RNA counts for REF and ALT oligos.")
@@ -350,6 +349,14 @@ def get_counts(input_file, sequence_design_file, bc_threshold, use_oligos, eleme
     help="Using a barcode threshold for output.",
 )
 @click.option(
+    "--normalized-counts/--counts",
+    "normalized_counts",
+    required=False,
+    type=click.BOOL,
+    default=False,
+    help="Getting counts or normalized counts.",
+)
+@click.option(
     "--oligos/--barcodes",
     "use_oligos",
     required=False,
@@ -364,7 +371,7 @@ def get_counts(input_file, sequence_design_file, bc_threshold, use_oligos, eleme
     type=click.Path(writable=True),
     help="Output file of all non zero counts, divided by ref and alt.",
 )
-def get_variant_counts(input_file, sequence_design_file, bc_threshold, use_oligos, output_file):
+def get_variant_counts(input_file, sequence_design_file, bc_threshold, normalized_counts, use_oligos, output_file):
     """Reads a file and generates an MPRAdata object."""
     mpradata = MPRABarcodeData.from_file(input_file)
 
@@ -372,11 +379,7 @@ def get_variant_counts(input_file, sequence_design_file, bc_threshold, use_oligo
 
     mpradata.barcode_threshold = bc_threshold
 
-    mask = mpradata.data.var["category"] == "variant"
-    mpradata.var_filter = mpradata.var_filter | ~np.repeat(np.array(mask)[:, np.newaxis], 3, axis=1)
-
     if use_oligos:
-        # TODO adapt to Barcode thresholds
         mpradata = mpradata.oligo_data
 
         variant_map = mpradata.variant_map
@@ -387,8 +390,21 @@ def get_variant_counts(input_file, sequence_design_file, bc_threshold, use_oligo
                 df[f"{rna_or_dna}_count_{replicate}_REF"] = []
                 df[f"{rna_or_dna}_count_{replicate}_ALT"] = []
 
-        dna_counts = mpradata.dna_counts.copy()
-        rna_counts = mpradata.rna_counts.copy()
+        if normalized_counts:
+            dna_counts = mpradata.normalized_dna_counts.copy()
+            rna_counts = mpradata.normalized_rna_counts.copy()
+        else:
+            dna_counts = mpradata.dna_counts.copy()
+            rna_counts = mpradata.rna_counts.copy()
+
+        not_observed_mask = ~mpradata.observed
+        lower_bc_mask = mpradata.barcode_counts < mpradata.barcode_threshold
+        not_variant_mask = ~np.repeat(
+            np.array(mpradata.data.var["category"] == "variant")[np.newaxis, :], mpradata.n_obs, axis=0
+        )
+
+        dna_counts = np.ma.masked_array(dna_counts, mask=np.any([not_observed_mask, lower_bc_mask, not_variant_mask], axis=0))
+        rna_counts = np.ma.masked_array(rna_counts, mask=np.any([not_observed_mask, lower_bc_mask, not_variant_mask], axis=0))
 
         for spdi, row in variant_map.iterrows():
 
@@ -410,11 +426,22 @@ def get_variant_counts(input_file, sequence_design_file, bc_threshold, use_oligo
                 df[f"rna_count_{replicate}_ALT"].append(rna_counts_alt[idx])
 
         df = pd.DataFrame(df).set_index("variant_id")
+        df = df.map(lambda x: np.nan if isinstance(x, np.ma.core.MaskedConstant) else x)
         # remove IDs which are all zero
-        df = df[(df.T != 0).all()].dropna()
-        df.to_csv(output_file, sep="\t", index=True)
+        nan_columns = df.isna().all(axis=1)
+        df = df[~nan_columns]
+
+        if normalized_counts:
+            df.to_csv(output_file, sep="\t", index=True, na_rep="", float_format="%.6f")
+        else:
+            df.to_csv(output_file, sep="\t", index=True, na_rep="", float_format="%.0f")
     else:
-        export_counts_file(mpradata, output_file)
+        export_counts_file(
+            mpradata,
+            output_file,
+            normalized=normalized_counts,
+            filter=~np.repeat(np.array(mpradata.data.var["category"] == "variant")[np.newaxis, :], mpradata.n_obs, axis=0),
+        )
 
 
 @sequence_design.command()

@@ -302,10 +302,10 @@ class MPRAData(ABC):
 
         df_matched_metadata = df_sequence_design.loc[self.oligos]
 
-        self.data.var["category"] = df_matched_metadata["category"]
-        self.data.var["class"] = df_matched_metadata["class"]
-        self.data.var["ref"] = df_matched_metadata["ref"]
-        self.data.var["chr"] = df_matched_metadata["chr"]
+        self.data.var["category"] = pd.Categorical(df_matched_metadata["category"])
+        self.data.var["class"] = pd.Categorical(df_matched_metadata["class"])
+        self.data.var["ref"] = pd.Categorical(df_matched_metadata["ref"])
+        self.data.var["chr"] = pd.Categorical(df_matched_metadata["chr"])
         self.data.var["start"] = df_matched_metadata["start"].values
         self.data.var["end"] = df_matched_metadata["end"].values
         self.data.var["strand"] = pd.Categorical(df_matched_metadata["strand"])

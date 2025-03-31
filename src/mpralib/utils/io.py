@@ -3,7 +3,7 @@ import numpy as np
 import ast
 import os
 from mpralib.mpradata import MPRABarcodeData, MPRAOligoData, MPRAData
-from mpralib.exception import SequenceDesignException
+from mpralib.exception import SequenceDesignException, MPRAlibException
 
 
 def chromosome_map() -> pd.DataFrame:
@@ -93,24 +93,48 @@ def export_barcode_file(mpradata: MPRABarcodeData, output_file_path: str) -> Non
     output.to_csv(output_file_path, sep="\t", index=False)
 
 
-def export_counts_file(mpradata: MPRAData, output_file_path: str) -> None:
-    if isinstance(mpradata, MPRAOligoData):
+def export_counts_file(mpradata: MPRAData, output_file_path: str, normalized: bool = False, filter: np.ndarray = None) -> None:
+    if isinstance(mpradata, MPRABarcodeData):
+        df = {"ID": mpradata.var_names}
+    elif isinstance(mpradata, MPRAOligoData):
         df = {"ID": mpradata.oligos}
     else:
-        df = {"ID": mpradata.var_names, "name": mpradata.oligos}
-    dna_counts = mpradata.dna_counts
-    dna_counts[mpradata.barcode_counts < mpradata.barcode_threshold] = 0
-    rna_counts = mpradata.rna_counts
-    rna_counts[mpradata.barcode_counts < mpradata.barcode_threshold] = 0
+        raise MPRAlibException(f"Invalid MPRA data type {type(mpradata)}. Expected MPRAOligoData or MPRABarcodeData.")
+
+    if normalized:
+        dna_counts = mpradata.normalized_dna_counts.copy()
+        rna_counts = mpradata.normalized_rna_counts.copy()
+    else:
+        dna_counts = mpradata.dna_counts.copy()
+        rna_counts = mpradata.rna_counts.copy()
+
+    not_observed_mask = ~mpradata.observed
+    lower_bc_mask = mpradata.barcode_counts < mpradata.barcode_threshold
+    mask = [not_observed_mask, lower_bc_mask]
+    if filter is not None:
+        mask.append(filter)
+
+    dna_counts = np.ma.masked_array(dna_counts, mask=np.any(mask, axis=0))
+    rna_counts = np.ma.masked_array(rna_counts, mask=np.any(mask, axis=0))
+
     for idx, replicate in enumerate(mpradata.obs_names):
         df["dna_count_" + replicate] = dna_counts[idx, :]
         df["rna_count_" + replicate] = rna_counts[idx, :]
 
     df = pd.DataFrame(df).set_index("ID")
-    # remove IDs which are all zero
-    df = df[(df.T != 0).all()]
+    df = df.map(lambda x: np.nan if isinstance(x, np.ma.core.MaskedConstant) else x)
+    nan_columns = df.isna().all(axis=1)
 
-    df.to_csv(output_file_path, sep="\t", index=True)
+    if isinstance(mpradata, MPRABarcodeData):
+        df.insert(0, "name", mpradata.oligos)
+
+    # remove IDs which are all zero
+    df = df[~nan_columns]
+
+    if normalized:
+        df.to_csv(output_file_path, sep="\t", index=True, na_rep="", float_format="%.6f")
+    else:
+        df.to_csv(output_file_path, sep="\t", index=True, na_rep="", float_format="%.0f")
 
 
 def read_sequence_design_file(file_path: str) -> pd.DataFrame:
