@@ -25,7 +25,7 @@ suppressPackageStartupMessages(library(tibble))
 
 
 # read in the data
-counts_df <- read.table(args$counts, header = TRUE)
+counts_df <- read.table(args$counts, header = TRUE, sep = "\t", fill = TRUE, c("", "NA", "N/A"))
 colnames(counts_df)[1:2] <- c("Barcode", "name")
 
 dna_elem <- create_dna_df(counts_df, id_column_name = "name")

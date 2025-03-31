@@ -26,7 +26,7 @@ suppressPackageStartupMessages(library(tibble))
 
 
 # read in the data
-counts_df <- read.table(args$counts, header = TRUE)
+counts_df <- read.table(args$counts, header = TRUE, sep = "\t", fill = TRUE, c("", "NA", "N/A"))
 colnames(counts_df)[1] <- c("ID")
 counts_df <- counts_df %>% column_to_rownames(var = "ID")
 
