@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.5.0](https://github.com/kircherlab/MPRAlib/compare/v0.4.0...v0.5.0) (2025-04-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* gobal variant map. Now metadata is called "sequence design"
+* dna_vs_rna and barcodes per oligo plots.
+* correlation plot. breaks corrrelation due to new count type enum
+* new utils sub library
+
+### Features
+
+* correlation plot. breaks corrrelation due to new count type enum ([f0e46a1](https://github.com/kircherlab/MPRAlib/commit/f0e46a1a2e0010080dc094a39bd192fbe4e12b90))
+* dna_vs_rna and barcodes per oligo plots. ([3430538](https://github.com/kircherlab/MPRAlib/commit/34305388beeb3ef4df93dc11ca7c9677a8212227))
+* gobal variant map. Now metadata is called "sequence design" ([2743e20](https://github.com/kircherlab/MPRAlib/commit/2743e20d5c891b480ec1425679af8d3c0300f132))
+* normalized counts in output files ([8526f9f](https://github.com/kircherlab/MPRAlib/commit/8526f9f799547d9ef05ed416ceefb39dcea5306a))
+* outlier plot ([17cf8d1](https://github.com/kircherlab/MPRAlib/commit/17cf8d1aa2160745d1fa79654babc9dfb13aff78))
+* pairwise correlation plots ([bd1d118](https://github.com/kircherlab/MPRAlib/commit/bd1d118f26ee4203233df68243be68c7849a37d8))
+* plot functionality ([b789c41](https://github.com/kircherlab/MPRAlib/commit/b789c416403a3bfd5880f6d909126c3924179fd6))
+
+
+### Bug Fixes
+
+* bcalm and mpralm element scripts with empty rows (Not observed) ([174657b](https://github.com/kircherlab/MPRAlib/commit/174657bc9df864b54da722b6b0f0d2c226794306))
+* reporter genomic variant or element ([b250470](https://github.com/kircherlab/MPRAlib/commit/b250470774314ce2474f002edd678de37b38578d))
+
+
+### Code Refactoring
+
+* new utils sub library ([323e319](https://github.com/kircherlab/MPRAlib/commit/323e31914808dcc89ab849b19e7cc1e71332cc42))
+
 ## [0.4.0](https://github.com/kircherlab/MPRAlib/compare/v0.3.0...v0.4.0) (2025-03-21)
 
 
