@@ -27,6 +27,7 @@ class TestMPRlibCLI(unittest.TestCase):
         result = self.runner.invoke(
             cli,
             [
+                "functional",
                 "activities",
                 "--input",
                 self.input_file,
@@ -60,6 +61,7 @@ class TestMPRlibCLI(unittest.TestCase):
         result = self.runner.invoke(
             cli,
             [
+                "functional",
                 "activities",
                 "--input",
                 self.input_file,
@@ -94,6 +96,7 @@ class TestMPRlibCLI(unittest.TestCase):
         result = self.runner.invoke(
             cli,
             [
+                "functional",
                 "activities",
                 "--input",
                 self.input_file,
@@ -128,6 +131,7 @@ class TestMPRlibCLI(unittest.TestCase):
         result = self.runner.invoke(
             cli,
             [
+                "functional",
                 "activities",
                 "--input",
                 self.input_file,

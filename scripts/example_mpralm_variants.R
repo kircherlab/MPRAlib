@@ -5,6 +5,7 @@ parser <- ArgumentParser(description = "Process BCALM variant data")
 parser$add_argument("--counts", type = "character", required = TRUE, help = "Path to the counts file")
 parser$add_argument("--output", type = "character", required = TRUE, help = "Path to the output file")
 parser$add_argument("--output-plot", type = "character", required = FALSE, help = "Path to the output file")
+parser$add_argument("--normalize", type = "logical", default = TRUE, help = "Whether to normalize the data (TRUE or FALSE)")
 
 args <- parser$parse_args()
 
@@ -15,7 +16,7 @@ suppressPackageStartupMessages(library(tidyr))
 suppressPackageStartupMessages(library(tibble))
 
 # read in the data
-counts_df <- read.table(args$counts, header = TRUE)
+counts_df <- read.table(args$counts, header = TRUE, sep = "\t", fill = TRUE, c("", "NA", "N/A"))
 colnames(counts_df)[1] <- c("ID")
 counts_df <- counts_df %>% column_to_rownames(var = "ID")
 
@@ -46,7 +47,7 @@ mpralm_allele_fit <- mpralm(
     object = mpraset,
     design = design,
     aggregate = "none",
-    normalize = TRUE,
+    normalize = args$normalize,
     block = block_vector,
     model_type = "corr_groups",
     plot <- FALSE

@@ -1,11 +1,30 @@
 from abc import ABC, abstractmethod
 import numpy as np
-import ast
 import pandas as pd
 import anndata as ad
 from scipy.stats import spearmanr, pearsonr
 from enum import Enum
 import logging
+
+
+class Modality(Enum):
+    DNA = "DNA"
+    RNA = "RNA"
+    DNA_NORMALIZED = "DNA_NORMALIZED"
+    RNA_NORMALIZED = "RNA_NORMALIZED"
+    ACTIVITY = "ACTIVITY"
+
+    def __new__(self, value):
+        obj = object.__new__(self)
+        obj._value_ = value.lower()
+        return obj
+
+    @classmethod
+    def from_string(self, value):
+        for member in self:
+            if member.value == value.lower():
+                return member
+        raise ValueError(f"{value} is not a valid {self.__name__}")
 
 
 class CountSampling(Enum):
@@ -104,9 +123,9 @@ class MPRAData(ABC):
 
     @property
     def activity(self):
-        if "log2FoldChange" not in self.data.layers:
+        if "activity" not in self.data.layers:
             self._compute_activities()
-        return self.data.layers["log2FoldChange"]
+        return self.data.layers["activity"]
 
     def _compute_activities(self) -> None:
         ratio = np.divide(
@@ -117,7 +136,7 @@ class MPRAData(ABC):
         with np.errstate(divide="ignore"):
             log2ratio = np.log2(ratio)
             log2ratio[np.isneginf(log2ratio)] = np.nan
-        self.data.layers["log2FoldChange"] = log2ratio * ~self.var_filter.T.values
+        self.data.layers["activity"] = log2ratio * ~self.var_filter.T.values
 
     @property
     def observed(self):
@@ -159,10 +178,10 @@ class MPRAData(ABC):
     @property
     def variant_map(self) -> pd.DataFrame:
         # raise ValueError if metadata format not loaded.
-        if not self._get_metadata("metadata_file") and not (
-            isinstance(self, MPRAOligoData) and self._get_metadata("MPRABarcodeData_metadata_file")
+        if not self._get_metadata("sequence_design_file") and not (
+            isinstance(self, MPRAOligoData) and self._get_metadata("MPRABarcodeData_sequence_design_file")
         ):
-            raise ValueError("Metadata file not loaded.")
+            raise ValueError("Sequence design file not loaded.")
 
         oligos = self.data.var["oligo"].repeat(self.data.var["SPDI"].apply(lambda x: len(x)))
 
@@ -174,6 +193,7 @@ class MPRAData(ABC):
         df["REF"] = df.apply(lambda row: row["oligo"] if row["allele"] == "ref" else None, axis=1)
         df["ALT"] = df.apply(lambda row: row["oligo"] if row["allele"] == "alt" else None, axis=1)
         df = df.groupby("ID").agg({"REF": lambda x: list(filter(None, x)), "ALT": lambda x: list(filter(None, x))})
+        df = df[(df["REF"].apply(len) >= 1) & (df["ALT"].apply(len) >= 1)]
 
         return df
 
@@ -190,22 +210,22 @@ class MPRAData(ABC):
         self._drop_correlation()
         self._add_metadata("normalized", False)
 
-    def correlation(self, method="pearson", count_type="activity") -> np.ndarray:
+    def correlation(self, method="pearson", count_type=Modality.ACTIVITY) -> np.ndarray:
         """
         Calculates and return the correlation for activity or normalized counts.
 
         Returns:
             np.ndarray: The Pearson or Spearman correlation matrix.
         """
-        if count_type == "dna":
+        if count_type == Modality.DNA_NORMALIZED:
             filtered = self.normalized_dna_counts.copy()
-            layer_name = "dna_normalized"
-        elif count_type == "rna":
-            layer_name = "rna_normalized"
+            layer_name = count_type.value
+        elif count_type == Modality.RNA_NORMALIZED:
+            layer_name = count_type.value
             filtered = self.normalized_rna_counts.copy()
-        elif count_type == "activity":
+        elif count_type == Modality.ACTIVITY:
             filtered = self.activity.copy()
-            layer_name = "log2FoldChange"
+            layer_name = count_type.value
         else:
             raise ValueError(f"Unsupported count type: {count_type}")
 
@@ -252,7 +272,7 @@ class MPRAData(ABC):
 
     def _drop_correlation(self) -> None:
 
-        for layer in ["rna_normalized", "dna_normalized", "log2FoldChange"]:
+        for layer in ["rna_normalized", "dna_normalized", "activity"]:
             if self._get_metadata(f"correlation_{layer}"):
                 self.LOGGER.info(f"Dropping correlation for layer {layer}")
 
@@ -279,16 +299,9 @@ class MPRAData(ABC):
         else:
             return None
 
-    def add_metadata_file(self, metadata_file):
-        df_metadata = pd.read_csv(metadata_file, sep="\t", header=0, na_values=["NA"]).drop_duplicates()
-        df_metadata["name"] = pd.Categorical(df_metadata["name"].str.replace(r"[\s\[\]]", "_", regex=True))
-        df_metadata.set_index("name", inplace=True)
-        df_metadata["variant_class"] = df_metadata["variant_class"].fillna("[]").apply(ast.literal_eval)
-        df_metadata["variant_pos"] = df_metadata["variant_pos"].fillna("[]").apply(ast.literal_eval)
-        df_metadata["SPDI"] = df_metadata["SPDI"].fillna("[]").apply(ast.literal_eval)
-        df_metadata["allele"] = df_metadata["allele"].fillna("[]").apply(ast.literal_eval)
+    def add_sequence_design(self, df_sequence_design: pd.DataFrame, sequence_design_file_path) -> None:
 
-        df_matched_metadata = df_metadata.loc[self.oligos]
+        df_matched_metadata = df_sequence_design.loc[self.oligos]
 
         self.data.var["category"] = pd.Categorical(df_matched_metadata["category"])
         self.data.var["class"] = pd.Categorical(df_matched_metadata["class"])
@@ -302,7 +315,7 @@ class MPRAData(ABC):
         self.data.var["SPDI"] = df_matched_metadata["SPDI"].values
         self.data.var["allele"] = df_matched_metadata["allele"].values
 
-        self._add_metadata("metadata_file", metadata_file)
+        self._add_metadata("sequence_design_file", sequence_design_file_path)
 
 
 class MPRABarcodeData(MPRAData):
@@ -429,7 +442,7 @@ class MPRABarcodeData(MPRAData):
         for key, value in self.data.uns.items():
             oligo_data.uns[f"MPRABarcodeData_{key}"] = value
 
-        oligo_data.uns["correlation_log2FoldChange"] = False
+        oligo_data.uns["correlation_activity"] = False
         oligo_data.uns["correlation_rna_normalized"] = False
         oligo_data.uns["correlation_dna_normalized"] = False
 

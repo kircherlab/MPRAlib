@@ -6,6 +6,7 @@ parser$add_argument("--counts", type = "character", required = TRUE, help = "Pat
 parser$add_argument("--map", type = "character", required = TRUE, help = "Path to the map file")
 parser$add_argument("--output", type = "character", required = TRUE, help = "Path to the output file")
 parser$add_argument("--output-plot", type = "character", required = FALSE, help = "Path to the output file")
+parser$add_argument("--normalize", type = "logical", default = TRUE, help = "Whether to normalize the data (TRUE or FALSE)")
 
 args <- parser$parse_args()
 
@@ -17,9 +18,13 @@ suppressPackageStartupMessages(library(tidyr))
 
 
 # read in the data
-counts_df <- read.table(args$counts, header = TRUE)
+message("Reading input files...")
+
+message("counts file: ", args$counts)
+counts_df <- read.table(args$counts, header = TRUE, sep = "\t", fill = TRUE, c("", "NA", "N/A"))
 colnames(counts_df)[1:2] <- c("Barcode", "name")
 
+message("map file: ", args$map)
 variant_map <- read.table(args$map, header = TRUE)
 
 var_df <- create_var_df(counts_df, variant_map)
@@ -28,17 +33,20 @@ dna_var <- create_dna_df(var_df)
 rna_var <- create_rna_df(var_df)
 
 # create the MPRASet object
+message("Creating MPRASet object...")
 mpraset <- MPRASet(DNA = dna_var, RNA = rna_var, eid = row.names(dna_var), barcode = NULL)
 
+message("Fit the model...")
 nr_reps <- as.integer((ncol(counts_df) - 2) / 2)
 bcs <- ncol(dna_var) / nr_reps
 design <- data.frame(intcpt = 1, alt = grepl("alt", colnames(mpraset)))
 block_vector <- rep(1:nr_reps, each = bcs)
 mpralm_fit_var <- mpralm(
     object = mpraset, design = design, aggregate = "none",
-    normalize = TRUE, model_type = "corr_groups", plot = FALSE, block = block_vector
+    normalize = args$normalize, model_type = "corr_groups", plot = FALSE, block = block_vector
 )
 
+message("Get variant statistics...")
 mpra_variants <- topTable(mpralm_fit_var, coef = 2, number = Inf, confint = TRUE)
 
 if (!is.null(args$output_plot)) {
