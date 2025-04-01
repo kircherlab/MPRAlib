@@ -193,6 +193,7 @@ class MPRAData(ABC):
         df["REF"] = df.apply(lambda row: row["oligo"] if row["allele"] == "ref" else None, axis=1)
         df["ALT"] = df.apply(lambda row: row["oligo"] if row["allele"] == "alt" else None, axis=1)
         df = df.groupby("ID").agg({"REF": lambda x: list(filter(None, x)), "ALT": lambda x: list(filter(None, x))})
+        df = df[(df["REF"].apply(len) >= 1) & (df["ALT"].apply(len) >= 1)]
 
         return df
 

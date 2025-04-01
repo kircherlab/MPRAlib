@@ -426,9 +426,15 @@ def get_variant_counts(input_file, sequence_design_file, bc_threshold, normalize
                 df[f"rna_count_{replicate}_ALT"].append(rna_counts_alt[idx])
 
         df = pd.DataFrame(df).set_index("variant_id")
+        # remove IDs which are all zero or just on ref or alt
         df = df.map(lambda x: np.nan if isinstance(x, np.ma.core.MaskedConstant) else x)
-        # remove IDs which are all zero
-        nan_columns = df.isna().all(axis=1)
+        ref_columns = [f"dna_count_{replicate}_REF" for replicate in mpradata.obs_names] + [
+            f"rna_count_{replicate}_REF" for replicate in mpradata.obs_names
+        ]
+        alt_columns = [f"dna_count_{replicate}_ALT" for replicate in mpradata.obs_names] + [
+            f"rna_count_{replicate}_ALT" for replicate in mpradata.obs_names
+        ]
+        nan_columns = df.loc[:, ref_columns].isna().all(axis=1) | df.loc[:, alt_columns].isna().all(axis=1)
         df = df[~nan_columns]
 
         if normalized_counts:
@@ -460,14 +466,6 @@ def get_variant_counts(input_file, sequence_design_file, bc_threshold, normalize
     help="Sequence design file.",
 )
 @click.option(
-    "--elements-only/--all-oligos",
-    "elements_only",
-    required=False,
-    type=click.BOOL,
-    default=False,
-    help="Only return count data for elements and ref sequence of variants.",
-)
-@click.option(
     "--statistics",
     "statistics_file",
     required=True,
@@ -489,20 +487,13 @@ def get_variant_counts(input_file, sequence_design_file, bc_threshold, normalize
     type=click.Path(writable=True),
     help="Output file of MPRA data object.",
 )
-def get_reporter_elements(
-    input_file, sequence_design_file, statistics_file, elements_only, bc_threshold, output_reporter_elements_file
-):
+def get_reporter_elements(input_file, sequence_design_file, statistics_file, bc_threshold, output_reporter_elements_file):
 
     mpradata = MPRABarcodeData.from_file(input_file).oligo_data
 
     mpradata.add_sequence_design(read_sequence_design_file(sequence_design_file), sequence_design_file)
 
     mpradata.barcode_threshold = bc_threshold
-
-    if elements_only:
-
-        mask = mpradata.data.var["allele"].apply(lambda x: "ref" in x).values | (mpradata.data.var["category"] == "element")
-        mpradata.var_filter = mpradata.var_filter | ~np.repeat(np.array(mask)[:, np.newaxis], 3, axis=1)
 
     df = pd.read_csv(statistics_file, sep="\t", header=0)
 
@@ -580,20 +571,14 @@ def get_reporter_variants(input_file, sequence_design_file, statistics_file, bc_
 
     mpradata.barcode_threshold = bc_threshold
 
-    mask = mpradata.data.var["category"] == "variant"
-    mpradata.var_filter = mpradata.var_filter | ~np.repeat(np.array(mask)[:, np.newaxis], 3, axis=1)
-
     mpradata = mpradata.oligo_data
 
     variant_map = mpradata.variant_map
 
-    df = pd.read_csv(statistics_file, sep="\t", header=0, index_col=0)
+    df = pd.read_csv(statistics_file, sep="\t", header=0, index_col=0, na_values="NA").dropna()
 
-    dna_counts = mpradata.dna_counts.copy()
-    rna_counts = mpradata.rna_counts.copy()
-
-    rna_counts_sum = rna_counts.sum(axis=1)
-    dna_counts_sum = dna_counts.sum(axis=1)
+    dna_counts = mpradata.normalized_dna_counts.copy()
+    rna_counts = mpradata.normalized_rna_counts.copy()
 
     for spdi, row in variant_map.iterrows():
 
@@ -607,10 +592,10 @@ def get_reporter_variants(input_file, sequence_design_file, statistics_file, bc_
         rna_counts_alt = rna_counts[:, mask_alt].sum(axis=1)
 
         if spdi in df.index:
-            df.loc[spdi, "inputCountRef"] = ((dna_counts_ref / dna_counts_sum) * MPRABarcodeData.SCALING).mean()
-            df.loc[spdi, "inputCountAlt"] = ((dna_counts_alt / dna_counts_sum) * MPRABarcodeData.SCALING).mean()
-            df.loc[spdi, "outputCountRef"] = ((rna_counts_ref / rna_counts_sum) * MPRABarcodeData.SCALING).mean()
-            df.loc[spdi, "outputCountAlt"] = ((rna_counts_alt / rna_counts_sum) * MPRABarcodeData.SCALING).mean()
+            df.loc[spdi, "inputCountRef"] = dna_counts_ref.mean()
+            df.loc[spdi, "inputCountAlt"] = dna_counts_alt.mean()
+            df.loc[spdi, "outputCountRef"] = rna_counts_ref.mean()
+            df.loc[spdi, "outputCountAlt"] = rna_counts_alt.mean()
             df.loc[spdi, "variantPos"] = int(mpradata.data.var["variant_pos"][mpradata.oligos.isin(row["REF"])].values[0][0])
 
     df.loc[df["P.Value"] == 0, "P.Value"] = np.finfo(float).eps
@@ -682,6 +667,13 @@ def get_reporter_variants(input_file, sequence_design_file, statistics_file, bc_
     help="Using a barcode threshold for output.",
 )
 @click.option(
+    "--reference",
+    "reference",
+    required=True,
+    type=str,
+    help="Using only this reference as denoted inas ref in the sequence design file.",
+)
+@click.option(
     "--output-reporter-genomic-elements",
     "output_reporter_genomic_elements_file",
     required=True,
@@ -689,7 +681,7 @@ def get_reporter_variants(input_file, sequence_design_file, statistics_file, bc_
     help="Output file of MPRA data object.",
 )
 def get_reporter_genomic_elements(
-    input_file, sequence_design_file, statistics_file, bc_threshold, output_reporter_genomic_elements_file
+    input_file, sequence_design_file, statistics_file, bc_threshold, reference, output_reporter_genomic_elements_file
 ):
 
     mpradata = MPRABarcodeData.from_file(input_file)
@@ -701,7 +693,7 @@ def get_reporter_genomic_elements(
     mpradata = mpradata.oligo_data
 
     mask = mpradata.data.var["allele"].apply(lambda x: "ref" in x).values | (mpradata.data.var["category"] == "element")
-    mpradata.var_filter = mpradata.var_filter | ~np.repeat(np.array(mask)[:, np.newaxis], 3, axis=1)
+    mask = mask & (mpradata.data.var["ref"] == reference)
 
     df = pd.read_csv(statistics_file, sep="\t", header=0)
 
@@ -801,20 +793,14 @@ def get_reporter_genomic_variants(
 
     mpradata.barcode_threshold = bc_threshold
 
-    mask = mpradata.data.var["category"] == "variant"
-    mpradata.var_filter = mpradata.var_filter | ~np.repeat(np.array(mask)[:, np.newaxis], 3, axis=1)
-
     mpradata = mpradata.oligo_data
 
     variant_map = mpradata.variant_map
 
-    df = pd.read_csv(statistics_file, sep="\t", header=0, index_col=0)
+    df = pd.read_csv(statistics_file, sep="\t", header=0, index_col=0, na_values="NA").dropna()
 
-    dna_counts = mpradata.dna_counts.copy()
-    rna_counts = mpradata.rna_counts.copy()
-
-    rna_counts_sum = rna_counts.sum(axis=1)
-    dna_counts_sum = dna_counts.sum(axis=1)
+    dna_counts = mpradata.normalized_dna_counts.copy()
+    rna_counts = mpradata.normalized_rna_counts.copy()
 
     for spdi, row in variant_map.iterrows():
 
@@ -828,10 +814,10 @@ def get_reporter_genomic_variants(
         rna_counts_alt = rna_counts[:, mask_alt].sum(axis=1)
 
         if spdi in df.index:
-            df.loc[spdi, "inputCountRef"] = ((dna_counts_ref / dna_counts_sum) * MPRABarcodeData.SCALING).mean()
-            df.loc[spdi, "inputCountAlt"] = ((dna_counts_alt / dna_counts_sum) * MPRABarcodeData.SCALING).mean()
-            df.loc[spdi, "outputCountRef"] = ((rna_counts_ref / rna_counts_sum) * MPRABarcodeData.SCALING).mean()
-            df.loc[spdi, "outputCountAlt"] = ((rna_counts_alt / rna_counts_sum) * MPRABarcodeData.SCALING).mean()
+            df.loc[spdi, "inputCountRef"] = dna_counts_ref.mean()
+            df.loc[spdi, "inputCountAlt"] = dna_counts_alt.mean()
+            df.loc[spdi, "outputCountRef"] = rna_counts_ref.mean()
+            df.loc[spdi, "outputCountAlt"] = rna_counts_alt.mean()
             df.loc[spdi, "variantPos"] = int(mpradata.data.var["variant_pos"][mpradata.oligos.isin(row["REF"])].values[0][0])
             df.loc[spdi, "strand"] = mpradata.data.var["strand"][mpradata.oligos.isin(row["REF"])].values[0]
 
