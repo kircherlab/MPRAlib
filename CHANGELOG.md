@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.6.0](https://github.com/kircherlab/MPRAlib/compare/v0.5.0...v0.6.0) (2025-04-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* barcode_counts is now part available in MPRAdata as layer
+
+### Code Refactoring
+
+* barcode_counts is now part available in MPRAdata as layer ([c9b04ec](https://github.com/kircherlab/MPRAlib/commit/c9b04ec964ddc726a83afa54bc271657f3c8d6c9))
+
 ## [0.5.0](https://github.com/kircherlab/MPRAlib/compare/v0.4.0...v0.5.0) (2025-04-01)
 
 
