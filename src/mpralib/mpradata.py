@@ -5,6 +5,7 @@ import anndata as ad
 from scipy.stats import spearmanr, pearsonr
 from enum import Enum
 import logging
+from mpralib.exception import MPRAlibException
 
 
 class Modality(Enum):
@@ -159,11 +160,25 @@ class MPRAData(ABC):
         else:
             self.data.varm["var_filter"] = new_data
 
+        self.drop_barcode_counts()
         self.drop_normalized()
 
     @property
+    def barcode_counts(self) -> pd.DataFrame:
+        if "barcode_counts" not in self.data.layers or self.data.layers["barcode_counts"] is None:
+            self.data.layers["barcode_counts"] = self._barcode_counts()
+        return self.data.layers["barcode_counts"]
+
+    @barcode_counts.setter
+    def barcode_counts(self, new_data: pd.DataFrame) -> None:
+        self.data.layers["barcode_counts"] = new_data
+
     @abstractmethod
-    def barcode_counts(self):
+    def _barcode_counts(self) -> None:
+        pass
+
+    @abstractmethod
+    def drop_barcode_counts(self) -> None:
         pass
 
     @property
@@ -320,11 +335,7 @@ class MPRAData(ABC):
 
 class MPRABarcodeData(MPRAData):
 
-    @property
-    def barcode_counts(self):
-        return self._barcode_counts()
-
-    def _barcode_counts(self):
+    def _barcode_counts(self) -> pd.DataFrame:
         return (
             pd.DataFrame(
                 self.observed * ~self.var_filter.T.values,
@@ -333,8 +344,13 @@ class MPRABarcodeData(MPRAData):
             )
             .T.groupby(self.oligos, observed=True)
             .transform("sum")
-            .T
-        )
+        ).T
+
+    def drop_barcode_counts(self):
+
+        self.LOGGER.info("Dropping barcode counts")
+
+        self.data.layers.pop("barcode_counts", None)
 
     @property
     def oligo_data(self) -> ad.AnnData:
@@ -428,7 +444,16 @@ class MPRABarcodeData(MPRAData):
         oligo_data.layers["rna"] = oligo_data.X.copy()
         oligo_data.layers["dna"] = self._sum_counts_by_oligo(self.dna_counts)
 
-        oligo_data.layers["barcode_counts"] = self._supporting_barcodes_per_oligo()
+        oligo_data.layers["barcode_counts"] = (
+            pd.DataFrame(
+                self.barcode_counts,
+                index=self.obs_names,
+                columns=self.var_names,
+            )
+            .T.groupby(self.oligos, observed=True)
+            .first()
+            .T
+        )
 
         oligo_data.obs_names = self.obs_names
         oligo_data.var_names = self.data.var["oligo"].unique().tolist()
@@ -680,9 +705,13 @@ class MPRABarcodeData(MPRAData):
 
 class MPRAOligoData(MPRAData):
 
-    @property
-    def barcode_counts(self):
-        return self.data.layers["barcode_counts"]
+    def _barcode_counts(self):
+        raise MPRAlibException(
+            "Barcode counts are not set in MPRAOligoData and cannot be computed. They have to be pre-set before accessing."
+        )
+
+    def drop_barcode_counts(self):
+        pass
 
     @classmethod
     def from_file(cls, file_path: str) -> "MPRAOligoData":
@@ -696,24 +725,26 @@ class MPRAOligoData(MPRAData):
         self.LOGGER.info("Normalizing data")
 
         self.data.layers["dna_normalized"] = self._normalize_layer(
-            self.dna_counts, ~self.var_filter.T.values, self.SCALING, self.PSEUDOCOUNT
+            self.dna_counts, ~self.var_filter.T.values, self.barcode_counts, self.SCALING, self.PSEUDOCOUNT
         )
         self.data.layers["rna_normalized"] = self._normalize_layer(
-            self.rna_counts, ~self.var_filter.T.values, self.SCALING, self.PSEUDOCOUNT
+            self.rna_counts, ~self.var_filter.T.values, self.barcode_counts, self.SCALING, self.PSEUDOCOUNT
         )
         self._add_metadata("normalized", True)
 
-    def _normalize_layer(self, counts: np.ndarray, not_var_filter: np.ndarray, scaling: float, pseudocount: int) -> np.ndarray:
+    def _normalize_layer(
+        self, counts: np.ndarray, not_var_filter: np.ndarray, barcode_counts: np.ndarray, scaling: float, pseudocount: int
+    ) -> np.ndarray:
 
         # I do a pseudo count when normalizing to avoid division by zero when computing logfold ratios.
         # Pseudocount has also be done per barcode.
         # var filter has to be used again because we want to have a zero on filtered values.
-        total_counts = np.sum((counts + (pseudocount * self.barcode_counts)) * not_var_filter, axis=1)
+        total_counts = np.sum((counts + (pseudocount * barcode_counts)) * not_var_filter, axis=1)
 
         # Avoid division by zero when pseudocount is set to 0
         total_counts[total_counts == 0] = 1
-        scaled_counts = (counts + (pseudocount * self.barcode_counts)) / total_counts[:, np.newaxis] * scaling
+        scaled_counts = (counts + (pseudocount * barcode_counts)) / total_counts[:, np.newaxis] * scaling
         return (
-            np.divide(scaled_counts, self.barcode_counts, where=self.barcode_counts != 0, out=np.zeros_like(scaled_counts))
+            np.divide(scaled_counts, barcode_counts, where=barcode_counts != 0, out=np.zeros_like(scaled_counts))
             * not_var_filter
         )
