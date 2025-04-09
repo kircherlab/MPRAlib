@@ -160,18 +160,18 @@ def filter_outliers(input_file, rna_zscore_times, bc_threshold, output_file):
     oligo_data = mpradata.oligo_data
 
     click.echo(
-        f"Pearson correlation log2FoldChange BEFORE outlier removal: {
+        f"""Pearson correlation log2FoldChange BEFORE outlier removal: {
             oligo_data.correlation('pearson', 'activity').flatten()[[1, 2, 5]]
-        }"
+        }"""
     )
 
     mpradata.apply_barcode_filter(BarcodeFilter.RNA_ZSCORE, {"times_zscore": rna_zscore_times})
 
     oligo_data = mpradata.oligo_data
     click.echo(
-        f"Pearson correlation log2FoldChange AFTER outlier removal: {
+        f"""Pearson correlation log2FoldChange AFTER outlier removal: {
             oligo_data.correlation('pearson', 'activity').flatten()[[1, 2, 5]]
-        }"
+        }"""
     )
     if output_file:
         export_activity_file(oligo_data, output_file)
