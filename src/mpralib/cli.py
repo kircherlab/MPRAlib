@@ -161,7 +161,7 @@ def filter_outliers(input_file, rna_zscore_times, bc_threshold, output_file):
 
     click.echo(
         f"Pearson correlation log2FoldChange BEFORE outlier removal: {
-            oligo_data.correlation("pearson", "activity").flatten()[[1, 2, 5]]
+            oligo_data.correlation('pearson', 'activity').flatten()[[1, 2, 5]]
         }"
     )
 
@@ -170,7 +170,7 @@ def filter_outliers(input_file, rna_zscore_times, bc_threshold, output_file):
     oligo_data = mpradata.oligo_data
     click.echo(
         f"Pearson correlation log2FoldChange AFTER outlier removal: {
-            oligo_data.correlation("pearson", "activity").flatten()[[1, 2, 5]]
+            oligo_data.correlation('pearson', 'activity').flatten()[[1, 2, 5]]
         }"
     )
     if output_file:
