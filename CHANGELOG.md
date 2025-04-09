@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.6.1](https://github.com/kircherlab/MPRAlib/compare/v0.6.0...v0.6.1) (2025-04-09)
+
+
+### Bug Fixes
+
+* SyntaxError: EOL while scanning string literal ([11ce617](https://github.com/kircherlab/MPRAlib/commit/11ce6170b8a2042f47f9c9d7c7ab7f86e99db3ae))
+
+
+### Documentation
+
+* correct colab path ([8fbeb16](https://github.com/kircherlab/MPRAlib/commit/8fbeb16a81709caa7466bbd84ea43f87853f4e77))
+* example data ([79cdae9](https://github.com/kircherlab/MPRAlib/commit/79cdae90e339d80e8ffd9ef1be1e97d02adc8717))
+* updated mpralib notebook ([c1f53be](https://github.com/kircherlab/MPRAlib/commit/c1f53be195d8e4b668b3d03f32d4dfe92e1989e7))
+* updated python notebooks ([83fdfc4](https://github.com/kircherlab/MPRAlib/commit/83fdfc47c54f9d2ea4c1a5e738d2eeffb2603b55))
+
 ## [0.6.0](https://github.com/kircherlab/MPRAlib/compare/v0.5.0...v0.6.0) (2025-04-03)
 
 
