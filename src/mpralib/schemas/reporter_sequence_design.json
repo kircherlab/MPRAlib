@@ -166,5 +166,6 @@
         "variant_pos",
         "SPDI",
         "allele"
-    ]
+    ],
+    "additionalProperties": false
 }

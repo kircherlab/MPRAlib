@@ -7,10 +7,13 @@ import gzip
 import ast
 from mpralib.utils.io import is_compressed_file
 import tqdm
+import logging
 
 
 class ValidationSchema(Enum):
-    REPORTER_SEQUENCE_DESIGN = "reporter_sequence_design"
+    REPORTER_SEQUENCE_DESIGN = "reporter_sequence_design",
+    REPORTER_BARCODE_TO_ELEMENT_MAPPING = "reporter_barcode_to_element_mapping",
+    REPORTER_EXPERIMENT_BARCODE = "reporter_barcode_experiment"
 
 
 class SchemaToFileNameMap:
@@ -33,6 +36,7 @@ class SchemaToFileNameMap:
 
 schemaFilemap = SchemaToFileNameMap()
 schemaFilemap.set(ValidationSchema.REPORTER_SEQUENCE_DESIGN, "reporter_sequence_design.json")
+schemaFilemap.set(ValidationSchema.REPORTER_BARCODE_TO_ELEMENT_MAPPING, "reporter_barcode_to_element_mapping.json")
 
 
 def _convert_row_value(value: str, prop_schema: dict):
@@ -58,6 +62,11 @@ def validate_tsv_with_schema(tsv_file_path: str, schema_type: ValidationSchema):
     Each row is validated as a JSON object (dict).
     Raises jsonschema.ValidationError if any row is invalid.
     """
+
+    LOGGER = logging.getLogger(__name__)
+    LOGGER.setLevel(logging.WARNING)
+    correct_file = True
+
     schema_path = files('mpralib.schemas').joinpath(schemaFilemap.get(schema_type))
     with schema_path.open('r', encoding='utf-8') as f:
         schema = json.load(f)
@@ -66,7 +75,16 @@ def validate_tsv_with_schema(tsv_file_path: str, schema_type: ValidationSchema):
     mode = 'rt' if is_compressed_file(tsv_file_path) else 'r'
 
     with open_func(tsv_file_path, mode, encoding='utf-8') as tsvfile:
-        reader = list(csv.DictReader(tsvfile, delimiter='\t'))
+        # Use csv.DictReader to read the TSV file as a dictionary
+        # The first row is the header, so we can use it to set the fieldnames
+        # If the schema type is REPORTER_BARCODE_TO_ELEMENT_MAPPING, we set the header manually
+        # because the TSV file does not have a header row.
+        header = None
+        if schema_type == ValidationSchema.REPORTER_BARCODE_TO_ELEMENT_MAPPING:
+            header = ["barcode", "oligoName"]
+
+        reader = list(csv.DictReader(tsvfile, delimiter='\t', fieldnames=header))
+
         for i, row in enumerate(tqdm.tqdm(reader, desc="Validating rows"), start=1):
             # Convert types according to schema
             for prop, prop_schema in schema.get('properties', {}).items():
@@ -79,8 +97,12 @@ def validate_tsv_with_schema(tsv_file_path: str, schema_type: ValidationSchema):
             try:
                 jsonschema.validate(instance=row, schema=schema)
             except jsonschema.ValidationError as e:
-                print(f"Row {i} invalid: {e.message}")
-                raise e
+                LOGGER.warning(f"Row {i} invalid: {e.message}")
+                correct_file = False
             except Exception as e:
-                print(f"Row {i} error: {e}")
+                LOGGER.error(f"Row {i} error: {e}")
+                correct_file = False
                 raise e
+        if not correct_file:
+            LOGGER.warning(f"File {tsv_file_path} is not valid according to schema {schema_type.value}.")
+    return correct_file

@@ -33,11 +33,24 @@ def validate_file():
     "input_file",
     required=True,
     type=click.Path(exists=True, readable=True),
-    help="MPRA sequence design file to validate.",
+    help="MPRA Reporter Sequence Design file to validate.",
 )
 def reporter_sequence_design(input_file):
 
     validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_SEQUENCE_DESIGN)
+
+
+@validate_file.command(help="Validate MPRA reporter sequence design file.")
+@click.option(
+    "--input",
+    "input_file",
+    required=True,
+    type=click.Path(exists=True, readable=True),
+    help="MPRA Reporter Barcode to Element Mapping file to validate.",
+)
+def reporter_barcode_to_element_mapping(input_file):
+
+    validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_BARCODE_TO_ELEMENT_MAPPING)
 
 
 @cli.group(help="General functionality.")
