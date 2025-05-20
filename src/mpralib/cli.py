@@ -13,6 +13,7 @@ from mpralib.utils.io import (
     read_sequence_design_file,
 )
 import mpralib.utils.plot as plt
+from mpralib.utils.file_validation import validate_tsv_with_schema, ValidationSchema
 
 pd.options.mode.copy_on_write = True
 
@@ -20,6 +21,23 @@ pd.options.mode.copy_on_write = True
 @click.group(help="Command line interface of MPRAlib, a library for MPRA data analysis.")
 def cli():
     pass
+
+@cli.group(help="Validate standardized MPRA reporter formats.")
+def validate_file():
+    pass
+
+
+@validate_file.command(help="Validate MPRA reporter sequence design file.")
+@click.option(
+    "--input",
+    "input_file",
+    required=True,
+    type=click.Path(exists=True, readable=True),
+    help="MPRA sequence design file to validate.",
+)
+def reporter_sequence_design(input_file):
+
+    validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_SEQUENCE_DESIGN)
 
 
 @cli.group(help="General functionality.")
