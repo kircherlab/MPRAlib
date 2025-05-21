@@ -1,0 +1,49 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "MPRA Reporter Experiment Barcode",
+    "type": "object",
+    "description": "This format is needed to save the complete measurement on a barcode level of an experiment.",
+    "properties": {
+        "barcode": {
+            "type": "string",
+            "description": "Barcode, allowed chars [A,T,G,C]",
+            "minLength": 1,
+            "pattern": "^[ATGC]+$"
+        },
+        "oligo_name": {
+            "type": "string",
+            "description": "Name of the oligo of the design.",
+            "minLength": 1
+        }
+    },
+    "patternProperties": {
+        "^dna_count_": {
+            "anyOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string",
+                    "maxLength": 0
+                }
+            ]
+        },
+        "^rna_count_": {
+            "anyOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string",
+                    "maxLength": 0
+                }
+            ]
+        }
+    },
+    "minProperties": 4,
+    "required": [
+        "barcode",
+        "oligo_name"
+    ],
+    "additionalProperties": false
+}

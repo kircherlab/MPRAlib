@@ -8,12 +8,18 @@ import ast
 from mpralib.utils.io import is_compressed_file
 import tqdm
 import logging
+import re
 
 
 class ValidationSchema(Enum):
     REPORTER_SEQUENCE_DESIGN = "reporter_sequence_design",
     REPORTER_BARCODE_TO_ELEMENT_MAPPING = "reporter_barcode_to_element_mapping",
-    REPORTER_EXPERIMENT_BARCODE = "reporter_barcode_experiment"
+    REPORTER_EXPERIMENT_BARCODE = "reporter_experiment_barcode",
+    REPORTER_EXPERIMENT = "reporter_experiment",
+    REPORTER_ELEMENT = "reporter_element",
+    REPORTER_VARIANT = "reporter_variant",
+    REPORTER_GENOMIC_ELEMENT = "reporter_genomic_element",
+    REPORTER_GENOMIC_VARIANT = "reporter_genomic_variant"
 
 
 class SchemaToFileNameMap:
@@ -37,10 +43,15 @@ class SchemaToFileNameMap:
 schemaFilemap = SchemaToFileNameMap()
 schemaFilemap.set(ValidationSchema.REPORTER_SEQUENCE_DESIGN, "reporter_sequence_design.json")
 schemaFilemap.set(ValidationSchema.REPORTER_BARCODE_TO_ELEMENT_MAPPING, "reporter_barcode_to_element_mapping.json")
+schemaFilemap.set(ValidationSchema.REPORTER_EXPERIMENT_BARCODE, "reporter_experiment_barcode.json")
+schemaFilemap.set(ValidationSchema.REPORTER_EXPERIMENT, "reporter_experiment.json")
+schemaFilemap.set(ValidationSchema.REPORTER_ELEMENT, "reporter_element.json")
+schemaFilemap.set(ValidationSchema.REPORTER_VARIANT, "reporter_variant.json")
+schemaFilemap.set(ValidationSchema.REPORTER_GENOMIC_ELEMENT, "reporter_genomic_element.json")
+schemaFilemap.set(ValidationSchema.REPORTER_GENOMIC_VARIANT, "reporter_genomic_variant.json")
 
 
 def _convert_row_value(value: str, prop_schema: dict):
-
     try:
         if prop_schema.get('type') == 'integer':
             converted_value = int(value)
@@ -67,7 +78,11 @@ def validate_tsv_with_schema(tsv_file_path: str, schema_type: ValidationSchema):
     LOGGER.setLevel(logging.WARNING)
     correct_file = True
 
-    schema_path = files('mpralib.schemas').joinpath(schemaFilemap.get(schema_type))
+    schema_filename = schemaFilemap.get(schema_type)
+    if schema_filename is None:
+        raise ValueError(f"No schema file mapped for schema type: {schema_type}")
+
+    schema_path = files('mpralib.schemas').joinpath(schema_filename)
     with schema_path.open('r', encoding='utf-8') as f:
         schema = json.load(f)
 
@@ -82,10 +97,34 @@ def validate_tsv_with_schema(tsv_file_path: str, schema_type: ValidationSchema):
         header = None
         if schema_type == ValidationSchema.REPORTER_BARCODE_TO_ELEMENT_MAPPING:
             header = ["barcode", "oligoName"]
+        elif schema_type == ValidationSchema.REPORTER_GENOMIC_ELEMENT:
+            header = ["chrom", "chromStart", "chromEnd", "name", "score", "strand",
+                      "log2FoldChange",
+                      "inputCount", "outputCount",
+                      "minusLog10PValue", "minusLog10QValue"]
+        elif schema_type == ValidationSchema.REPORTER_GENOMIC_VARIANT:
+            header = ["chrom", "chromStart", "chromEnd", "name", "score", "strand",
+                      "log2FoldChange",
+                      "inputCountRef", "outputCountRef",
+                      "inputCountAlt", "outputCountAlt",
+                      "minusLog10PValue", "minusLog10QValue",
+                      "postProbEffect", "CI_lower_95", "CI_upper_95",
+                      "variantPos", "refAllele", "altAllele"]
 
-        reader = list(csv.DictReader(tsvfile, delimiter='\t', fieldnames=header))
+        reader = list(csv.DictReader(tsvfile, delimiter='\t', fieldnames=header))  # type: ignore
 
         for i, row in enumerate(tqdm.tqdm(reader, desc="Validating rows"), start=1):
+            for prop_pattern_string, prop_schema in schema.get('patternProperties', {}).items():
+
+                prop_pattern = re.compile(prop_pattern_string)
+
+                for prop in [prop for prop in row if prop_pattern.match(prop)]:
+                    if row[prop] != '':
+                        if "anyOf" in prop_schema:
+                            for anyOfProp_schema in prop_schema["anyOf"]:
+                                row[prop] = _convert_row_value(row[prop], anyOfProp_schema)
+                        else:
+                            row[prop] = _convert_row_value(row[prop], prop_schema)
             # Convert types according to schema
             for prop, prop_schema in schema.get('properties', {}).items():
                 if prop in row and row[prop] != '':
@@ -103,6 +142,8 @@ def validate_tsv_with_schema(tsv_file_path: str, schema_type: ValidationSchema):
                 LOGGER.error(f"Row {i} error: {e}")
                 correct_file = False
                 raise e
-        if not correct_file:
+        if correct_file:
+            LOGGER.info(f"File {tsv_file_path} is valid according to schema {schema_type.value}.")
+        else:
             LOGGER.warning(f"File {tsv_file_path} is not valid according to schema {schema_type.value}.")
     return correct_file

@@ -1,0 +1,69 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "MPRA Reporter Genomic Element",
+    "type": "object",
+    "description": "Defines the activity of an element/region within a genome. Can only be used when exact chromosome start and end location within a reference genome is available. Cannot be used for shuffled or modified elements.",
+    "properties": {
+        "chrom": {
+            "type": "string",
+            "description": "Reference sequence chromosome or scaffold."
+        },
+        "chromStart": {
+            "type": "integer",
+            "description": "Start position in chromosome, 0-based inclusive.",
+            "minimum": 0
+        },
+        "chromEnd": {
+            "type": "integer",
+            "description": "End position in chromosome, 0-based exclusive.",
+            "minimum": 0
+        },
+        "name": {
+            "type": "string",
+            "description": "Name of tested element or region."
+        },
+        "score": {
+            "type": "number",
+            "description": "Indicates how dark the peak will be displayed in the browser (0-1000)."
+        },
+        "strand": {
+            "type": "string",
+            "description": "+ or - for strand, . for unknown",
+            "enum": ["+", "-", "."]
+        },
+        "log2FoldChange": {
+            "type": "number",
+            "description": "Fold change (normalized output/input ratio, in log2 space)."
+        },
+        "inputCount": {
+            "type": "number",
+            "description": "Input count (DNA), normalized (CPM), mean across replicates."
+        },
+        "outputCount": {
+            "type": "number",
+            "description": "Output count (RNA), normalized (CPM), mean across replicates."
+        },
+        "minusLog10PValue": {
+            "type": "number",
+            "description": "-log10 of P-value"
+        },
+        "minusLog10QValue": {
+            "type": "number",
+            "description": "-log10 of Q-value (FDR)"
+        }
+    },
+    "required": [
+        "chrom",
+        "chromStart",
+        "chromEnd",
+        "name",
+        "score",
+        "strand",
+        "log2FoldChange",
+        "inputCount",
+        "outputCount",
+        "minusLog10PValue",
+        "minusLog10QValue"
+    ],
+    "additionalProperties": false
+}

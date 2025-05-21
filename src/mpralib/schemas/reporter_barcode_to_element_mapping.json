@@ -1,5 +1,5 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$schema": "http://json-schema.org/draft-07/schema#",
     "title": "Report Barcode to Element Mapping",
     "type": "object",
     "description": "Creates the link between tested oligos to associated barcodes. Can be pre-designed or learned by association sequencing.",

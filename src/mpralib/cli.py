@@ -22,6 +22,7 @@ pd.options.mode.copy_on_write = True
 def cli():
     pass
 
+
 @cli.group(help="Validate standardized MPRA reporter formats.")
 def validate_file():
     pass
@@ -36,11 +37,10 @@ def validate_file():
     help="MPRA Reporter Sequence Design file to validate.",
 )
 def reporter_sequence_design(input_file):
-
     validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_SEQUENCE_DESIGN)
 
 
-@validate_file.command(help="Validate MPRA reporter sequence design file.")
+@validate_file.command(help="Validate MPRA Reporter Barcode to Element Mapping file.")
 @click.option(
     "--input",
     "input_file",
@@ -49,8 +49,79 @@ def reporter_sequence_design(input_file):
     help="MPRA Reporter Barcode to Element Mapping file to validate.",
 )
 def reporter_barcode_to_element_mapping(input_file):
-
     validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_BARCODE_TO_ELEMENT_MAPPING)
+
+
+@validate_file.command(help="Validate Reporter Experiment Barcode file.")
+@click.option(
+    "--input",
+    "input_file",
+    required=True,
+    type=click.Path(exists=True, readable=True),
+    help="MPRA Reporter Experiment Barcode file to validate.",
+)
+def reporter_experiment_barcode(input_file):
+    validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_EXPERIMENT_BARCODE)
+
+
+@validate_file.command(help="Validate Reporter Experiment file.")
+@click.option(
+    "--input",
+    "input_file",
+    required=True,
+    type=click.Path(exists=True, readable=True),
+    help="MPRA Reporter Experiment file to validate.",
+)
+def reporter_experiment(input_file):
+    validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_EXPERIMENT)
+
+
+@validate_file.command(help="Validate Reporter Element file.")
+@click.option(
+    "--input",
+    "input_file",
+    required=True,
+    type=click.Path(exists=True, readable=True),
+    help="MPRA Reporter Element file to validate.",
+)
+def reporter_element(input_file):
+    validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_ELEMENT)
+
+
+@validate_file.command(help="Validate Reporter Variant file.")
+@click.option(
+    "--input",
+    "input_file",
+    required=True,
+    type=click.Path(exists=True, readable=True),
+    help="MPRA Reporter Variant file to validate.",
+)
+def reporter_variant(input_file):
+    validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_VARIANT)
+
+
+@validate_file.command(help="Validate Reporter Genomic Element file.")
+@click.option(
+    "--input",
+    "input_file",
+    required=True,
+    type=click.Path(exists=True, readable=True),
+    help="MPRA Reporter Element file to validate.",
+)
+def reporter_genomic_element(input_file):
+    validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_GENOMIC_ELEMENT)
+
+
+@validate_file.command(help="Validate Reporter Genomic Variant file.")
+@click.option(
+    "--input",
+    "input_file",
+    required=True,
+    type=click.Path(exists=True, readable=True),
+    help="MPRA Reporter Genomic Variant file to validate.",
+)
+def reporter_genomic_variant(input_file):
+    validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_GENOMIC_VARIANT)
 
 
 @cli.group(help="General functionality.")
@@ -192,7 +263,7 @@ def filter_outliers(input_file, rna_zscore_times, bc_threshold, output_file):
 
     click.echo(
         f"""Pearson correlation log2FoldChange BEFORE outlier removal: {
-            oligo_data.correlation('pearson', 'activity').flatten()[[1, 2, 5]]
+            oligo_data.correlation('pearson', Modality.ACTIVITY).flatten()[[1, 2, 5]]
         }"""
     )
 
@@ -201,7 +272,7 @@ def filter_outliers(input_file, rna_zscore_times, bc_threshold, output_file):
     oligo_data = mpradata.oligo_data
     click.echo(
         f"""Pearson correlation log2FoldChange AFTER outlier removal: {
-            oligo_data.correlation('pearson', 'activity').flatten()[[1, 2, 5]]
+            oligo_data.correlation('pearson', Modality.ACTIVITY).flatten()[[1, 2, 5]]
         }"""
     )
     if output_file:
@@ -219,7 +290,8 @@ def sequence_design():
     "input_file",
     required=False,
     type=click.Path(exists=True, readable=True),
-    help="Input file path of MPRA results (barcode output file). If set only map of present oligos in the barcode count file will be generated.",
+    help="Input file path of MPRA results (barcode output file). "
+    "If set only map of present oligos in the barcode count file will be generated.",
 )
 @click.option(
     "--sequence-design",

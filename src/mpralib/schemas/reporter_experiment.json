@@ -1,0 +1,56 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "MPRA Reporter Experiment Barcode",
+    "type": "object",
+    "description": "This format is needed to save the complete measurement on a barcode level of an experiment.",
+    "properties": {
+        "replicate": {
+            "type": "string",
+            "description": "Name of the replicate.",
+            "minLength": 1
+        },
+        "oligo_name": {
+            "type": "string",
+            "description": "Name of the oligo of the design.",
+            "minLength": 1
+        },
+        "dna_counts": {
+            "type": "integer",
+            "description": "Number of raw DNA counts.",
+            "minimum": 0
+        },
+        "rna_counts": {
+            "type": "integer",
+            "description": "Number of raw RNA counts.",
+            "minimum": 0
+        },
+        "dna_normalized": {
+            "type": "number",
+            "description": "Number of normalized/scaled DNA counts (CPM), 4 decimals."
+        },
+        "rna_normalized": {
+            "type": "number",
+            "description": "Number of normalized/scaled RNA counts (CPM), 4 decimals."
+        },
+        "log2FoldChange": {
+            "type": "number",
+            "description": "Fold change (normalized rna/dna ratio, in log2 space),  4 decimals."
+        },
+        "n_bc": {
+            "type": "integer",
+            "description": "Number of observed barcodes for the oligo.",
+            "minimum": 0
+        }
+    },
+    "required": [
+        "replicate",
+        "oligo_name",
+        "dna_counts",
+        "rna_counts",
+        "dna_normalized",
+        "rna_normalized",
+        "log2FoldChange",
+        "n_bc"
+    ],
+    "additionalProperties": false
+}
