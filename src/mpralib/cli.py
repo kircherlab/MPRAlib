@@ -13,7 +13,7 @@ from mpralib.utils.io import (
     read_sequence_design_file,
 )
 import mpralib.utils.plot as plt
-from mpralib.utils.file_validation import validate_tsv, ValidationSchema
+from mpralib.utils.file_validation import validate_tsv_with_schema, ValidationSchema
 
 pd.options.mode.copy_on_write = True
 
@@ -37,7 +37,7 @@ def validate_file():
     help="MPRA Reporter Sequence Design file to validate.",
 )
 def reporter_sequence_design(input_file):
-    validate_tsv(input_file, ValidationSchema.REPORTER_SEQUENCE_DESIGN)
+    validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_SEQUENCE_DESIGN)
 
 
 @validate_file.command(help="Validate MPRA Reporter Barcode to Element Mapping file.")
@@ -49,7 +49,7 @@ def reporter_sequence_design(input_file):
     help="MPRA Reporter Barcode to Element Mapping file to validate.",
 )
 def reporter_barcode_to_element_mapping(input_file):
-    validate_tsv(input_file, ValidationSchema.REPORTER_BARCODE_TO_ELEMENT_MAPPING)
+    validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_BARCODE_TO_ELEMENT_MAPPING)
 
 
 @validate_file.command(help="Validate Reporter Experiment Barcode file.")
@@ -61,7 +61,7 @@ def reporter_barcode_to_element_mapping(input_file):
     help="MPRA Reporter Experiment Barcode file to validate.",
 )
 def reporter_experiment_barcode(input_file):
-    validate_tsv(input_file, ValidationSchema.REPORTER_EXPERIMENT_BARCODE)
+    validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_EXPERIMENT_BARCODE)
 
 
 @validate_file.command(help="Validate Reporter Experiment file.")
@@ -73,7 +73,7 @@ def reporter_experiment_barcode(input_file):
     help="MPRA Reporter Experiment file to validate.",
 )
 def reporter_experiment(input_file):
-    validate_tsv(input_file, ValidationSchema.REPORTER_EXPERIMENT)
+    validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_EXPERIMENT)
 
 
 @validate_file.command(help="Validate Reporter Element file.")
@@ -85,7 +85,7 @@ def reporter_experiment(input_file):
     help="MPRA Reporter Element file to validate.",
 )
 def reporter_element(input_file):
-    validate_tsv(input_file, ValidationSchema.REPORTER_ELEMENT)
+    validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_ELEMENT)
 
 
 @validate_file.command(help="Validate Reporter Variant file.")
@@ -97,7 +97,7 @@ def reporter_element(input_file):
     help="MPRA Reporter Variant file to validate.",
 )
 def reporter_variant(input_file):
-    validate_tsv(input_file, ValidationSchema.REPORTER_VARIANT)
+    validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_VARIANT)
 
 
 @validate_file.command(help="Validate Reporter Genomic Element file.")
@@ -109,7 +109,7 @@ def reporter_variant(input_file):
     help="MPRA Reporter Element file to validate.",
 )
 def reporter_genomic_element(input_file):
-    validate_tsv(input_file, ValidationSchema.REPORTER_GENOMIC_ELEMENT)
+    validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_GENOMIC_ELEMENT)
 
 
 @validate_file.command(help="Validate Reporter Genomic Variant file.")
@@ -121,7 +121,7 @@ def reporter_genomic_element(input_file):
     help="MPRA Reporter Genomic Variant file to validate.",
 )
 def reporter_genomic_variant(input_file):
-    validate_tsv(input_file, ValidationSchema.REPORTER_GENOMIC_VARIANT)
+    validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_GENOMIC_VARIANT)
 
 
 @cli.group(help="General functionality.")
