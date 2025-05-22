@@ -1,10 +1,8 @@
 # MPRAlib
 
-[![Tests](https://github.com/mschubach/MPRAlib/actions/workflows/test.yml/badge.svg)](https://github.com/mschubach/MPRAlib/actions/workflows/test.yml)
-[![Coverage Status](https://coveralls.io/repos/github/mschubach/MPRAlib/badge.svg?branch=main)](https://coveralls.io/github/mschubach/MPRAlib?branch=main)
+![Tests](https://github.com/kircherlab/MPRAlib/actions/workflows/tests.yml/badge.svg)
 [![PyPI version](https://badge.fury.io/py/MPRAlib.svg)](https://badge.fury.io/py/MPRAlib)
-[![Conda version](https://anaconda.org/conda-forge/mpralib/badges/version.svg)](https://anaconda.org/conda-forge/mpralib)
-
+[![Bioconda Version](https://img.shields.io/conda/vn/bioconda/mpralib?label=bioconda)](https://bioconda.github.io/recipes/mpralib/README.html)
 MPRAlib is a Python library and CLI for processing MPRA (Massively Parallel Reporter Assay) data.
 
 ## Installation
@@ -46,17 +44,7 @@ mpralib validate-file reporter-sequence-design --input data/reporter_sequence_de
 
 ### Python API
 
-You can also use MPRAlib as a Python library:
-
-```python
-from mpralib.utils.file_validation import validate_file, ValidationSchema
-
-result = validate_file(
-    ValidationSchema.REPORTER_SEQUENCE_DESIGN,
-    "data/reporter_sequence_design.example.tsv.gz"
-)
-print(result)
-```
+In general MPRAlib is ment to be used as a library. Please have a look at our notebook [mpralib.ipynb](https://github.com/kircherlab/MPRAlib/blob/master/examples/mpralib.ipynb) for a more detailed example.
 
 ## License
 
