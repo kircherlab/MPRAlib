@@ -132,7 +132,7 @@ def _load_schema(schema_type: ValidationSchema):
         return json.load(f)
 
 
-def _get_header_for_schema(schema_type: ValidationSchema):
+def _get_header_for_schema(schema_type: ValidationSchema) -> list | None:
     if schema_type == ValidationSchema.REPORTER_BARCODE_TO_ELEMENT_MAPPING:
         return ["barcode", "oligoName"]
     elif schema_type == ValidationSchema.REPORTER_GENOMIC_ELEMENT:
@@ -147,7 +147,8 @@ def _get_header_for_schema(schema_type: ValidationSchema):
                 "variantPos", "refAllele", "altAllele"]
     return None
 
-def _convert_row_types(row: dict, schema: dict):
+
+def _convert_row_types(row: dict, schema: dict) -> None:
     # Handle patternProperties
     for prop_pattern_string, prop_schema in schema.get('patternProperties', {}).items():
         prop_pattern = re.compile(prop_pattern_string)
