@@ -1,0 +1,85 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "MPRA Reporter Variant",
+    "type": "object",
+    "description": "This format stores the raw format statistical activity analysis for variants.",
+    "properties": {
+        "variant_id": {
+            "type": "string",
+            "description": "Variant ID in Canonical SPDI format.",
+            "pattern": "^[A-Za-z0-9_.]+:[0-9]+:[A-Za-z]*:[A-Za-z]*$"
+        },
+        "log2FoldChange": {
+            "type": "number",
+            "description": "Fold change (alt output/input ratio divided by ref output/input ratio, in log2 space)."
+        },
+        "inputCountRef": {
+            "type": "number",
+            "description": "Input count reference allele, normalized (CPM), mean across replicates."
+        },
+        "outputCountRef": {
+            "type": "number",
+            "description": "Output count reference allele, normalized (CPM), mean across replicates."
+        },
+        "inputCountAlt": {
+            "type": "number",
+            "description": "Input count alternative allele, normalized (CPM), mean across replicates."
+        },
+        "outputCountAlt": {
+            "type": "number",
+            "description": "Output count alternative allele, normalized (CPM), mean across replicates."
+        },
+        "minusLog10PValue": {
+            "type": "number",
+            "description": "-log10 of P-value"
+        },
+        "minusLog10QValue": {
+            "type": "number",
+            "description": "-log10 of Q-value (FDR)"
+        },
+        "postProbEffect": {
+            "type": "number",
+            "description": "Posterior probability of a regulatory effect."
+        },
+        "CI_lower_95": {
+            "type": "number",
+            "description": "Lower bound of a 95% interval for the variant effect."
+        },
+        "CI_upper_95": {
+            "type": "number",
+            "description": "Upper bound of a 95% interval for the variant effect"
+        },
+        "variantPos": {
+            "type": "integer",
+            "description": "0-based position of the start of the variant in the tested sequence  -1 if aggregation of multiple positions withins tested sequences.",
+            "minimum": -1
+        },
+        "refAllele": {
+            "type": "string",
+            "description": "Normalized Canonical SPDI reference variant sequence, allowed chars [A,T,G,C] and empty string.",
+            "pattern": "^[ATGC]*$"
+        },
+        "altAllele": {
+            "type": "string",
+            "description": "Normalized Canonical SPDI alternative variant sequence, allowed chars [A,T,G,C] and empty string.",
+            "pattern": "^[ATGC]*$"
+        }
+    },
+    "required": [
+        "variant_id",
+        "log2FoldChange",
+        "inputCountRef",
+        "outputCountRef",
+        "inputCountAlt",
+        "outputCountAlt",
+        "minusLog10PValue",
+        "minusLog10QValue",
+        "postProbEffect",
+        "CI_lower_95",
+        "CI_upper_95",
+        "variantPos",
+        "refAllele",
+        "altAllele"
+    ],
+    "additionalProperties": false
+}

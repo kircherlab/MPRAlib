@@ -1,0 +1,24 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Report Barcode to Element Mapping",
+    "type": "object",
+    "description": "Creates the link between tested oligos to associated barcodes. Can be pre-designed or learned by association sequencing.",
+    "properties": {
+        "barcode": {
+            "type": "string",
+            "description": "Barcode sequence. Allowed chars [A,T,G,C]",
+            "minLength": 1,
+            "pattern": "^[ATGC]+$"
+        },
+        "oligoName": {
+            "type": "string",
+            "description": "Name of the oligo barcode is assigned to.",
+            "minLength": 1
+        }
+    },
+    "required": [
+        "barcode",
+        "oligoName"
+    ],
+    "additionalProperties": false
+}

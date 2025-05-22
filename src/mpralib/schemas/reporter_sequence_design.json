@@ -1,0 +1,171 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "MPRA reporter sequence design",
+    "type": "object",
+    "description": "Description of the MPRA design.",
+    "properties": {
+        "name": {
+            "type": "string",
+            "description": "A unique-within-file identifier, one unique string per designed sequence",
+            "minLength": 1
+        },
+        "sequence": {
+            "type": "string",
+            "description": "DNA string of designed sequence, consisting of A,C,G,T and no N",
+            "minLength": 1,
+            "pattern": "^[ATGCatgc]+$"
+        },
+        "category": {
+            "type": "string",
+            "description": "Category of designed sequence",
+            "enum": [
+                "variant",
+                "element",
+                "synthetic",
+                "scrambled"
+            ]
+        },
+        "class": {
+            "type": "string",
+            "description": "Class of designed sequence",
+            "enum": [
+                "test",
+                "variant positive control",
+                "variant negative control",
+                "element active control",
+                "element inactive control"
+            ]
+        },
+        "source":{
+            "type": "string",
+            "description": "Free-form description of the origin of the sequence"
+        },
+        "ref": {
+            "type": "string",
+            "description": "reference sequence, e.g. GRCh38"
+        },
+        "chr": {
+            "name": "chr",
+            "type": "string",
+            "description": "Reference chromosome or contig name"
+        },
+        "start": {
+            "type": "integer",
+            "description": "0-based position of the left-most position of sequence with respect to the reference chromosome",
+            "minimum": 0
+        },
+        "end": {
+            "type": "integer",
+            "description": "1-based position of the right-most position of sequence with respect to the reference chromosome",
+            "minimum": 1
+        },
+        "strand": {
+            "type": "string",
+            "description": "strand of sequence in reference",
+            "enum": [
+                "+",
+                "-"
+            ]
+        },
+        "variant_class": {
+            "description": "the class of the variant(s), allowing for multiple variants to be tested in one sequence (haplotypes)",
+            "anyOf": [
+                {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "SNV",
+                            "indel"
+                        ]
+                    }
+                },
+                {
+                    "type": "string",
+                    "enum": [
+                        "NA"
+                    ]
+                }
+            ]
+        },
+        "variant_pos": {
+            "description": "0-based position of the start of the normalized representation of the variant(s). integer within [0, len(sequence) - 1]",
+            "anyOf": [
+                {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "integer",
+                        "minimum": 0
+                    }
+                },
+                {
+                    "type": "string",
+                    "enum": [
+                        "NA"
+                    ]
+                }
+            ]
+        },
+        "SPDI": {
+            "description": "0-based, validated SPDI representation of the variant(s), e.g. NC_000001.11:25253603:G:A",
+            "anyOf": [
+                {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9_.]+:[0-9]+:[A-Za-z]*:[A-Za-z]*$"
+                    }
+                },
+                {
+                    "type": "string",
+                    "enum": [
+                        "NA"
+                    ]
+                }
+            ]
+        },
+        "allele": {
+            "description": "the allele of the variant(s) with respect to the referenece chromosome sequence",
+            "anyOf": [
+                {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "ref",
+                            "alt"
+                        ]
+                    }
+                },
+                {
+                    "type": "string",
+                    "enum": [
+                        "NA"
+                    ]
+                }
+            ]
+        },
+        "info": {
+            "type": "string",
+            "description": "any additional comment or information",
+            "items": {
+                "type": "string"
+            }
+        }
+    },
+    "required": [
+        "name",
+        "sequence",
+        "category",
+        "class",
+        "variant_class",
+        "variant_pos",
+        "SPDI",
+        "allele"
+    ],
+    "additionalProperties": false
+}

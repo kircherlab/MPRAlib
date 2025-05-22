@@ -1,0 +1,42 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "MPRA Reporter Element",
+    "type": "object",
+    "description": "This format stores the raw format statistical activity analysis for elements. It is dependent on a background/negative set distribution.",
+    "properties": {
+        "oligo_name": {
+            "type": "string",
+            "description": "Name of tested oligo.",
+            "minLength": 1
+        },
+        "log2FoldChange": {
+            "type": "number",
+            "description": "Fold change (normalized output/input ratio, in log2 space)."
+        },
+        "inputCount": {
+            "type": "number",
+            "description": "Input count (DNA), normalized (CPM), mean across replicates."
+        },
+        "outputCount": {
+            "type": "number",
+            "description": "Output count (RNA), normalized (CPM), mean across replicates."
+        },
+        "minusLog10PValue": {
+            "type": "number",
+            "description": "-log10 of P-value"
+        },
+        "minusLog10QValue": {
+            "type": "number",
+            "description": "-log10 of Q-value (FDR)"
+        }
+    },
+    "required": [
+        "oligo_name",
+        "log2FoldChange",
+        "inputCount",
+        "outputCount",
+        "minusLog10PValue",
+        "minusLog10QValue"
+    ],
+    "additionalProperties": false
+}

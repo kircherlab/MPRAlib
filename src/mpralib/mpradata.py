@@ -5,6 +5,7 @@ import anndata as ad
 from scipy.stats import spearmanr, pearsonr
 from enum import Enum
 import logging
+import os
 from mpralib.exception import MPRAlibException
 
 
@@ -15,17 +16,17 @@ class Modality(Enum):
     RNA_NORMALIZED = "RNA_NORMALIZED"
     ACTIVITY = "ACTIVITY"
 
-    def __new__(self, value):
-        obj = object.__new__(self)
-        obj._value_ = value.lower()
+    def __new__(cls, value):
+        obj = object.__new__(cls)
+        obj._value_ = str(value).lower()
         return obj
 
     @classmethod
-    def from_string(self, value):
-        for member in self:
+    def from_string(cls, value: str) -> "Modality":
+        for member in cls:
             if member.value == value.lower():
                 return member
-        raise ValueError(f"{value} is not a valid {self.__name__}")
+        raise ValueError(f"{value} is not a valid {cls.__name__}")
 
 
 class CountSampling(Enum):
@@ -148,7 +149,7 @@ class MPRAData(ABC):
         return self.data.varm["var_filter"]
 
     @var_filter.setter
-    def var_filter(self, new_data: pd.DataFrame) -> None:
+    def var_filter(self, new_data: pd.DataFrame | None) -> None:
         if new_data is None:
             self.data.varm["var_filter"] = pd.DataFrame(
                 np.full((self.data.n_vars, self.data.n_obs), False),
@@ -174,7 +175,7 @@ class MPRAData(ABC):
         self.data.layers["barcode_counts"] = new_data
 
     @abstractmethod
-    def _barcode_counts(self) -> None:
+    def _barcode_counts(self) -> pd.DataFrame:
         pass
 
     @abstractmethod
@@ -234,20 +235,20 @@ class MPRAData(ABC):
         """
         if count_type == Modality.DNA_NORMALIZED:
             filtered = self.normalized_dna_counts.copy()
-            layer_name = count_type.value
+            layer_name = str(count_type.value)
         elif count_type == Modality.RNA_NORMALIZED:
-            layer_name = count_type.value
+            layer_name = str(count_type.value)
             filtered = self.normalized_rna_counts.copy()
         elif count_type == Modality.ACTIVITY:
             filtered = self.activity.copy()
-            layer_name = count_type.value
+            layer_name = str(count_type.value)
         else:
             raise ValueError(f"Unsupported count type: {count_type}")
 
         filtered[self.barcode_counts < self.barcode_threshold] = np.nan
         return self._correlation(method, filtered, layer_name)
 
-    def _correlation(self, method, data, layer):
+    def _correlation(self, method: str, data, layer: str):
         if not self._get_metadata(f"correlation_{layer}"):
             self._compute_correlation(data, layer)
         return self.data.obsp[f"{method}_correlation_{layer}"]
@@ -262,7 +263,7 @@ class MPRAData(ABC):
             self.data.obsp[f"{correlation}_correlation_{layer}"] = np.zeros((num_columns, num_columns))
             self.data.obsp[f"{correlation}_correlation_{layer}_pvalue"] = np.zeros((num_columns, num_columns))
 
-        def compute_correlation(x, y, method) -> tuple:
+        def compute_correlation(x, y, method: str) -> tuple:
             if method == "spearman":
                 return spearmanr(x, y)
             elif method == "pearson":
@@ -296,7 +297,7 @@ class MPRAData(ABC):
                     del self.data.obsp[f"{method}_correlation_{layer}"]
                     del self.data.obsp[f"{method}_correlation_{layer}_pvalue"]
 
-    def write(self, file_data_path: str) -> None:
+    def write(self, file_data_path: os.PathLike) -> None:
         self.data.write(file_data_path)
 
     def _add_metadata(self, key, value):
@@ -353,7 +354,7 @@ class MPRABarcodeData(MPRAData):
         self.data.layers.pop("barcode_counts", None)
 
     @property
-    def oligo_data(self) -> ad.AnnData:
+    def oligo_data(self) -> "MPRAOligoData":
         self.LOGGER.info("Computing oligo data")
 
         return self._oligo_data()

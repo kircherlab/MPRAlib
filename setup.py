@@ -19,6 +19,8 @@ setup(
         'anndata',
         'seaborn',
         'matplotlib',
+        'jsonschema',
+        'tqdm',
     ],
     author='Max Schubach',
     author_email='max.schubach@bih-charite.de',
