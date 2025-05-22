@@ -24,8 +24,8 @@ setup(
     ],
     extras_require={
         "test": [
-            "coverage",
             "pytest",
+            "coverage",
         ],
     },
     author='Max Schubach',
