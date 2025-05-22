@@ -1,0 +1,112 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "MPRA Reporter Genomic Variant",
+    "type": "object",
+    "description": "Defines the activity of a variant within a genome. Can only be used when exact chromosome start and end location, reference and alternative sequence (Canonical SPDI normalized format) within a reference sequence is available. Cannot be used when no Canonical SPDI is available for the variant.",
+    "properties": {
+        "chrom": {
+            "type": "string",
+            "description": "Reference sequence chromosome or scaffold."
+        },
+        "chromStart": {
+            "type": "integer",
+            "description": "Start position in chromosome, 0-based inclusive.",
+            "minimum": 0
+        },
+        "chromEnd": {
+            "type": "integer",
+            "description": "End position in chromosome, 0-based exclusive.",
+            "minimum": 0
+        },
+        "name": {
+            "type": "string",
+            "description": "Name of tested variant."
+        },
+        "score": {
+            "type": "number",
+            "description": "Indicates how dark the peak will be displayed in the browser (0-1000)."
+        },
+        "strand": {
+            "type": "string",
+            "description": "+ or - for strand, . for unknown",
+            "enum": ["+", "-", "."]
+        },
+        "log2FoldChange": {
+            "type": "number",
+            "description": "Fold change (alt output/input ratio divided by ref output/input ratio, in log2 space)."
+        },
+        "inputCountRef": {
+            "type": "number",
+            "description": "Input count reference allele, normalized (CPM), mean across replicates."
+        },
+        "outputCountRef": {
+            "type": "number",
+            "description": "Output count reference allele, normalized (CPM), mean across replicates."
+        },
+        "inputCountAlt": {
+            "type": "number",
+            "description": "Input count alternative allele, normalized (CPM), mean across replicates."
+        },
+        "outputCountAlt": {
+            "type": "number",
+            "description": "Output count alternative allele, normalized (CPM), mean across replicates."
+        },
+        "minusLog10PValue": {
+            "type": "number",
+            "description": "-log10 of P-value"
+        },
+        "minusLog10QValue": {
+            "type": "number",
+            "description": "-log10 of Q-value (FDR)"
+        },
+        "postProbEffect": {
+            "type": "number",
+            "description": "Posterior probability of a regulatory effect."
+        },
+        "CI_lower_95": {
+            "type": "number",
+            "description": "Lower bound of a 95% interval for the variant effect."
+        },
+        "CI_upper_95": {
+            "type": "number",
+            "description": "Upper bound of a 95% interval for the variant effect"
+        },
+        "variantPos": {
+            "type": "integer",
+            "description": "0-based position of the start of the variant in the tested sequence  -1 if aggregation of multiple positions withins tested sequences.",
+            "minimum": -1
+        },
+        "refAllele": {
+            "type": "string",
+            "description": "Normalized Canonical SPDI reference variant sequence, allowed chars [A,T,G,C] and empty string.",
+            "pattern": "^[ATGC]*$"
+        },
+        "altAllele": {
+            "type": "string",
+            "description": "Normalized Canonical SPDI alternative variant sequence, allowed chars [A,T,G,C] and empty string.",
+            "pattern": "^[ATGC]*$"
+        }
+    },
+    "required": [
+        "chrom",
+        "chromStart",
+        "chromEnd",
+        "name",
+        "score",
+        "strand",
+        "log2FoldChange",
+        "inputCountRef",
+        "outputCountRef",
+        "inputCountAlt",
+        "outputCountAlt",
+        "minusLog10PValue",
+        "minusLog10QValue",
+        "postProbEffect",
+        "CI_lower_95",
+        "CI_upper_95",
+        "variantPos",
+        "refAllele",
+        "altAllele"
+    ],
+    "additionalProperties": false
+}

@@ -1,4 +1,6 @@
 /test.tsv.gz
+projects/
+.vscode/
 
 
 # Byte-compiled / optimized / DLL files

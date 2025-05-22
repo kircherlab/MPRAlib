@@ -1,5 +1,5 @@
 ---
-name: Lint
+name: File linting
 
 on: # yamllint disable-line rule:truthy
   push: null
@@ -8,7 +8,7 @@ on: # yamllint disable-line rule:truthy
 permissions: {}
 
 jobs:
-  build:
+  lint:
     name: Lint
     runs-on: ubuntu-latest
 

@@ -19,7 +19,15 @@ setup(
         'anndata',
         'seaborn',
         'matplotlib',
+        'jsonschema',
+        'tqdm',
     ],
+    extras_require={
+        "test": [
+            "pytest",
+            "coverage",
+        ],
+    },
     author='Max Schubach',
     author_email='max.schubach@bih-charite.de',
     description='Library to analyze count data of MPRA experiments.',
