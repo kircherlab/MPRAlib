@@ -5,7 +5,7 @@
 [![PyPI version](https://badge.fury.io/py/MPRAlib.svg)](https://badge.fury.io/py/MPRAlib)
 [![Conda version](https://anaconda.org/conda-forge/mpralib/badges/version.svg)](https://anaconda.org/conda-forge/mpralib)
 
-MPRAlib is a Python library and CLI for validating and processing MPRA (Massively Parallel Reporter Assay) data files.
+MPRAlib is a Python library and CLI for processing MPRA (Massively Parallel Reporter Assay) data.
 
 ## Installation
 
@@ -18,16 +18,18 @@ pip install MPRAlib
 ### Conda
 
 ```bash
-conda install -c conda-forge mpralib
+conda install -c bioconda mpralib
 ```
 
 ## Usage
 
 ### Command Line Interface
 
-MPRAlib provides a CLI tool for validating MPRA data files against supported schemas.
+Use the `mpralib` command to access various functionalities.
 
 #### Validate a file
+
+MPRAlib provides a CLI tool for validating MPRA data files against supported schemas.
 
 ```bash
 mpralib validate-file <schema> --input <input_file>
