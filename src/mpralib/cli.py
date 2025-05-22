@@ -37,7 +37,8 @@ def validate_file():
     help="MPRA Reporter Sequence Design file to validate.",
 )
 def reporter_sequence_design(input_file):
-    validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_SEQUENCE_DESIGN)
+    if not validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_SEQUENCE_DESIGN):
+        raise click.ClickException("Validation failed. Please check the input file.")
 
 
 @validate_file.command(help="Validate MPRA Reporter Barcode to Element Mapping file.")
@@ -49,7 +50,8 @@ def reporter_sequence_design(input_file):
     help="MPRA Reporter Barcode to Element Mapping file to validate.",
 )
 def reporter_barcode_to_element_mapping(input_file):
-    validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_BARCODE_TO_ELEMENT_MAPPING)
+    if not validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_BARCODE_TO_ELEMENT_MAPPING):
+        raise click.ClickException("Validation failed. Please check the input file.")
 
 
 @validate_file.command(help="Validate Reporter Experiment Barcode file.")
@@ -61,7 +63,8 @@ def reporter_barcode_to_element_mapping(input_file):
     help="MPRA Reporter Experiment Barcode file to validate.",
 )
 def reporter_experiment_barcode(input_file):
-    validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_EXPERIMENT_BARCODE)
+    if not validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_EXPERIMENT_BARCODE):
+        raise click.ClickException("Validation failed. Please check the input file.")
 
 
 @validate_file.command(help="Validate Reporter Experiment file.")
@@ -73,7 +76,8 @@ def reporter_experiment_barcode(input_file):
     help="MPRA Reporter Experiment file to validate.",
 )
 def reporter_experiment(input_file):
-    validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_EXPERIMENT)
+    if not validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_EXPERIMENT):
+        raise click.ClickException("Validation failed. Please check the input file.")
 
 
 @validate_file.command(help="Validate Reporter Element file.")
@@ -85,7 +89,8 @@ def reporter_experiment(input_file):
     help="MPRA Reporter Element file to validate.",
 )
 def reporter_element(input_file):
-    validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_ELEMENT)
+    if not validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_ELEMENT):
+        raise click.ClickException("Validation failed. Please check the input file.")
 
 
 @validate_file.command(help="Validate Reporter Variant file.")
@@ -97,7 +102,8 @@ def reporter_element(input_file):
     help="MPRA Reporter Variant file to validate.",
 )
 def reporter_variant(input_file):
-    validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_VARIANT)
+    if not validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_VARIANT):
+        raise click.ClickException("Validation failed. Please check the input file.")
 
 
 @validate_file.command(help="Validate Reporter Genomic Element file.")
@@ -106,10 +112,11 @@ def reporter_variant(input_file):
     "input_file",
     required=True,
     type=click.Path(exists=True, readable=True),
-    help="MPRA Reporter Element file to validate.",
+    help="MPRA Reporter Genomic Element file to validate.",
 )
 def reporter_genomic_element(input_file):
-    validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_GENOMIC_ELEMENT)
+    if not validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_GENOMIC_ELEMENT):
+        raise click.ClickException("Validation failed. Please check the input file.")
 
 
 @validate_file.command(help="Validate Reporter Genomic Variant file.")
@@ -121,7 +128,8 @@ def reporter_genomic_element(input_file):
     help="MPRA Reporter Genomic Variant file to validate.",
 )
 def reporter_genomic_variant(input_file):
-    validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_GENOMIC_VARIANT)
+    if not validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_GENOMIC_VARIANT):
+        raise click.ClickException("Validation failed. Please check the input file.")
 
 
 @cli.group(help="General functionality.")

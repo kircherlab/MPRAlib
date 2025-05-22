@@ -101,7 +101,7 @@ class TestMPRlibCLIValidateFile(unittest.TestCase):
         )
 
         # Check the result
-        self.assertIs(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
 
     def test_reporter_genomic_element(self):
         # Run the command
@@ -116,7 +116,7 @@ class TestMPRlibCLIValidateFile(unittest.TestCase):
         )
 
         # Check the result
-        self.assertIs(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
 
     def test_reporter_variant(self):
         # Run the command
@@ -131,7 +131,7 @@ class TestMPRlibCLIValidateFile(unittest.TestCase):
         )
 
         # Check the result
-        self.assertIs(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
 
     def test_reporter_element(self):
         # Run the command
@@ -146,7 +146,7 @@ class TestMPRlibCLIValidateFile(unittest.TestCase):
         )
 
         # Check the result
-        self.assertIs(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
 
     def test_reporter_experiment(self):
         # Run the command
@@ -161,7 +161,7 @@ class TestMPRlibCLIValidateFile(unittest.TestCase):
         )
 
         # Check the result
-        self.assertIs(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
 
     def test_reporter_experiment_barcode(self):
         # Run the command
@@ -176,7 +176,7 @@ class TestMPRlibCLIValidateFile(unittest.TestCase):
         )
 
         # Check the result
-        self.assertIs(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
 
     def test_reporter_barcode_to_element_mapping(self):
         # Run the command
@@ -191,7 +191,7 @@ class TestMPRlibCLIValidateFile(unittest.TestCase):
         )
 
         # Check the result
-        self.assertIs(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
 
     def test_reporter_sequence_design(self):
         # Run the command
@@ -206,4 +206,4 @@ class TestMPRlibCLIValidateFile(unittest.TestCase):
         )
 
         # Check the result
-        self.assertIs(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
