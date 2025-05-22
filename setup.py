@@ -22,10 +22,12 @@ setup(
         'jsonschema',
         'tqdm',
     ],
-    tests_require=[
-        "coverage",
-        "pytest"
-    ],
+    extras_require={
+        "test": [
+            "coverage",
+            "pytest",
+        ],
+    },
     author='Max Schubach',
     author_email='max.schubach@bih-charite.de',
     description='Library to analyze count data of MPRA experiments.',
