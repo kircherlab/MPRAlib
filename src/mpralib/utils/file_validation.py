@@ -12,13 +12,13 @@ import re
 
 
 class ValidationSchema(Enum):
-    REPORTER_SEQUENCE_DESIGN = "reporter_sequence_design",
-    REPORTER_BARCODE_TO_ELEMENT_MAPPING = "reporter_barcode_to_element_mapping",
-    REPORTER_EXPERIMENT_BARCODE = "reporter_experiment_barcode",
-    REPORTER_EXPERIMENT = "reporter_experiment",
-    REPORTER_ELEMENT = "reporter_element",
-    REPORTER_VARIANT = "reporter_variant",
-    REPORTER_GENOMIC_ELEMENT = "reporter_genomic_element",
+    REPORTER_SEQUENCE_DESIGN = "reporter_sequence_design"
+    REPORTER_BARCODE_TO_ELEMENT_MAPPING = "reporter_barcode_to_element_mapping"
+    REPORTER_EXPERIMENT_BARCODE = "reporter_experiment_barcode"
+    REPORTER_EXPERIMENT = "reporter_experiment"
+    REPORTER_ELEMENT = "reporter_element"
+    REPORTER_VARIANT = "reporter_variant"
+    REPORTER_GENOMIC_ELEMENT = "reporter_genomic_element"
     REPORTER_GENOMIC_VARIANT = "reporter_genomic_variant"
 
 
