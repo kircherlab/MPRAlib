@@ -13,3 +13,9 @@ license = { text="MIT" }
 
 [project.scripts]
 mpralib = "mpralib.cli:cli"
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "coverage"
+]
