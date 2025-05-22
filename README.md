@@ -3,6 +3,7 @@
 ![Tests](https://github.com/kircherlab/MPRAlib/actions/workflows/tests.yml/badge.svg?branch=master)
 [![PyPI version](https://badge.fury.io/py/MPRAlib.svg)](https://badge.fury.io/py/MPRAlib)
 [![Bioconda Version](https://img.shields.io/conda/vn/bioconda/mpralib?label=bioconda)](https://bioconda.github.io/recipes/mpralib/README.html)
+
 MPRAlib is a Python library and CLI for processing MPRA (Massively Parallel Reporter Assay) data.
 
 ## Installation
