@@ -67,7 +67,7 @@ def _convert_row_value(value: str, prop_schema: dict):
     return converted_value
 
 
-def validate_tsv_with_schema(tsv_file_path: str, schema_type: ValidationSchema):
+def validate_tsv(tsv_file_path: str, schema_type: ValidationSchema):
     """
     Validates a TSV file (optionally gzipped) against a given JSON schema.
     Each row is validated as a JSON object (dict).

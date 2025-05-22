@@ -66,10 +66,10 @@ def is_bgzf(filepath):
     with open(filepath, 'rb') as f:
         header = f.read(18)
     return (
-        len(header) >= 18 and
-        header[0:2] == b'\x1f\x8b' and         # gzip magic
-        header[3] == 4 and                     # FLG.FEXTRA set
-        header[12:14] == b'BC'                 # BGZF extra subfield
+        len(header) >= 18
+        and header[0:2] == b'\x1f\x8b'  # gzip magic number
+        and header[3] == 4              # FLG.FEXTRA set
+        and header[12:14] == b'BC'      # BGZF extra subfield
     )
 
 
