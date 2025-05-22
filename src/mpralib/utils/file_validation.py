@@ -96,20 +96,25 @@ def validate_tsv_with_schema(tsv_file_path: str, schema_type: ValidationSchema) 
 
     schema = _load_schema(schema_type)
     header = _get_header_for_schema(schema_type)
-    reader = _get_tsv_reader(tsv_file_path, header)
+    open_func = gzip.open if is_compressed_file(tsv_file_path) else open
+    mode = 'rt' if is_compressed_file(tsv_file_path) else 'r'
 
     correct_file = True
-    for i, row in enumerate(tqdm.tqdm(reader, desc="Validating rows"), start=1):
-        _convert_row_types(row, schema)
-        try:
-            jsonschema.validate(instance=row, schema=schema)
-        except jsonschema.ValidationError as e:
-            LOGGER.warning(f"Row {i} invalid: {e.message}")
-            correct_file = False
-        except Exception as e:
-            LOGGER.error(f"Row {i} error: {e}")
-            correct_file = False
-            raise e
+
+    with open_func(tsv_file_path, mode, encoding='utf-8') as tsvfile:
+        reader = csv.DictReader(tsvfile, delimiter='\t', fieldnames=header)  # type: ignore
+
+        for i, row in enumerate(tqdm.tqdm(reader, desc="Validating rows", unit="row"), start=1):
+            _convert_row_types(row, schema)
+            try:
+                jsonschema.validate(instance=row, schema=schema)
+            except jsonschema.ValidationError as e:
+                LOGGER.warning(f"Row {i} invalid: {e.message}")
+                correct_file = False
+            except Exception as e:
+                LOGGER.error(f"Row {i} error: {e}")
+                correct_file = False
+                raise e
 
     if correct_file:
         LOGGER.info(f"File {tsv_file_path} is valid according to schema {schema_type.value}.")
@@ -141,14 +146,6 @@ def _get_header_for_schema(schema_type: ValidationSchema):
                 "postProbEffect", "CI_lower_95", "CI_upper_95",
                 "variantPos", "refAllele", "altAllele"]
     return None
-
-
-def _get_tsv_reader(tsv_file_path: str, header: list):
-    open_func = gzip.open if is_compressed_file(tsv_file_path) else open
-    mode = 'rt' if is_compressed_file(tsv_file_path) else 'r'
-    with open_func(tsv_file_path, mode, encoding='utf-8') as tsvfile:
-        return list(csv.DictReader(tsvfile, delimiter='\t', fieldnames=header))  # type: ignore
-
 
 def _convert_row_types(row: dict, schema: dict):
     # Handle patternProperties
