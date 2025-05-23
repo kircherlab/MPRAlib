@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.3](https://github.com/kircherlab/MPRAlib/compare/v0.6.2...v0.6.3) (2025-05-23)
+
+
+### Bug Fixes
+
+* sampling was buggy ([abe540b](https://github.com/kircherlab/MPRAlib/commit/abe540b3f266aeb8d1a7b156e8d15ff73d6797e2))
+* sampling was buggy ([c91ab24](https://github.com/kircherlab/MPRAlib/commit/c91ab24c78ab2e34f1f821dc7433ab933e32b554))
+
 ## [0.6.2](https://github.com/kircherlab/MPRAlib/compare/v0.6.1...v0.6.2) (2025-05-22)
 
 
