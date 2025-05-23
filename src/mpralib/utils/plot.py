@@ -9,7 +9,7 @@ custom_palette = sns.color_palette(["#72ACBF", "#BF2675", "#2ecc71", "#f1c40f", 
 sns.set_theme(style="white", rc=custom_params, palette=custom_palette)
 
 
-def correlation(data: MPRAData, layer: Modality, replicates=None) -> sns.JointGrid:
+def correlation(data: MPRAData, layer: Modality, replicates=None) -> sns.PairGrid:
 
     counts = None
     if layer == Modality.DNA:
@@ -26,7 +26,7 @@ def correlation(data: MPRAData, layer: Modality, replicates=None) -> sns.JointGr
     counts = np.ma.masked_array(counts, mask=[data.barcode_counts < data.barcode_threshold])
 
     if replicates:
-        idx = [data.obs_names.get_loc(rep) for rep in replicates]
+        idx = np.array([data.obs_names.get_loc(rep) for rep in replicates])
         counts = pd.DataFrame(counts[idx].T, columns=[f"Replicate {i}" for i in data.obs_names[idx]], index=data.var_names)
     else:
         counts = pd.DataFrame(counts.T, columns=[f"Replicate {i}" for i in data.obs_names], index=data.var_names)
@@ -74,7 +74,7 @@ def dna_vs_rna(data: MPRAData, replicates=None) -> sns.JointGrid:
     return g
 
 
-def barcodes_per_oligo(data: MPRAOligoData, replicates=None) -> sns.JointGrid:
+def barcodes_per_oligo(data: MPRAOligoData, replicates=None) -> sns.FacetGrid:
 
     bc_counts = data.barcode_counts.copy()
 
@@ -82,7 +82,7 @@ def barcodes_per_oligo(data: MPRAOligoData, replicates=None) -> sns.JointGrid:
     intercept_mean = np.mean(bc_counts, axis=1)
 
     if replicates:
-        idx = [data.obs_names.get_loc(rep) for rep in replicates]
+        idx = np.array([data.obs_names.get_loc(rep) for rep in replicates])
         bc_counts = pd.DataFrame(
             bc_counts[idx].T, columns=[f"Replicate {i}" for i in data.obs_names[idx]], index=data.var_names
         )
@@ -162,9 +162,15 @@ def barcodes_outlier(data: MPRABarcodeData):
     # Get the last n categories of ordered categories
     # Plotting
     plt.figure(figsize=(10, 6))
-    sns.scatterplot(data=counts.sample(n=min(10000, len(counts))), x="bin", y="ratio_diff", alpha=0.3)
+    sampled_counts = counts.sample(n=min(10000, len(counts)))
+    if isinstance(sampled_counts, pd.Series):
+        sampled_counts = sampled_counts.to_frame().T
+    sns.scatterplot(data=sampled_counts, x="bin", y="ratio_diff", alpha=0.3)
+    filtered_counts = counts[(counts["ratio_diff"] > 5) & (counts["bin"].isin(counts["bin"].cat.categories[9:]))]
+    if isinstance(filtered_counts, pd.Series):
+        filtered_counts = filtered_counts.to_frame().T
     sns.scatterplot(
-        data=counts[(counts["ratio_diff"] > 5) & (counts["bin"].isin(counts["bin"].cat.categories[9:]))],
+        data=filtered_counts,
         x="bin",
         y="ratio_diff",
         alpha=1,

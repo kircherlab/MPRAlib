@@ -97,16 +97,17 @@ def export_activity_file(mpradata: MPRAOligoData, output_file_path: str) -> None
 
     for replicate in mpradata.obs_names:
         replicate_data = mpradata.data[replicate, :]
-        replicate_data = replicate_data[:, replicate_data.layers["barcode_counts"] >= mpradata.barcode_threshold]
+        replicate_data = replicate_data[:, np.asarray(replicate_data.layers["barcode_counts"])
+                                        >= np.asarray(mpradata.barcode_threshold)]
         df = {
             "replicate": np.repeat(replicate, replicate_data.var_names.size),
             "oligo_name": replicate_data.var["oligo"],
-            "dna_counts": replicate_data.layers["dna"][0, :],
-            "rna_counts": replicate_data.layers["rna"][0, :],
-            "dna_normalized": np.round(replicate_data.layers["dna_normalized"][0, :], 4),
-            "rna_normalized": np.round(replicate_data.layers["rna_normalized"][0, :], 4),
-            "log2FoldChange": np.round(replicate_data.layers["activity"][0, :], 4),
-            "n_bc": replicate_data.layers["barcode_counts"][0, :],
+            "dna_counts": np.asarray(replicate_data.layers["dna"])[0, :],
+            "rna_counts": np.asarray(replicate_data.layers["rna"])[0, :],
+            "dna_normalized": np.round(np.asarray(replicate_data.layers["dna_normalized"])[0, :], 4),
+            "rna_normalized": np.round(np.asarray(replicate_data.layers["rna_normalized"])[0, :], 4),
+            "log2FoldChange": np.round(np.asarray(replicate_data.layers["activity"])[0, :], 4),
+            "n_bc": np.asarray(replicate_data.layers["barcode_counts"])[0, :],
         }
         output = pd.concat([output, pd.DataFrame(df)], axis=0)
 
@@ -144,7 +145,8 @@ def export_barcode_file(mpradata: MPRABarcodeData, output_file_path: str) -> Non
     output.to_csv(output_file_path, sep="\t", index=False)
 
 
-def export_counts_file(mpradata: MPRAData, output_file_path: str, normalized: bool = False, filter: np.ndarray = None) -> None:
+def export_counts_file(mpradata: MPRAData, output_file_path: str, normalized: bool = False,
+                       filter: np.ndarray | None = None) -> None:
     if isinstance(mpradata, MPRABarcodeData):
         df = {"ID": mpradata.var_names}
     elif isinstance(mpradata, MPRAOligoData):
