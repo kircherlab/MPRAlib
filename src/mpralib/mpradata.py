@@ -70,64 +70,64 @@ class MPRAData(ABC):
         self._data = new_data
 
     @property
-    def var_names(self):
+    def var_names(self) -> pd.Index:
         return self.data.var_names
 
     @property
-    def n_vars(self):
+    def n_vars(self) -> int:
         return self.data.n_vars
 
     @property
-    def obs_names(self):
+    def obs_names(self) -> pd.Index:
         return self.data.obs_names
 
     @property
-    def n_obs(self):
+    def n_obs(self) -> int:
         return self.data.n_obs
 
     @property
-    def oligos(self):
+    def oligos(self) -> pd.Series:
         return self.data.var["oligo"]
 
     @property
-    def raw_rna_counts(self):
-        return self.data.layers["rna"]
+    def raw_rna_counts(self) -> np.ndarray:
+        return np.asarray(self.data.layers["rna"])
 
     @property
-    def normalized_dna_counts(self):
+    def normalized_dna_counts(self) -> np.ndarray:
         if "dna_normalized" not in self.data.layers:
             self._normalize()
-        return self.data.layers["dna_normalized"]
+        return np.asarray(self.data.layers["dna_normalized"])
 
     @property
-    def rna_counts(self):
+    def rna_counts(self) -> np.ndarray:
         if "rna_sampling" in self.data.layers:
-            return self.data.layers["rna_sampling"] * ~self.var_filter.T.values
+            return np.asarray(self.data.layers["rna_sampling"]) * ~self.var_filter.T
         else:
-            return self.raw_rna_counts * ~self.var_filter.T.values
+            return self.raw_rna_counts * ~self.var_filter.T
 
     @property
-    def raw_dna_counts(self):
-        return self.data.layers["dna"]
+    def raw_dna_counts(self) -> np.ndarray:
+        return np.asarray(self.data.layers["dna"])
 
     @property
-    def dna_counts(self):
+    def dna_counts(self) -> np.ndarray:
         if "dna_sampling" in self.data.layers:
-            return self.data.layers["dna_sampling"] * ~self.var_filter.T.values
+            return np.asarray(self.data.layers["dna_sampling"]) * ~self.var_filter.T
         else:
-            return self.raw_dna_counts * ~self.var_filter.T.values
+            return self.raw_dna_counts * ~self.var_filter.T
 
     @property
-    def normalized_rna_counts(self):
+    def normalized_rna_counts(self) -> np.ndarray:
         if "rna_normalized" not in self.data.layers:
             self._normalize()
-        return self.data.layers["rna_normalized"]
+        return np.asarray(self.data.layers["rna_normalized"])
 
     @property
-    def activity(self):
+    def activity(self) -> np.ndarray:
         if "activity" not in self.data.layers:
             self._compute_activities()
-        return self.data.layers["activity"]
+        return np.asarray(self.data.layers["activity"])
 
     def _compute_activities(self) -> None:
         ratio = np.divide(
@@ -138,24 +138,20 @@ class MPRAData(ABC):
         with np.errstate(divide="ignore"):
             log2ratio = np.log2(ratio)
             log2ratio[np.isneginf(log2ratio)] = np.nan
-        self.data.layers["activity"] = log2ratio * ~self.var_filter.T.values
+        self.data.layers["activity"] = log2ratio * ~self.var_filter.T
 
     @property
-    def observed(self):
+    def observed(self) -> np.ndarray:
         return (self.dna_counts + self.rna_counts) > 0
 
     @property
-    def var_filter(self) -> pd.DataFrame:
-        return self.data.varm["var_filter"]
+    def var_filter(self) -> np.ndarray:
+        return np.asarray(self.data.varm["var_filter"])
 
     @var_filter.setter
-    def var_filter(self, new_data: pd.DataFrame | None) -> None:
+    def var_filter(self, new_data: np.ndarray | None) -> None:
         if new_data is None:
-            self.data.varm["var_filter"] = pd.DataFrame(
-                np.full((self.data.n_vars, self.data.n_obs), False),
-                index=self.var_names,
-                columns=self.obs_names,
-            )
+            self.data.varm["var_filter"] = np.full((self.data.n_vars, self.data.n_obs), False)
             if "var_filter" in self.data.uns:
                 del self.data.uns["var_filter"]
         else:
@@ -165,17 +161,17 @@ class MPRAData(ABC):
         self.drop_normalized()
 
     @property
-    def barcode_counts(self) -> pd.DataFrame:
+    def barcode_counts(self) -> np.ndarray:
         if "barcode_counts" not in self.data.layers or self.data.layers["barcode_counts"] is None:
             self.data.layers["barcode_counts"] = self._barcode_counts()
-        return self.data.layers["barcode_counts"]
+        return np.asarray(self.data.layers["barcode_counts"])
 
     @barcode_counts.setter
     def barcode_counts(self, new_data: pd.DataFrame) -> None:
         self.data.layers["barcode_counts"] = new_data
 
     @abstractmethod
-    def _barcode_counts(self) -> pd.DataFrame:
+    def _barcode_counts(self) -> np.ndarray:
         pass
 
     @abstractmethod
@@ -183,7 +179,7 @@ class MPRAData(ABC):
         pass
 
     @property
-    def barcode_threshold(self) -> int:
+    def barcode_threshold(self) -> int | None:
         return self._get_metadata("barcode_threshold")
 
     @barcode_threshold.setter
@@ -199,15 +195,15 @@ class MPRAData(ABC):
         ):
             raise ValueError("Sequence design file not loaded.")
 
-        oligos = self.data.var["oligo"].repeat(self.data.var["SPDI"].apply(lambda x: len(x)))
+        oligos = self.data.var["oligo"].repeat(self.data.var["SPDI"].apply(lambda x: len(x)).tolist())
 
         spdis = np.concatenate(self.data.var["SPDI"].values)
 
         alleles = np.concatenate(self.data.var["allele"].values)
 
         df = pd.DataFrame({"ID": spdis, "allele": alleles, "oligo": oligos})
-        df["REF"] = df.apply(lambda row: row["oligo"] if row["allele"] == "ref" else None, axis=1)
-        df["ALT"] = df.apply(lambda row: row["oligo"] if row["allele"] == "alt" else None, axis=1)
+        df["REF"] = df["oligo"].where(df["allele"] == "ref", None)
+        df["ALT"] = df["oligo"].where(df["allele"] == "alt", None)
         df = df.groupby("ID").agg({"REF": lambda x: list(filter(None, x)), "ALT": lambda x: list(filter(None, x))})
         df = df[(df["REF"].apply(len) >= 1) & (df["ALT"].apply(len) >= 1)]
 
@@ -248,7 +244,7 @@ class MPRAData(ABC):
         filtered[self.barcode_counts < self.barcode_threshold] = np.nan
         return self._correlation(method, filtered, layer_name)
 
-    def _correlation(self, method: str, data, layer: str):
+    def _correlation(self, method: str, data: np.ndarray, layer: str):
         if not self._get_metadata(f"correlation_{layer}"):
             self._compute_correlation(data, layer)
         return self.data.obsp[f"{method}_correlation_{layer}"]
@@ -336,16 +332,16 @@ class MPRAData(ABC):
 
 class MPRABarcodeData(MPRAData):
 
-    def _barcode_counts(self) -> pd.DataFrame:
+    def _barcode_counts(self):
         return (
             pd.DataFrame(
-                self.observed * ~self.var_filter.T.values,
+                self.observed * ~self.var_filter.T,
                 index=self.obs_names,
                 columns=self.var_names,
             )
             .T.groupby(self.oligos, observed=True)
             .transform("sum")
-        ).T
+        ).T.values
 
     def drop_barcode_counts(self):
 
@@ -385,17 +381,17 @@ class MPRABarcodeData(MPRAData):
         replicate_columns_rna = data.columns[2::2]
         replicate_columns_dna = data.columns[1::2]
 
-        anndata_replicate_rna = data.loc[:, replicate_columns_rna].transpose().astype(int)
-        anndata_replicate_dna = data.loc[:, replicate_columns_dna].transpose().astype(int)
+        anndata_replicate_rna = data[replicate_columns_rna].transpose().astype(int)
+        anndata_replicate_dna = data[replicate_columns_dna].transpose().astype(int)
 
-        anndata_replicate_rna.index = [replicate.split("_")[2] for replicate in replicate_columns_rna]
-        anndata_replicate_dna.index = [replicate.split("_")[2] for replicate in replicate_columns_dna]
+        anndata_replicate_rna.index = pd.Index([replicate.split("_")[2] for replicate in replicate_columns_rna])
+        anndata_replicate_dna.index = pd.Index([replicate.split("_")[2] for replicate in replicate_columns_dna])
 
         adata = ad.AnnData(anndata_replicate_rna)
-        adata.layers["rna"] = adata.X.copy()
-        adata.layers["dna"] = anndata_replicate_dna
+        adata.layers["rna"] = np.array(adata.X)
+        adata.layers["dna"] = anndata_replicate_dna.values
 
-        adata.var["oligo"] = pd.Categorical(data["oligo_name"].values)
+        adata.var["oligo"] = data["oligo_name"].astype('category')
 
         adata.uns["file_path"] = file_path
         adata.uns["date"] = pd.to_datetime("today").strftime("%Y-%m-%d")
@@ -418,10 +414,10 @@ class MPRABarcodeData(MPRAData):
         self.LOGGER.info("Normalizing data")
 
         self.data.layers["dna_normalized"] = self._normalize_layer(
-            self.dna_counts, self.observed, ~self.var_filter.T.values, self.SCALING, self.PSEUDOCOUNT
+            self.dna_counts, self.observed, ~self.var_filter.T, self.SCALING, self.PSEUDOCOUNT
         )
         self.data.layers["rna_normalized"] = self._normalize_layer(
-            self.rna_counts, self.observed, ~self.var_filter.T.values, self.SCALING, self.PSEUDOCOUNT
+            self.rna_counts, self.observed, ~self.var_filter.T, self.SCALING, self.PSEUDOCOUNT
         )
         self._add_metadata("normalized", True)
 
@@ -442,7 +438,7 @@ class MPRABarcodeData(MPRAData):
         # Convert the result back to an AnnData object
         oligo_data = ad.AnnData(self._sum_counts_by_oligo(self.rna_counts))
 
-        oligo_data.layers["rna"] = oligo_data.X.copy()
+        oligo_data.layers["rna"] = np.array(oligo_data.X)
         oligo_data.layers["dna"] = self._sum_counts_by_oligo(self.dna_counts)
 
         oligo_data.layers["barcode_counts"] = (
@@ -488,7 +484,7 @@ class MPRABarcodeData(MPRAData):
     def _supporting_barcodes_per_oligo(self):
 
         grouped = pd.DataFrame(
-            self.observed * ~self.var_filter.T.values,
+            self.observed * ~self.var_filter.T,
             index=self.obs_names,
             columns=self.var_names,
         ).T.groupby(self.oligos, observed=True)
@@ -650,7 +646,7 @@ class MPRABarcodeData(MPRAData):
     def _sample_individual_counts(self, x, proportion):
         return int(
             np.floor(x * proportion)
-            + (0.0 if x != 0 and np.random.rand() > (x * proportion - np.floor(x * proportion)) else 1.0)
+            + (0.0 if x != 0 or np.random.rand() > (x * proportion - np.floor(x * proportion)) else 1.0)
         )
 
     def _apply_sampling(self, layer_name, counts, proportion, total, max_value, aggregate_over_replicates):
@@ -726,10 +722,10 @@ class MPRAOligoData(MPRAData):
         self.LOGGER.info("Normalizing data")
 
         self.data.layers["dna_normalized"] = self._normalize_layer(
-            self.dna_counts, ~self.var_filter.T.values, self.barcode_counts, self.SCALING, self.PSEUDOCOUNT
+            self.dna_counts, ~self.var_filter.T, self.barcode_counts, self.SCALING, self.PSEUDOCOUNT
         )
         self.data.layers["rna_normalized"] = self._normalize_layer(
-            self.rna_counts, ~self.var_filter.T.values, self.barcode_counts, self.SCALING, self.PSEUDOCOUNT
+            self.rna_counts, ~self.var_filter.T, self.barcode_counts, self.SCALING, self.PSEUDOCOUNT
         )
         self._add_metadata("normalized", True)
 
