@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.6.3](https://github.com/kircherlab/MPRAlib/compare/v0.6.2...v0.6.3) (2025-05-23)
+
+
+### Bug Fixes
+
+* sampling was buggy ([abe540b](https://github.com/kircherlab/MPRAlib/commit/abe540b3f266aeb8d1a7b156e8d15ff73d6797e2))
+
+## [0.6.2](https://github.com/kircherlab/MPRAlib/compare/v0.6.1...v0.6.2) (2025-05-22)
+
+
+### Features
+
+* cli to validate standardized file formats for MPRA using json schema ([a078ad9](https://github.com/kircherlab/MPRAlib/commit/a078ad9e0ae825b6b2ec53f403d9e69639f92ba5))
+* coverage report and automatic tests using github actions ([d8139b6](https://github.com/kircherlab/MPRAlib/commit/d8139b6e834ea3e1cc8567b987e2a71ad66518c8))
+
 ## [0.6.1](https://github.com/kircherlab/MPRAlib/compare/v0.6.0...v0.6.1) (2025-04-09)
 
 
