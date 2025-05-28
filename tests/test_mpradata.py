@@ -14,13 +14,15 @@ VAR = pd.DataFrame(
 COUNTS_DNA = np.array([[1, 2, 3, 1, 2], [4, 5, 6, 4, 5], [7, 8, 9, 10, 100]])
 COUNTS_RNA = np.array([[1, 2, 4, 1, 2], [4, 5, 6, 4, 5], [7, 8, 9, 10, 100]])
 
-FILTER = np.array([
-    [False, True, False],
-    [False, False, False],
-    [True, False, False],
-    [False, False, True],
-    [False, False, True],
-])
+FILTER = np.array(
+    [
+        [False, True, False],
+        [False, False, False],
+        [True, False, False],
+        [False, False, True],
+        [False, False, True],
+    ]
+)
 
 
 class TestMPRAdataSampling(unittest.TestCase):

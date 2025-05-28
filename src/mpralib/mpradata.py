@@ -391,7 +391,7 @@ class MPRABarcodeData(MPRAData):
         adata.layers["rna"] = np.array(adata.X)
         adata.layers["dna"] = anndata_replicate_dna.values
 
-        adata.var["oligo"] = data["oligo_name"].astype('category')
+        adata.var["oligo"] = data["oligo_name"].astype("category")
 
         adata.uns["file_path"] = file_path
         adata.uns["date"] = pd.to_datetime("today").strftime("%Y-%m-%d")

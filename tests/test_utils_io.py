@@ -10,17 +10,11 @@ from mpralib.mpradata import MPRABarcodeData, MPRAOligoData, MPRAData
 
 
 class DummyMPRAData(MPRAData):
-    def __init__(self,
-                 replicates, oligos, barcodes,
-                 dna_counts, rna_counts, barcode_threshold,
-                 barcode_counts=None):
+    def __init__(self, replicates, oligos, barcodes, dna_counts, rna_counts, barcode_threshold, barcode_counts=None):
         layers = {"rna": rna_counts, "dna": dna_counts}
         obs = pd.DataFrame(index=replicates)
         var = pd.DataFrame({"oligo": oligos}, index=barcodes)
-        super().__init__(
-            ad.AnnData(X=rna_counts, obs=obs, var=var, layers=layers),
-            barcode_threshold
-            )
+        super().__init__(ad.AnnData(X=rna_counts, obs=obs, var=var, layers=layers), barcode_threshold)
         if barcode_counts:
             self.barcode_counts = pd.DataFrame(
                 barcode_counts,
@@ -45,11 +39,7 @@ def barcode_data():
     dna_counts = np.array([[10, 0, 5], [20, 1, 0]])
     rna_counts = np.array([[5, 0, 2], [10, 1, 0]])
     barcode_threshold = 1
-    return DummyMPRABarcodeData(
-        replicates, oligos, barcodes,
-        dna_counts, rna_counts,
-        barcode_threshold
-        )
+    return DummyMPRABarcodeData(replicates, oligos, barcodes, dna_counts, rna_counts, barcode_threshold)
 
 
 @pytest.fixture
@@ -61,12 +51,7 @@ def oligo_data():
     rna_counts = np.array([[5, 0, 2], [10, 1, 0]])
     barcode_counts = [[1, 0, 1], [1, 0, 1]]
     barcode_threshold = 1
-    return DummyMPRAOligoData(
-        replicates, oligos, barcodes,
-        dna_counts, rna_counts,
-        barcode_threshold,
-        barcode_counts
-        )
+    return DummyMPRAOligoData(replicates, oligos, barcodes, dna_counts, rna_counts, barcode_threshold, barcode_counts)
 
 
 def test_export_counts_file_barcode(tmp_path, barcode_data):
@@ -100,9 +85,7 @@ def test_export_counts_file_normalized(tmp_path, barcode_data):
     export_counts_file(barcode_data, str(out_path), normalized=True)
     df = pd.read_csv(out_path, sep="\t")
     # Check float formatting
-    assert np.all(df.filter(like="dna_count").applymap(
-        lambda x: isinstance(x, float) or np.isnan(x)
-        ).values)  # type: ignore
+    assert np.all(df.filter(like="dna_count").applymap(lambda x: isinstance(x, float) or np.isnan(x)).values)  # type: ignore
 
 
 def test_export_counts_file_with_filter(tmp_path, barcode_data):
@@ -118,6 +101,7 @@ def test_export_counts_file_with_filter(tmp_path, barcode_data):
 def test_export_counts_file_invalid_type(tmp_path):
     class Dummy:
         pass
+
     dummy = Dummy()
     with pytest.raises(MPRAlibException):
         export_counts_file(dummy, str(tmp_path / "fail.tsv"))  # type: ignore

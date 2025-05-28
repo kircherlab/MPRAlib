@@ -41,6 +41,7 @@ class TestMPRlibCLIValidateFile(unittest.TestCase):
         test_reporter_barcode_to_element_mapping(): Tests validation of reporter barcode to element mapping files.
         test_reporter_sequence_design(): Tests validation of reporter sequence design files.
     """
+
     def setUp(self):
         self.runner = CliRunner()
 
@@ -85,7 +86,7 @@ class TestMPRlibCLIValidateFile(unittest.TestCase):
                 os.path.dirname(__file__),
                 "data",
                 "reporter_genomic_variant.example.bed.gz",
-            )
+            ),
         }
 
     def test_reporter_genomic_variant(self):

@@ -45,9 +45,9 @@ def is_gzip_file(filepath):
     Returns:
         bool: True if the file is gzip-compressed, False otherwise.
     """
-    with open(filepath, 'rb') as f:
+    with open(filepath, "rb") as f:
         magic = f.read(2)
-    return magic == b'\x1f\x8b'
+    return magic == b"\x1f\x8b"
 
 
 def is_bgzf(filepath):
@@ -63,13 +63,13 @@ def is_bgzf(filepath):
     Returns:
         bool: True if the file is in BGZF format, False otherwise.
     """
-    with open(filepath, 'rb') as f:
+    with open(filepath, "rb") as f:
         header = f.read(18)
     return (
         len(header) >= 18
-        and header[0:2] == b'\x1f\x8b'  # gzip magic number
-        and header[3] == 4              # FLG.FEXTRA set
-        and header[12:14] == b'BC'      # BGZF extra subfield
+        and header[0:2] == b"\x1f\x8b"  # gzip magic number
+        and header[3] == 4  # FLG.FEXTRA set
+        and header[12:14] == b"BC"  # BGZF extra subfield
     )
 
 
@@ -97,8 +97,9 @@ def export_activity_file(mpradata: MPRAOligoData, output_file_path: str) -> None
 
     for replicate in mpradata.obs_names:
         replicate_data = mpradata.data[replicate, :]
-        replicate_data = replicate_data[:, np.asarray(replicate_data.layers["barcode_counts"])
-                                        >= np.asarray(mpradata.barcode_threshold)]
+        replicate_data = replicate_data[
+            :, np.asarray(replicate_data.layers["barcode_counts"]) >= np.asarray(mpradata.barcode_threshold)
+        ]
         df = {
             "replicate": np.repeat(replicate, replicate_data.var_names.size),
             "oligo_name": replicate_data.var["oligo"],
@@ -145,8 +146,9 @@ def export_barcode_file(mpradata: MPRABarcodeData, output_file_path: str) -> Non
     output.to_csv(output_file_path, sep="\t", index=False)
 
 
-def export_counts_file(mpradata: MPRAData, output_file_path: str, normalized: bool = False,
-                       filter: np.ndarray | None = None) -> None:
+def export_counts_file(
+    mpradata: MPRAData, output_file_path: str, normalized: bool = False, filter: np.ndarray | None = None
+) -> None:
     if isinstance(mpradata, MPRABarcodeData):
         df = {"ID": mpradata.var_names}
     elif isinstance(mpradata, MPRAOligoData):
