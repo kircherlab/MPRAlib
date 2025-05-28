@@ -14,36 +14,20 @@ def runner():
 def files():
     base = os.path.dirname(__file__)
     return {
-        ValidationSchema.REPORTER_SEQUENCE_DESIGN: os.path.join(
-            base, "data", "reporter_sequence_design.example.tsv.gz"
-        ),
+        ValidationSchema.REPORTER_SEQUENCE_DESIGN: os.path.join(base, "data", "reporter_sequence_design.example.tsv.gz"),
         ValidationSchema.REPORTER_BARCODE_TO_ELEMENT_MAPPING: os.path.join(
             base, "data", "reporter_barcode_to_element_mapping.example.tsv.gz"
         ),
         ValidationSchema.REPORTER_EXPERIMENT_BARCODE: os.path.join(
             base, "data", "reporter_experiment_barcode.input.head101.tsv.gz"
         ),
-        ValidationSchema.REPORTER_EXPERIMENT: os.path.join(
-            base, "data", "reporter_activity.bc100.output.tsv.gz"
-        ),
-        ValidationSchema.REPORTER_ELEMENT: os.path.join(
-            base, "data", "reporter_element.example.tsv.gz"
-        ),
-        ValidationSchema.REPORTER_VARIANT: os.path.join(
-            base, "data", "reporter_variants.example.tsv.gz"
-        ),
-        ValidationSchema.REPORTER_GENOMIC_ELEMENT: os.path.join(
-            base, "data", "reporter_genomic_element.example.bed.gz"
-        ),
-        ValidationSchema.REPORTER_GENOMIC_VARIANT: os.path.join(
-            base, "data", "reporter_genomic_variant.example.bed.gz"
-        ),
-        "REPORTER_GENOMIC_VARIANT_EMPTY_ALLELE": os.path.join(
-            base, "data", "reporter_genomic_variant.example2.bed.gz"
-        ),
-        "REPORTER_GENOMIC_VARIANT_FALSE": os.path.join(
-            base, "data", "reporter_genomic_variant.example3.bed.gz"
-        ),
+        ValidationSchema.REPORTER_EXPERIMENT: os.path.join(base, "data", "reporter_activity.bc100.output.tsv.gz"),
+        ValidationSchema.REPORTER_ELEMENT: os.path.join(base, "data", "reporter_element.example.tsv.gz"),
+        ValidationSchema.REPORTER_VARIANT: os.path.join(base, "data", "reporter_variants.example.tsv.gz"),
+        ValidationSchema.REPORTER_GENOMIC_ELEMENT: os.path.join(base, "data", "reporter_genomic_element.example.bed.gz"),
+        ValidationSchema.REPORTER_GENOMIC_VARIANT: os.path.join(base, "data", "reporter_genomic_variant.example.bed.gz"),
+        "REPORTER_GENOMIC_VARIANT_EMPTY_ALLELE": os.path.join(base, "data", "reporter_genomic_variant.example2.bed.gz"),
+        "REPORTER_GENOMIC_VARIANT_FALSE": os.path.join(base, "data", "reporter_genomic_variant.example3.bed.gz"),
     }
 
 
