@@ -78,13 +78,13 @@
         },
         "refAllele": {
             "type": "string",
-            "description": "Normalized Canonical SPDI reference variant sequence, allowed chars [A,T,G,C] and empty string.",
-            "pattern": "^[ATGC]*$"
+            "description": "Normalized Canonical SPDI reference variant sequence, allowed chars [A,T,G,C]. If empty use 0.",
+            "pattern": "^([ATGC]+|0)$"
         },
         "altAllele": {
             "type": "string",
-            "description": "Normalized Canonical SPDI alternative variant sequence, allowed chars [A,T,G,C] and empty string.",
-            "pattern": "^[ATGC]*$"
+            "description": "Normalized Canonical SPDI alternative variant sequence, allowed chars [A,T,G,C]. If empty use 0",
+            "pattern": "^([ATGC]+|0)$"
         }
     },
     "required": [
