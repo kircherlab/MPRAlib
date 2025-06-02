@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.4](https://github.com/kircherlab/MPRAlib/compare/v0.6.3...v0.6.4) (2025-05-28)
+
+
+### Bug Fixes
+
+* validate files. empty ref/alt allele for variant files must be 0 ([391703a](https://github.com/kircherlab/MPRAlib/commit/391703a80dcf5e91c2d4f5d32b8d2db02fffa82d))
+
 ## [0.6.3](https://github.com/kircherlab/MPRAlib/compare/v0.6.2...v0.6.3) (2025-05-23)
 
 
