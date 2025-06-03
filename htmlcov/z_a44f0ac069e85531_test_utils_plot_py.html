@@ -54,8 +54,8 @@
             </div>
         </aside>
         <h2>
-            <span class="text">81 statements &nbsp;</span>
-            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">81<span class="text"> run</span></button>
+            <span class="text">90 statements &nbsp;</span>
+            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">90<span class="text"> run</span></button>
             <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">0<span class="text"> missing</span></button>
             <button type="button" class="exc show_exc button_toggle_exc" value="exc" data-shortcut="x" title="Toggle lines excluded">0<span class="text"> excluded</span></button>
         </h2>
@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="index.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.8.1">coverage.py v7.8.1</a>,
-            created at 2025-05-28 11:41 +0000
+            created at 2025-06-03 14:51 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -86,7 +86,7 @@
     <p class="run"><span class="n"><a id="t4" href="#t4">4</a></span><span class="t"><span class="key">import</span> <span class="nam">anndata</span> <span class="key">as</span> <span class="nam">ad</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t5" href="#t5">5</a></span><span class="t"><span class="key">import</span> <span class="nam">seaborn</span> <span class="key">as</span> <span class="nam">sns</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t6" href="#t6">6</a></span><span class="t"><span class="key">import</span> <span class="nam">copy</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t7" href="#t7">7</a></span><span class="t"><span class="key">from</span> <span class="nam">mpralib</span><span class="op">.</span><span class="nam">utils</span><span class="op">.</span><span class="nam">plot</span> <span class="key">import</span> <span class="nam">dna_vs_rna</span><span class="op">,</span> <span class="nam">correlation</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t7" href="#t7">7</a></span><span class="t"><span class="key">from</span> <span class="nam">mpralib</span><span class="op">.</span><span class="nam">utils</span><span class="op">.</span><span class="nam">plot</span> <span class="key">import</span> <span class="nam">dna_vs_rna</span><span class="op">,</span> <span class="nam">correlation</span><span class="op">,</span> <span class="nam">barcodes_per_oligo</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t8" href="#t8">8</a></span><span class="t"><span class="key">from</span> <span class="nam">mpralib</span><span class="op">.</span><span class="nam">mpradata</span> <span class="key">import</span> <span class="nam">MPRAData</span><span class="op">,</span> <span class="nam">MPRABarcodeData</span><span class="op">,</span> <span class="nam">MPRAOligoData</span><span class="op">,</span> <span class="nam">Modality</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t9" href="#t9">9</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t10" href="#t10">10</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
@@ -215,12 +215,24 @@
     <p class="run"><span class="n"><a id="t133" href="#t133">133</a></span><span class="t">    <span class="key">assert</span> <span class="nam">g</span><span class="op">.</span><span class="nam">ax_joint</span><span class="op">.</span><span class="nam">get_ylabel</span><span class="op">(</span><span class="op">)</span> <span class="op">==</span> <span class="str">"RNA [log10]"</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t134" href="#t134">134</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t135" href="#t135">135</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t136" href="#t136">136</a></span><span class="t"><span class="key">def</span> <span class="nam">test_dna_vs_rna_with_replicates</span><span class="op">(</span><span class="nam">oligo_data</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t136" href="#t136">136</a></span><span class="t"><span class="key">def</span> <span class="nam">test_dna_vs_rna_oligo_with_replicates</span><span class="op">(</span><span class="nam">oligo_data</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t137" href="#t137">137</a></span><span class="t">    <span class="nam">g</span> <span class="op">=</span> <span class="nam">dna_vs_rna</span><span class="op">(</span><span class="nam">oligo_data</span><span class="op">,</span> <span class="nam">replicates</span><span class="op">=</span><span class="op">[</span><span class="str">"rep2"</span><span class="op">]</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t138" href="#t138">138</a></span><span class="t">    <span class="key">assert</span> <span class="nam">isinstance</span><span class="op">(</span><span class="nam">g</span><span class="op">,</span> <span class="nam">sns</span><span class="op">.</span><span class="nam">axisgrid</span><span class="op">.</span><span class="nam">JointGrid</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t139" href="#t139">139</a></span><span class="t">    <span class="com"># Only one replicate, so median should be just that replicate's values</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t140" href="#t140">140</a></span><span class="t">    <span class="com"># Check that the plot title is correct</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t141" href="#t141">141</a></span><span class="t">    <span class="key">assert</span> <span class="str">"Median normalized counts"</span> <span class="key">in</span> <span class="nam">g</span><span class="op">.</span><span class="nam">figure</span><span class="op">.</span><span class="nam">_suptitle</span><span class="op">.</span><span class="nam">get_text</span><span class="op">(</span><span class="op">)</span>  <span class="com"># type: ignore</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t139" href="#t139">139</a></span><span class="t">    <span class="com"># Check axis labels</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t140" href="#t140">140</a></span><span class="t">    <span class="key">assert</span> <span class="nam">g</span><span class="op">.</span><span class="nam">ax_joint</span><span class="op">.</span><span class="nam">get_xlabel</span><span class="op">(</span><span class="op">)</span> <span class="op">==</span> <span class="str">"DNA [log10]"</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t141" href="#t141">141</a></span><span class="t">    <span class="key">assert</span> <span class="nam">g</span><span class="op">.</span><span class="nam">ax_joint</span><span class="op">.</span><span class="nam">get_ylabel</span><span class="op">(</span><span class="op">)</span> <span class="op">==</span> <span class="str">"RNA [log10]"</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t142" href="#t142">142</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t143" href="#t143">143</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t144" href="#t144">144</a></span><span class="t"><span class="key">def</span> <span class="nam">test_barcodes_per_oligo</span><span class="op">(</span><span class="nam">oligo_data</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t145" href="#t145">145</a></span><span class="t">    <span class="nam">g</span> <span class="op">=</span> <span class="nam">barcodes_per_oligo</span><span class="op">(</span><span class="nam">oligo_data</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t146" href="#t146">146</a></span><span class="t">    <span class="key">assert</span> <span class="nam">isinstance</span><span class="op">(</span><span class="nam">g</span><span class="op">,</span> <span class="nam">sns</span><span class="op">.</span><span class="nam">axisgrid</span><span class="op">.</span><span class="nam">FacetGrid</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t147" href="#t147">147</a></span><span class="t">    <span class="key">assert</span> <span class="nam">g</span><span class="op">.</span><span class="nam">axes</span><span class="op">.</span><span class="nam">shape</span> <span class="op">==</span> <span class="op">(</span><span class="num">1</span><span class="op">,</span> <span class="num">2</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t148" href="#t148">148</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t149" href="#t149">149</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t150" href="#t150">150</a></span><span class="t"><span class="key">def</span> <span class="nam">test_barcodes_per_oligo_with_replicates</span><span class="op">(</span><span class="nam">oligo_data</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t151" href="#t151">151</a></span><span class="t">    <span class="nam">g</span> <span class="op">=</span> <span class="nam">barcodes_per_oligo</span><span class="op">(</span><span class="nam">oligo_data</span><span class="op">,</span> <span class="nam">replicates</span><span class="op">=</span><span class="op">[</span><span class="str">"rep2"</span><span class="op">]</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t152" href="#t152">152</a></span><span class="t">    <span class="key">assert</span> <span class="nam">isinstance</span><span class="op">(</span><span class="nam">g</span><span class="op">,</span> <span class="nam">sns</span><span class="op">.</span><span class="nam">axisgrid</span><span class="op">.</span><span class="nam">FacetGrid</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t153" href="#t153">153</a></span><span class="t">    <span class="key">assert</span> <span class="nam">g</span><span class="op">.</span><span class="nam">axes</span><span class="op">.</span><span class="nam">shape</span> <span class="op">==</span> <span class="op">(</span><span class="num">1</span><span class="op">,</span> <span class="num">1</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
 </main>
 <footer>
     <div class="content">
@@ -230,7 +242,7 @@
             <a class="nav" href="index.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.8.1">coverage.py v7.8.1</a>,
-            created at 2025-05-28 11:41 +0000
+            created at 2025-06-03 14:51 +0000
         </p>
     </div>
 </footer>

@@ -7,18 +7,18 @@
 | src/mpralib/\_\_init\_\_.py           |        1 |        0 |    100% |           |
 | src/mpralib/cli.py                    |      411 |      255 |     38% |41, 54, 67, 80, 93, 106, 119, 213-229, 266-287, 292, 320-360, 419-436, 487-556, 603-628, 679-730, 798-857, 901-988, 993, 1044-1058, 1101-1113, 1140-1147, 1167-1171, 1177 |
 | src/mpralib/exception.py              |       12 |        0 |    100% |           |
-| src/mpralib/mpradata.py               |      415 |       85 |     80% |26-29, 57, 70, 105, 175, 179, 193-210, 214, 242, 268, 289-294, 297, 304, 316-330, 496-507, 512-545, 549-575, 617, 623-629, 706, 716 |
+| src/mpralib/mpradata.py               |      432 |       85 |     80% |26-29, 57, 70, 105, 184, 188, 202-219, 223, 251, 277, 298-303, 306, 313, 325-339, 535-546, 551-584, 588-614, 656, 662-668, 745, 755 |
 | src/mpralib/utils/\_\_init\_\_.py     |        0 |        0 |    100% |           |
 | src/mpralib/utils/file\_validation.py |      109 |        9 |     92% |31, 33, 40, 114-117, 129, 187 |
 | src/mpralib/utils/io.py               |       96 |       10 |     90% |10-22, 66-68 |
-| src/mpralib/utils/plot.py             |      108 |       55 |     49% |79-110, 117-184 |
+| src/mpralib/utils/plot.py             |      108 |       34 |     69% |   117-184 |
 | tests/\_\_init\_\_.py                 |        0 |        0 |    100% |           |
 | tests/test\_cli.py                    |       59 |        0 |    100% |           |
 | tests/test\_cli\_validate\_file.py    |       42 |        0 |    100% |           |
-| tests/test\_mpradata.py               |      204 |        0 |    100% |           |
+| tests/test\_mpradata.py               |      230 |        0 |    100% |           |
 | tests/test\_utils\_io.py              |      111 |        0 |    100% |           |
-| tests/test\_utils\_plot.py            |       81 |        0 |    100% |           |
-|                             **TOTAL** | **1649** |  **414** | **75%** |           |
+| tests/test\_utils\_plot.py            |       90 |        0 |    100% |           |
+|                             **TOTAL** | **1701** |  **393** | **77%** |           |
 
 
 ## Setup coverage badge
