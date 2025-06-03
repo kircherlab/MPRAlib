@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.5](https://github.com/kircherlab/MPRAlib/compare/v0.6.4...v0.6.5) (2025-06-03)
+
+
+### Features
+
+* complexity estimates on barcode level ([06a2173](https://github.com/kircherlab/MPRAlib/commit/06a21738d979a25c3d361b920ac70596332c347c))
+
 ## [0.6.4](https://github.com/kircherlab/MPRAlib/compare/v0.6.3...v0.6.4) (2025-05-28)
 
 
