@@ -355,6 +355,5 @@ def test_chapman_complexity(mpra_complexity_data):
 
 
 def test_fail_complexity(mpra_complexity_data):
-    def test_complexity_invalid_method_raises_valueerror(mpra_complexity_data):
-        with pytest.raises(ValueError):
-            mpra_complexity_data.complexity(method="unknown")
+    with pytest.raises(ValueError):
+        mpra_complexity_data.complexity(method="unknown")

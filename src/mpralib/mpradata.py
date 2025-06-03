@@ -439,10 +439,8 @@ class MPRABarcodeData(MPRAData):
                     count = (n_observed[i] * n_observed[j]) / n_recap if n_recap > 0 else 0
                 elif method == "chapman":
                     count = ((n_observed[i] + 1) * (n_observed[j] + 1) / (n_recap + 1)) - 1
-                else:
-                    raise ValueError("Method must be either 'lincoln' or 'chapman'.")
 
-                count = int(np.floor(count))
+                count = int(np.floor(count))  # type: ignore
                 results[i, j] = count
                 results[j, i] = count  # symmetric
 

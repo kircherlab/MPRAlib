@@ -4,7 +4,7 @@ import pytest
 import anndata as ad
 import seaborn as sns
 import copy
-from mpralib.utils.plot import dna_vs_rna, correlation
+from mpralib.utils.plot import dna_vs_rna, correlation, barcodes_per_oligo, barcodes_outlier
 from mpralib.mpradata import MPRAData, MPRABarcodeData, MPRAOligoData, Modality
 
 
@@ -133,9 +133,21 @@ def test_dna_vs_rna_barcode_returns_jointgrid(barcode_data):
     assert g.ax_joint.get_ylabel() == "RNA [log10]"
 
 
-def test_dna_vs_rna_with_replicates(oligo_data):
+def test_dna_vs_rna_oligo_with_replicates(oligo_data):
     g = dna_vs_rna(oligo_data, replicates=["rep2"])
     assert isinstance(g, sns.axisgrid.JointGrid)
-    # Only one replicate, so median should be just that replicate's values
-    # Check that the plot title is correct
-    assert "Median normalized counts" in g.figure._suptitle.get_text()  # type: ignore
+    # Check axis labels
+    assert g.ax_joint.get_xlabel() == "DNA [log10]"
+    assert g.ax_joint.get_ylabel() == "RNA [log10]"
+
+
+def test_barcodes_per_oligo(oligo_data):
+    g = barcodes_per_oligo(oligo_data)
+    assert isinstance(g, sns.axisgrid.FacetGrid)
+    assert g.axes.shape == (1, 2)
+
+
+def test_barcodes_per_oligo_with_replicates(oligo_data):
+    g = barcodes_per_oligo(oligo_data, replicates=["rep2"])
+    assert isinstance(g, sns.axisgrid.FacetGrid)
+    assert g.axes.shape == (1, 1)
