@@ -364,7 +364,6 @@ class MPRABarcodeData(MPRAData):
 
         return self._oligo_data()
 
-
     @classmethod
     def from_file(cls, file_path: str) -> "MPRABarcodeData":
         """
@@ -439,9 +438,7 @@ class MPRABarcodeData(MPRAData):
                 if method == "lincoln":
                     count = (n_observed[i] * n_observed[j]) / n_recap if n_recap > 0 else 0
                 elif method == "chapman":
-                    count = (
-                        ((n_observed[i] + 1) * (n_observed[j] + 1) / (n_recap + 1)) - 1
-                    )
+                    count = ((n_observed[i] + 1) * (n_observed[j] + 1) / (n_recap + 1)) - 1
                 else:
                     raise ValueError("Method must be either 'lincoln' or 'chapman'.")
 
