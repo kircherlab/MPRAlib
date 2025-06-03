@@ -142,6 +142,15 @@ class MPRAData(ABC):
 
     @property
     def observed(self) -> np.ndarray:
+        """
+        Boolean array if the barcode or oligo is observed (non zero dna and rna counts).
+        Returns a boolean NumPy array indicating which elements have nonzero counts in either DNA or RNA.
+
+
+        Returns:
+            np.ndarray: A boolean array where each element is True if the corresponding element in either
+            `dna_counts` or `rna_counts` is greater than zero, and False otherwise.
+        """
         return (self.dna_counts + self.rna_counts) > 0
 
     @property
@@ -407,7 +416,37 @@ class MPRABarcodeData(MPRAData):
 
         return cls(adata)
 
-    def _normalize(self):
+    def complexity(self, method="lincoln") -> np.ndarray:
+        """
+        Calculates and returns the complexity of barcodes using the Lincoln-Peterson or Chapman estimation.
+
+        Args:
+            method (str): Either "lincoln" or "chapman".
+
+        Returns:
+            np.ndarray: The Lincoln-Peterson or Chapman estimate.
+        """
+        if method not in {"lincoln", "chapman"}:
+            raise ValueError("Method must be either 'lincoln' or 'chapman'.")
+
+        n_observed = np.sum(self.observed, axis=1)
+        num_rows = self.observed.shape[0]
+        results = np.zeros((num_rows, num_rows), dtype=int)
+        for i in range(num_rows):
+            for j in range(i, num_rows):
+                n_recap = np.sum(np.sum(np.logical_and(self.observed[i, :], self.observed[j, :])))
+                if method == "lincoln":
+                    count = (n_observed[i] * n_observed[j]) / n_recap if n_recap > 0 else 0
+                elif method == "chapman":
+                    count = ((n_observed[i] + 1) * (n_observed[j] + 1) / (n_recap + 1)) - 1
+
+                count = int(np.floor(count))  # type: ignore
+                results[i, j] = count
+                results[j, i] = count  # symmetric
+
+        return results
+
+    def _normalize(self) -> None:
 
         self.drop_normalized()
 
