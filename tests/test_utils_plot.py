@@ -4,7 +4,7 @@ import pytest
 import anndata as ad
 import seaborn as sns
 import copy
-from mpralib.utils.plot import dna_vs_rna, correlation, barcodes_per_oligo, barcodes_outlier
+from mpralib.utils.plot import dna_vs_rna, correlation, barcodes_per_oligo
 from mpralib.mpradata import MPRAData, MPRABarcodeData, MPRAOligoData, Modality
 
 
