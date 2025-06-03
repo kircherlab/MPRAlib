@@ -1,0 +1,43 @@
+---
+name: Sync master to development after release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  sync-main-to-develop:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout master branch
+        uses: actions/checkout@v4
+        with:
+          ref: development
+
+      - name: Checkout development branch
+        run: |
+          git fetch origin development:development
+          git checkout development
+          git pull origin development
+
+      - name: Merge master into development
+        run: |
+          git merge origin/master || true
+
+      - name: Push changes to development
+        run: |
+          git push origin development
+
+      - name: Create Pull Request if merge fails
+        if: ${{ failure() }}
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: 'Sync master to development after release ${{ github.event.release.tag_name }}'
+          title: 'chore: Sync master to development after release ${{ github.event.release.tag_name }}'
+          body: |
+            This PR merges changes from `master` (release ${{ github.event.release.tag_name }}) back into `development`.
+          base: development
+          branch: sync-master-to-development-${{ github.event.release.tag_name }}
+          labels: automated pr
+          reviewers: |
+            visze
