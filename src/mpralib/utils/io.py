@@ -4,6 +4,7 @@ import ast
 import os
 from mpralib.mpradata import MPRABarcodeData, MPRAOligoData, MPRAData
 from mpralib.exception import SequenceDesignException, MPRAlibException
+from typing import Optional
 
 
 def chromosome_map() -> pd.DataFrame:
@@ -147,7 +148,7 @@ def export_barcode_file(mpradata: MPRABarcodeData, output_file_path: str) -> Non
 
 
 def export_counts_file(
-    mpradata: MPRAData, output_file_path: str, normalized: bool = False, filter: np.ndarray | None = None
+    mpradata: MPRAData, output_file_path: str, normalized: bool = False, filter: Optional[np.ndarray] = None
 ) -> None:
     if isinstance(mpradata, MPRABarcodeData):
         df = {"ID": mpradata.var_names}
