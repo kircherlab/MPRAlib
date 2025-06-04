@@ -9,6 +9,7 @@ from mpralib.utils.io import is_compressed_file
 import tqdm
 import logging
 import re
+from typing import Optional
 
 
 class ValidationSchema(Enum):
@@ -132,7 +133,7 @@ def _load_schema(schema_type: ValidationSchema):
         return json.load(f)
 
 
-def _get_header_for_schema(schema_type: ValidationSchema) -> list | None:
+def _get_header_for_schema(schema_type: ValidationSchema) -> Optional[list]:
     if schema_type == ValidationSchema.REPORTER_BARCODE_TO_ELEMENT_MAPPING:
         return ["barcode", "oligoName"]
     elif schema_type == ValidationSchema.REPORTER_GENOMIC_ELEMENT:

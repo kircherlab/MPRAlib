@@ -7,6 +7,7 @@ from enum import Enum
 import logging
 import os
 from mpralib.exception import MPRAlibException
+from typing import Optional
 
 
 class Modality(Enum):
@@ -158,7 +159,7 @@ class MPRAData(ABC):
         return np.asarray(self.data.varm["var_filter"])
 
     @var_filter.setter
-    def var_filter(self, new_data: np.ndarray | None) -> None:
+    def var_filter(self, new_data: Optional[np.ndarray]) -> None:
         if new_data is None:
             self.data.varm["var_filter"] = np.full((self.data.n_vars, self.data.n_obs), False)
             if "var_filter" in self.data.uns:
@@ -188,7 +189,7 @@ class MPRAData(ABC):
         pass
 
     @property
-    def barcode_threshold(self) -> int | None:
+    def barcode_threshold(self) -> Optional[int]:
         return self._get_metadata("barcode_threshold")
 
     @barcode_threshold.setter

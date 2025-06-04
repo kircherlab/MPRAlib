@@ -16,7 +16,7 @@ setup(
         'click',
         'scikit-learn',
         'scipy',
-        'anndata',
+        'anndata>=0.11.3',
         'seaborn',
         'matplotlib',
         'jsonschema',

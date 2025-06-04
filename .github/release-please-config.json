@@ -11,7 +11,8 @@
             "draft": false,
             "prerelease": true,
             "tag-prefix": "v",
-            "include-component-in-tag": false
+            "include-component-in-tag": false,
+            "version-file": "mpralib/__init__.py"
         }
     }
 }
