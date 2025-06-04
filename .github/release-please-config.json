@@ -14,5 +14,5 @@
             "include-component-in-tag": false,
             "extra-files": ["src/mpralib/__init__.py"]
         }
-    },
+    }
 }
