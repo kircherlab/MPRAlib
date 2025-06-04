@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.6.6](https://github.com/kircherlab/MPRAlib/compare/v0.6.5...v0.6.6) (2025-06-04)
+
+
+### Bug Fixes
+
+* minimum required anndata 0.11.3 ([7d56652](https://github.com/kircherlab/MPRAlib/commit/7d5665266f78a4cebc50d40011e44d532ed3c5d4))
+* Python compatibility 3.7+ compatibility using Optional for typing. ([75bbf09](https://github.com/kircherlab/MPRAlib/commit/75bbf09828613b8cbe78fb144dc7b3405c6fc2ec))
+* Python compatibility 3.8+ compatibility using Optional for typing. ([7649bc9](https://github.com/kircherlab/MPRAlib/commit/7649bc9da23455310bc439b045c76e13af62a6cd))
+
 ## [0.6.5](https://github.com/kircherlab/MPRAlib/compare/v0.6.4...v0.6.5) (2025-06-03)
 
 
