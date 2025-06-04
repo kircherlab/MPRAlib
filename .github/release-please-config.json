@@ -4,14 +4,15 @@
     "pull-request-title-pattern": "chore${scope}: release${component} ${version}",
     "packages": {
         ".": {
-            "package-name": "mpralib",
+            "package-name": "MPRAlib",
             "release-type": "python",
             "bump-minor-pre-major": true,
             "bump-patch-for-minor-pre-major": true,
             "draft": false,
             "prerelease": true,
             "tag-prefix": "v",
-            "include-component-in-tag": false
+            "include-component-in-tag": false,
+            "version-file": "mpralib/__init__.py"
         }
     }
 }
