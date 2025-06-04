@@ -12,7 +12,7 @@
             "prerelease": true,
             "tag-prefix": "v",
             "include-component-in-tag": false,
-            "extra-files": ["src/mpralib/__init__.py"]
+            "version-file": "src/mpralib/__init__.py"
         }
     }
 }
