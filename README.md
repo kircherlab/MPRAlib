@@ -17,6 +17,8 @@ pip install MPRAlib
 
 ### Conda
 
+From the bioconda channel
+
 ```bash
 conda install -c bioconda mpralib
 ```
