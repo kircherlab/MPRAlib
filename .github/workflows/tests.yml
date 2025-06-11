@@ -8,9 +8,58 @@ on: # yamllint disable-line rule:truthy
 permissions: {}
 
 jobs:
+  docs:
+    name: Build documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install micromamba
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-file: docs/environment.yml
+          environment-name: sphinx
+
+      - name: Run sphinx
+        shell: bash -l {0}
+        run: |
+          cd docs && make html
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: read
+      # To report GitHub Actions status checks
+      statuses: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # super-linter needs the full git history to get the
+          # list of files that changed across commits
+          fetch-depth: 0
+
+      - name: Super-linter
+        uses: super-linter/super-linter@v7
+        env:
+          # To report GitHub Actions status checks
+          DEFAULT_BRANCH: master
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VALIDATE_PYTHON_FLAKE8: true
+          PYTHON_FLAKE8_CONFIG_FILE: .flake8
+          VALIDATE_JSON: true
+          VALIDATE_YAML: true
+          YAML_CONFIG_FILE: .yamllint.yml
+
   test:
     name: Run tests & display coverage
     runs-on: ubuntu-latest
+
     permissions:
       # Gives the action the necessary permissions for publishing new
       # comments in pull requests.
@@ -19,6 +68,7 @@ jobs:
       # python-coverage-comment-action branch, and for editing existing
       # comments (to avoid publishing multiple comments in the same PR)
       contents: write
+
     steps:
       - uses: actions/checkout@v4
 

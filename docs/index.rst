@@ -1,6 +1,10 @@
 MPRAlib documentation
 =========================
 
+.. image:: https://app.readthedocs.org/projects/mpralib/badge/?version=latest
+   :target: https://mpralib.readthedocs.io/latest/?badge=latest
+   :alt: Documentation Status
+
 .. image:: https://github.com/kircherlab/MPRAlib/actions/workflows/tests.yml/badge.svg?branch=master
    :target: https://github.com/kircherlab/MPRAlib/actions/workflows/tests.yml
    :alt: Tests
@@ -74,27 +78,21 @@ License
 
 MIT License
 
-Links
------
-
-- `Documentation <https://github.com/kircherlab/MPRAlib>`_
-- `Issues <https://github.com/kircherlab/MPRAlib/issues>`_
-
-
 
 .. toctree::
    :maxdepth: 4
    :caption: Documentation
    :hidden:
 
-   doc
+   doc/overview
+   getting-started
 
 .. toctree::
    :maxdepth: 4
    :caption: Tutorial
    :hidden:
 
-   tutorial
+   tutorial/tutorial
 
 .. toctree::
    :maxdepth: 4

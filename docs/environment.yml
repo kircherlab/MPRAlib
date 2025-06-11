@@ -1,0 +1,10 @@
+---
+channels:
+  - conda-forge
+dependencies:
+  - python==3.12
+  - sphinx
+  - rstcheck
+  - myst-parser
+  - sphinx-rtd-theme
+  - sphinx-autodoc-typehints
