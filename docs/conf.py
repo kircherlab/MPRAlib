@@ -8,8 +8,8 @@
 
 import os
 import sys
-import mpralib
 sys.path.insert(0, os.path.abspath('../src'))
+import mpralib
 
 project = 'MPRAlib'
 copyright = '2025, Max Schubach'
