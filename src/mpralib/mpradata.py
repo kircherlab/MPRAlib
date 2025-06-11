@@ -232,7 +232,7 @@ class MPRAData(ABC):
 
     @property
     def observed(self) -> NDArray[np.bool_]:
-        """:class:`NDArray[np.bool_]`: Returns a boolean NumPy array indicating which barcodes (observations) have non-zero counts in either DNA or RNA."""
+        """:class:`NDArray[np.bool_]`: Returns a boolean NumPy array indicating which barcodes (observations) have non-zero counts in either DNA or RNA."""  # noqa: E501
 
         return (self.dna_counts + self.rna_counts) > 0
 
@@ -256,7 +256,7 @@ class MPRAData(ABC):
 
     @property
     def barcode_counts(self) -> NDArray[np.int32]:
-        """NDArray[np.int32]: Returns the barcode counts matrix, which is a sum of counts across all barcodes for each oligo."""
+        """NDArray[np.int32]: Returns the barcode counts matrix, which is a sum of counts across all barcodes for each oligo."""  # noqa: E501
         if "barcode_counts" not in self.data.layers or self.data.layers["barcode_counts"] is None:
             self.data.layers["barcode_counts"] = self._barcode_counts()
         return np.asarray(self.data.layers["barcode_counts"], dtype=np.int32)
@@ -483,8 +483,7 @@ class MPRAData(ABC):
 
 class MPRABarcodeData(MPRAData):
     """
-    A class for handling barcode-level MPRA (Massively Parallel Reporter Assay) data, providing methods for data import,
-    normalization, filtering, and aggregation to oligo-level data.
+    A class for handling barcode-level MPRA (Massively Parallel Reporter Assay) data, providing methods for data import, normalization, filtering, and aggregation to oligo-level data.
 
     This class extends `MPRAData` and is designed to work with barcode-resolved MPRA datasets, supporting a variety of barcode filtering strategies, normalization routines, and data transformations. It leverages AnnData for data storage and manipulation.
 
@@ -492,7 +491,7 @@ class MPRABarcodeData(MPRAData):
     ----
     - Filtering and normalization methods are barcode-aware and can be customized via method parameters.
     - Aggregation to oligo-level data is supported for downstream analysis.
-    """
+    """   # noqa: E501
 
     def _barcode_counts(self) -> NDArray[np.int32]:
         return (
