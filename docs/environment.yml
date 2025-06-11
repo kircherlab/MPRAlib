@@ -3,9 +3,7 @@ channels:
   - conda-forge
 dependencies:
   - python==3.12
-  - pandas
-  - numpy
-  - jsonschema
+  - mpralib
   - sphinx
   - rstcheck
   - myst-parser
