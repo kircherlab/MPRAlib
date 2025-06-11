@@ -142,3 +142,7 @@ projects/ProReg/variant_map.tsv.gz
 projects/ProReg/IU_Logs/log_iu_api.data.igvf.org_debug.txt
 projects/ProReg/IU_Logs/log_iu_api.data.igvf.org_error.txt
 projects/ProReg/IU_Logs/log_iu_api.data.igvf.org_posted.txt
+examples/mpra_barcode_data.h5ad
+examples/mpra_oligo_data.h5ad
+examples/activity.tsv.gz
+examples/barcodes.tsv.gz
