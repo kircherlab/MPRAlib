@@ -14,18 +14,6 @@ from numpy.typing import NDArray
 class Modality(Enum):
     """
     An enumeration representing different data modalities in MPRA (Massively Parallel Reporter Assay) experiments.
-
-    Members:
-        DNA: Raw DNA counts.
-        RNA: Raw RNA counts.
-        DNA_NORMALIZED: Normalized DNA counts.
-        RNA_NORMALIZED: Normalized RNA counts.
-        ACTIVITY: Calculated activity values.
-
-    Methods:
-        from_string(value: str) -> Modality:
-            Returns the corresponding Modality member for a given string (case-insensitive).
-            Raises ValueError if the string does not match any modality.
     """
 
     DNA = "DNA"
@@ -50,11 +38,6 @@ class Modality(Enum):
 class CountSampling(Enum):
     """
     Enumeration representing the types of count sampling available for MPRA data.
-
-    Attributes:
-        RNA: Sample counts from RNA only.
-        DNA: Sample counts from DNA only.
-        RNA_AND_DNA: Sample counts from both RNA and DNA.
     """
 
     RNA = "RNA"
@@ -65,13 +48,6 @@ class CountSampling(Enum):
 class BarcodeFilter(Enum):
     """
     Enumeration of available barcode filtering methods.
-
-    Attributes:
-        RNA_ZSCORE: Filter barcodes based on RNA z-score thresholds.
-        MAD: Filter barcodes using the Median Absolute Deviation (MAD) method.
-        RANDOM: Randomly select barcodes for filtering.
-        MIN_COUNT: Filter barcodes with counts below a minimum threshold.
-        MAX_COUNT: Filter barcodes with counts above a maximum threshold.
     """
 
     RNA_ZSCORE = "RNA_ZSCORE"
@@ -89,72 +65,21 @@ class MPRAData(ABC):
     filtering, and analyzing MPRA data, including DNA/RNA counts, barcode handling,
     activity computation, and correlation analysis. It is designed to be subclassed for specific MPRA data formats.
 
-    Attributes:
-        LOGGER (logging.Logger): Logger for the class.
-        _SCALING (float): Default scaling factor for normalization.
-        _PSEUDOCOUNT (int): Default pseudocount for normalization.
+    Parameters
+    ----------
+    data : ad.AnnData
+        The AnnData object containing MPRA data.
+    barcode_threshold : int, optional
+        Minimum barcode count threshold for filtering. Defaults to 0.
 
-    Args:
-        data (ad.AnnData): The AnnData object containing MPRA data.
-        barcode_threshold (int, optional): Minimum barcode count threshold for filtering. Defaults to 0.
-
-    Class Methods:
-        from_file(file_path: str) -> "MPRAData":
-            Abstract method to instantiate the class from a file.
-
-    Properties:
-        scaling (float): Scaling factor for normalization.
-        pseudo_count (int): Pseudocount used in normalization.
-        data (ad.AnnData): Underlying AnnData object.
-        var_names (pd.Index): Variable (feature) names.
-        n_vars (int): Number of variables (features).
-        obs_names (pd.Index): Observation (sample) names.
-        n_obs (int): Number of observations (samples).
-        oligos (pd.Series): Oligo identifiers.
-        raw_rna_counts (NDArray[np.int32]): Raw RNA count matrix.
-        normalized_dna_counts (NDArray[np.float32]): Normalized DNA count matrix.
-        rna_counts (NDArray[np.int32]): Filtered RNA count matrix.
-        raw_dna_counts (NDArray[np.int32]): Raw DNA count matrix.
-        dna_counts (NDArray[np.int32]): Filtered DNA count matrix.
-        normalized_rna_counts (NDArray[np.float32]): Normalized RNA count matrix.
-        activity (NDArray[np.float32]): Computed activity matrix (log2 ratio of normalized RNA/DNA).
-        observed (NDArray[np.bool_]): Boolean array indicating observed barcodes/oligos.
-        var_filter (NDArray[np.bool_]): Boolean array indicating variables passing filter criteria.
-        barcode_counts (NDArray[np.int32]): Barcode count matrix.
-        barcode_threshold (int): Barcode count threshold for filtering.
-        variant_map (pd.DataFrame): DataFrame mapping variants to oligos and alleles.
-
-    Abstract Methods:
-        _barcode_counts() -> NDArray[np.int32]:
-            Compute barcode counts.
-        drop_barcode_counts() -> None:
-            Remove barcode count data.
-        _normalize() -> None:
-            Normalize DNA/RNA counts.
-
-    Methods:
-        drop_normalized() -> None:
-            Remove normalized data layers.
-        correlation(method: str = "pearson", count_type: "Modality" = Modality.ACTIVITY) -> NDArray[np.float32]:
-            Compute correlation matrix for activity or normalized counts.
-        write(file_data_path: os.PathLike) -> None:
-            Write AnnData object to file.
-        add_sequence_design(df_sequence_design: pd.DataFrame, sequence_design_file_path) -> None:
-            Add sequence design metadata to the AnnData object.
-
-    Internal Methods:
-        _compute_activities() -> None:
-            Compute activity (log2 ratio) for all features.
-        _correlation(method: str, data: NDArray[np.float32], layer: str) -> NDArray[np.float32]:
-            Retrieve or compute correlation matrix for a given data layer.
-        _compute_correlation(data: NDArray[np.float32], layer) -> None:
-            Compute and store correlation and p-value matrices.
-        _drop_correlation() -> None:
-            Remove correlation matrices from the AnnData object.
-        _add_metadata(key: str, value: Any) -> None:
-            Add or update metadata in the AnnData object.
-        _get_metadata(key) -> Optional[Any]:
-            Retrieve metadata from the AnnData object.
+    Attributes
+    ----------
+    _SCALING : float
+        Default scaling factor for normalization.
+    _PSEUDOCOUNT : int
+        Default pseudocount for normalization.
+    _data : ad.AnnData
+        The AnnData object containing MPRA data.
 
     Raises:
         ValueError: If required metadata (e.g., sequence design file) is not loaded.
@@ -191,6 +116,7 @@ class MPRAData(ABC):
 
     @property
     def scaling(self) -> float:
+        """float: Scaling factor for normalization."""
         return self._SCALING
 
     @scaling.setter
@@ -200,6 +126,7 @@ class MPRAData(ABC):
 
     @property
     def pseudo_count(self) -> int:
+        """int: Pseudocount added during normalization to avoid division by zero."""
         return self._PSEUDOCOUNT
 
     @pseudo_count.setter
@@ -209,6 +136,7 @@ class MPRAData(ABC):
 
     @property
     def data(self) -> ad.AnnData:
+        """ad.AnnData: The underlying AnnData object containing MPRA data."""
         return self._data
 
     @data.setter
@@ -217,36 +145,44 @@ class MPRAData(ABC):
 
     @property
     def var_names(self) -> pd.Index:
+        """pd.Index: Returns the variable names (samples) of the dataset."""
         return self.data.var_names
 
     @property
     def n_vars(self) -> int:
+        """int: Returns the number of variables (samples) in the dataset."""
         return self.data.n_vars
 
     @property
     def obs_names(self) -> pd.Index:
+        """pd.Index: Returns the observation names (barcodes) of the dataset."""
         return self.data.obs_names
 
     @property
     def n_obs(self) -> int:
+        """int: Returns the number of observations (barcodes) in the dataset."""
         return self.data.n_obs
 
     @property
     def oligos(self) -> pd.Series:
+        """pd.Series: Returns the oligo names for each variable in the dataset."""
         return self.data.var["oligo"]
 
     @property
     def raw_rna_counts(self) -> NDArray[np.int32]:
+        """NDArray[np.int32]: Returns the raw RNA counts from the dataset."""
         return np.asarray(self.data.layers["rna"])
 
     @property
     def normalized_dna_counts(self) -> NDArray[np.float32]:
+        """NDArray[np.float32]: Returns the normalized DNA counts from the dataset."""
         if "dna_normalized" not in self.data.layers:
             self._normalize()
         return np.asarray(self.data.layers["dna_normalized"])
 
     @property
     def rna_counts(self) -> NDArray[np.int32]:
+        """NDArray[np.int32]: Returns the RNA counts, applying the variable filter if present."""
         if "rna_sampling" in self.data.layers:
             return np.asarray(self.data.layers["rna_sampling"]) * ~self.var_filter.T
         else:
@@ -254,10 +190,12 @@ class MPRAData(ABC):
 
     @property
     def raw_dna_counts(self) -> NDArray[np.int32]:
+        """NDArray[np.int32]: Returns the raw DNA counts from the dataset."""
         return np.asarray(self.data.layers["dna"])
 
     @property
     def dna_counts(self) -> NDArray[np.int32]:
+        """NDArray[np.int32]: Returns the DNA counts, applying the variable filter if present."""
         if "dna_sampling" in self.data.layers:
             return np.asarray(self.data.layers["dna_sampling"]) * ~self.var_filter.T
         else:
@@ -265,12 +203,14 @@ class MPRAData(ABC):
 
     @property
     def normalized_rna_counts(self) -> NDArray[np.float32]:
+        """NDArray[np.float32]: Returns the normalized RNA counts from the dataset."""
         if "rna_normalized" not in self.data.layers:
             self._normalize()
         return np.asarray(self.data.layers["rna_normalized"])
 
     @property
     def activity(self) -> NDArray[np.float32]:
+        """NDArray[np.float32]: Returns the activity values calculated from normalized RNA and DNA counts."""
         if "activity" not in self.data.layers:
             self._compute_activities()
         return np.asarray(self.data.layers["activity"])
@@ -288,28 +228,14 @@ class MPRAData(ABC):
 
     @property
     def observed(self) -> NDArray[np.bool_]:
-        """
-        Boolean array if the barcode or oligo is observed (non zero dna and rna counts).
-        Returns a boolean NumPy array indicating which elements have nonzero counts in either DNA or RNA.
+        """:class:`NDArray[np.bool_]`: Returns a boolean NumPy array indicating which barcodes (observations) have non-zero counts in either DNA or RNA."""
 
-
-        Returns:
-            NDArray[np.bool_]:: A boolean array where each element is True if the corresponding element in either
-            `dna_counts` or `rna_counts` is greater than zero, and False otherwise.
-        """
         return (self.dna_counts + self.rna_counts) > 0
 
     @property
     def var_filter(self) -> NDArray[np.bool_]:
-        """
-        Returns a boolean NumPy array indicating which variables (features) pass the filter criteria.
+        """:class:`NDArray[np.bool_]`: Returns a boolean NumPy array indicating which variables (samples) are filtered out."""
 
-        Returns:
-            NDArray[np.bool_]: A boolean array where True indicates that the corresponding variable passes the filter.
-
-        Notes:
-            The filter criteria are stored in the 'var_filter' field of the 'varm' attribute of the underlying data object.
-        """
         return np.asarray(self.data.varm["var_filter"], dtype=np.bool_)
 
     @var_filter.setter
@@ -326,6 +252,7 @@ class MPRAData(ABC):
 
     @property
     def barcode_counts(self) -> NDArray[np.int32]:
+        """NDArray[np.int32]: Returns the barcode counts matrix, which is a sum of counts across all barcodes for each oligo."""
         if "barcode_counts" not in self.data.layers or self.data.layers["barcode_counts"] is None:
             self.data.layers["barcode_counts"] = self._barcode_counts()
         return np.asarray(self.data.layers["barcode_counts"], dtype=np.int32)
@@ -344,6 +271,7 @@ class MPRAData(ABC):
 
     @property
     def barcode_threshold(self) -> int:
+        """int: Returns the threshold for barcode filtering."""
         threshold = self._get_metadata("barcode_threshold")
         if threshold is None:
             # If no threshold is set, default to 0
@@ -358,7 +286,12 @@ class MPRAData(ABC):
 
     @property
     def variant_map(self) -> pd.DataFrame:
-        # raise ValueError if metadata format not loaded.
+        """pd.DataFrame: Returns a DataFrame mapping SPDI IDs to alleles and oligos.
+
+        Raises
+        ------
+        ValueError: If the sequence design file is not loaded in the metadata.
+        """
         if not self._get_metadata("sequence_design_file") and not (
             isinstance(self, MPRAOligoData) and self._get_metadata("MPRABarcodeData_sequence_design_file")
         ):
@@ -383,6 +316,16 @@ class MPRAData(ABC):
         pass
 
     def drop_normalized(self) -> None:
+        """
+        Removes normalized RNA and DNA data layers from the dataset.
+
+        This method deletes the "rna_normalized" and "dna_normalized" layers from the `self.data.layers` attribute,
+        logs the operation, updates the metadata to indicate that normalization is no longer present, and drops any
+        associated correlation data.
+
+        Returns:
+            None
+        """
 
         self.LOGGER.info("Dropping normalized data")
 
@@ -398,6 +341,7 @@ class MPRAData(ABC):
         Returns:
             NDArray[np.float32]: The Pearson or Spearman correlation matrix.
         """
+
         if count_type == Modality.DNA_NORMALIZED:
             filtered = self.normalized_dna_counts.copy()
             layer_name = str(count_type.value)
@@ -513,80 +457,13 @@ class MPRAData(ABC):
 
 class MPRABarcodeData(MPRAData):
     """
-    MPRABarcodeData
-
     A class for handling barcode-level MPRA (Massively Parallel Reporter Assay) data, providing methods for data import,
     normalization, filtering, and aggregation to oligo-level data.
 
-    This class extends `MPRAData` and is designed to work with barcode-resolved MPRA datasets,
-    supporting a variety of barcode filtering strategies, normalization routines, and data transformations. It leverages AnnData for data storage and manipulation.
+    This class extends `MPRAData` and is designed to work with barcode-resolved MPRA datasets, supporting a variety of barcode filtering strategies, normalization routines, and data transformations. It leverages AnnData for data storage and manipulation.
 
-    Attributes
-    data : AnnData
-        The underlying AnnData object containing barcode-level counts and metadata.
-    LOGGER : logging.Logger
-        Logger instance for tracking operations and debugging.
-    scaling : float
-        Scaling factor used during normalization.
-    pseudo_count : int
-        Pseudocount added during normalization to avoid division by zero.
-    var_filter : pd.DataFrame
-        Boolean mask indicating filtered barcodes.
-    barcode_threshold : Optional[int]
-        Threshold for barcode filtering.
-
-    Methods
-    from_file(file_path: str) -> "MPRABarcodeData"
-        Class method to create an instance from a tab-separated values (TSV) file.
-    drop_barcode_counts() -> None
-        Remove barcode counts from the data layers.
-    oligo_data -> "MPRAOligoData"
-        Aggregate barcode-level data to oligo-level data.
-    complexity(method="lincoln") -> NDArray[np.int64]
-        Estimate barcode complexity using Lincoln-Peterson or Chapman methods.
-    _normalize() -> None
-        Normalize RNA and DNA counts and store in data layers.
-    apply_barcode_filter(barcode_filter: BarcodeFilter, params: dict = {}) -> None
-        Apply a barcode filtering strategy to the data.
-    drop_count_sampling() -> None
-        Remove count sampling layers and metadata.
-    apply_count_sampling(count_type: CountSampling, proportion: Optional[float] = None, total: Optional[int] = None, max_value: Optional[int] = None, aggregate_over_replicates: bool = False) -> None
-        Apply downsampling or subsampling to RNA and/or DNA counts.
-
-    Private Methods
-    ---------------
-    _barcode_counts() -> NDArray[np.int32]
-        Compute barcode counts matrix.
-    _oligo_data() -> "MPRAOligoData"
-        Aggregate data to oligo-level AnnData.
-    _sum_counts_by_oligo(counts: NDArray[np.int32]) -> pd.DataFrame
-        Sum counts by oligo group.
-    _supporting_barcodes_per_oligo() -> pd.DataFrame
-        Count supporting barcodes per oligo.
-    _barcode_filter_rna_zscore(times_zscore=3)
-        Filter barcodes using RNA z-score.
-    _barcode_filter_mad(times_mad=3, n_bins=20)
-        Filter barcodes using median absolute deviation (MAD).
-    _barcode_filter_random(proportion=1.0, total=None, aggegate_over_replicates=True)
-        Randomly filter barcodes.
-    _barcode_filter_min_count(rna_min_count=None, dna_min_count=None)
-        Filter barcodes by minimum count.
-    _barcode_filter_max_count(rna_max_count=None, dna_max_count=None)
-        Filter barcodes by maximum count.
-    _barcode_filter_min_max_counts(barcode_filter, counts, count_threshold)
-        Helper for min/max count filtering.
-    _barcode_filter_min_max_count(barcode_filter, rna_count=None, dna_count=None)
-        Apply min/max count filtering.
-    _calculate_proportions(proportion, total, aggregate_over_replicates, counts, replicates)
-        Calculate sampling proportions.
-    _sample_individual_counts(x, proportion: float) -> int
-        Sample individual count value.
-    _apply_sampling(layer_name, counts, proportion, total, max_value, aggregate_over_replicates)
-        Apply sampling to a count layer.
-    _normalize_layer(counts, observed, not_var_filter, scaling, pseudocount) -> NDArray[np.float32]
-        Normalize a count matrix layer.
-
-    - The class assumes input data is structured with interleaved DNA and RNA replicate columns, starting with DNA.
+    Note
+    ----
     - Filtering and normalization methods are barcode-aware and can be customized via method parameters.
     - Aggregation to oligo-level data is supported for downstream analysis.
     """
@@ -610,6 +487,7 @@ class MPRABarcodeData(MPRAData):
 
     @property
     def oligo_data(self) -> "MPRAOligoData":
+        """:class:`MPRAOligoData`: Returns an instance of `MPRAOligoData` containing aggregated oligo-level data."""
         self.LOGGER.info("Computing oligo data")
 
         return self._oligo_data()
@@ -634,6 +512,7 @@ class MPRABarcodeData(MPRAData):
         The method assumes that the RNA and DNA replicate columns are interleaved, starting with DNA.
         The method processes the data to create an AnnData object with RNA and DNA layers, and additional metadata.
         """
+
         data = pd.read_csv(file_path, sep="\t", header=0, index_col=0)
         data = data.fillna(0)
 
@@ -676,6 +555,7 @@ class MPRABarcodeData(MPRAData):
         Returns:
             NDArray[np.int16]: The Lincoln-Peterson or Chapman estimate.
         """
+
         if method not in {"lincoln", "chapman"}:
             raise ValueError("Method must be either 'lincoln' or 'chapman'.")
 
@@ -1020,25 +900,6 @@ class MPRAOligoData(MPRAData):
     and managing barcode counts and associated data layers for MPRA experiments.
     Barcode counts must be pre-set before accessing, as they cannot be computed within this class.
     The normalization process includes pseudocount handling to avoid division by zero and supports per-barcode normalization.
-
-    Methods
-    -------
-    - _barcode_counts(): Raises an exception if barcode counts are not set.
-    - drop_barcode_counts(): Placeholder for dropping barcode counts from the data.
-    - from_file(file_path: str) -> MPRAOligoData: Class method to instantiate an MPRAOligoData object from a file.
-    - _normalize(): Normalizes DNA and RNA count layers, applying pseudocounts and scaling.
-    - _normalize_layer(counts, not_var_filter, barcode_counts, scaling, pseudocount): Performs normalization on a single data layer, handling pseudocounts and filtering.
-
-    Attributes
-    ----------
-    - data: AnnData object containing the MPRA data and layers.
-    - LOGGER: Logger instance for reporting progress and information.
-    - dna_counts: DNA count matrix.
-    - rna_counts: RNA count matrix.
-    - barcode_counts: Barcode count matrix (must be pre-set).
-    - scaling: Scaling factor for normalization.
-    - pseudo_count: Pseudocount value for normalization.
-    - var_filter: Boolean filter for variable selection.
 
     Raises
     ------
