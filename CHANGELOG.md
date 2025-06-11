@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.7.0](https://github.com/kircherlab/MPRAlib/compare/v0.6.5...v0.7.0) (2025-06-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* MPRAlib is now always in lowercase (also on pypi)
+
+### Bug Fixes
+
+* minimum required anndata 0.11.3 ([7d56652](https://github.com/kircherlab/MPRAlib/commit/7d5665266f78a4cebc50d40011e44d532ed3c5d4))
+* Python compatibility 3.8+ compatibility using Optional for typing. ([7649bc9](https://github.com/kircherlab/MPRAlib/commit/7649bc9da23455310bc439b045c76e13af62a6cd))
+
+
+### Documentation
+
+* update docs for lowercase ([0631f7c](https://github.com/kircherlab/MPRAlib/commit/0631f7c8f6fe417ebd3df75a4b355441de42f7fc))
+
+
+### Miscellaneous Chores
+
+* MPRAlib is now always in lowercase (also on pypi) ([0b6108a](https://github.com/kircherlab/MPRAlib/commit/0b6108a89608e31fc8d4cfdc2fcecf08119b5113))
+
+## [0.6.5](https://github.com/kircherlab/MPRAlib/compare/v0.6.4...v0.6.5) (2025-06-03)
+
+
+### Features
+
+* complexity estimates on barcode level ([06a2173](https://github.com/kircherlab/MPRAlib/commit/06a21738d979a25c3d361b920ac70596332c347c))
+
 ## [0.6.4](https://github.com/kircherlab/MPRAlib/compare/v0.6.3...v0.6.4) (2025-05-28)
 
 

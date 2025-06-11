@@ -1,7 +1,7 @@
 ---
 name: Post coverage comment
 
-on:
+on: # yamllint disable-line rule:truthy
   workflow_run:
     workflows: ["Tests"]
     types:

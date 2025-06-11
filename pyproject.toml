@@ -3,7 +3,7 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "MPRAlib"
+name = "mpralib"
 dynamic = ["version", "dependencies", "requires-python", "classifiers", "description"]
 readme = "README.md"
 authors = [

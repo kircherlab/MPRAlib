@@ -1,8 +1,8 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='MPRAlib',
-    version='0.6.4',
+    name='mpralib',
+    version='0.7.0',
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     include_package_data=True,
@@ -16,7 +16,7 @@ setup(
         'click',
         'scikit-learn',
         'scipy',
-        'anndata',
+        'anndata>=0.11.3',
         'seaborn',
         'matplotlib',
         'jsonschema',
