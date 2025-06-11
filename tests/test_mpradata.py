@@ -3,7 +3,7 @@ import pandas as pd
 import anndata as ad
 import copy
 import pytest
-from mpralib.mpradata import MPRABarcodeData, CountSampling, BarcodeFilter, Modality
+from mpralib.mpradata import MPRABarcodeData, CountSampling, BarcodeFilter, Modality, MPRAOligoData
 
 
 OBS = pd.DataFrame(index=["rep1", "rep2", "rep3"])
@@ -357,3 +357,41 @@ def test_chapman_complexity(mpra_complexity_data):
 def test_fail_complexity(mpra_complexity_data):
     with pytest.raises(ValueError):
         mpra_complexity_data.complexity(method="unknown")
+
+
+def test_read_and_write(tmp_path, mpra_data):
+    out_path = tmp_path / "bc_data.h5ad"
+    mpra_data.write(out_path)
+
+    data = MPRABarcodeData.read(out_path)
+    assert isinstance(data, MPRABarcodeData)
+    assert data.data.shape == mpra_data.data.shape
+    assert data.data.layers.keys() == mpra_data.data.layers.keys()
+    assert np.all(data.rna_counts == mpra_data.rna_counts)
+    assert np.all(data.activity == mpra_data.activity)
+    assert data.pseudo_count == mpra_data.pseudo_count
+    assert data.scaling == mpra_data.scaling
+
+
+def test_read_and_write_oligo(tmp_path, mpra_oligo_data):
+    out_path = tmp_path / "oligo_data.h5ad"
+    mpra_oligo_data.write(out_path)
+
+    data = MPRAOligoData.read(out_path)
+    assert isinstance(data, MPRAOligoData)
+    assert data.data.shape == mpra_oligo_data.data.shape
+    assert data.data.layers.keys() == mpra_oligo_data.data.layers.keys()
+    assert np.all(data.rna_counts == mpra_oligo_data.rna_counts)
+    assert np.all(data.activity == mpra_oligo_data.activity)
+
+
+def test_read_and_write_with_modifications(tmp_path, mpra_data):
+    out_path = tmp_path / "bc_data_mod.h5ad"
+    mpra_data.scaling = 10.0
+    mpra_data.pseudo_count = 0
+    mpra_data.write(out_path)
+
+    data = MPRABarcodeData.read(out_path)
+    assert isinstance(data, MPRABarcodeData)
+    assert data.scaling == 10.0
+    assert data.pseudo_count == 0

@@ -121,8 +121,10 @@ class MPRAData(ABC):
 
     @scaling.setter
     def scaling(self, new_scaling: float) -> None:
-        self._SCALING = new_scaling
-        self._add_metadata("SCALING", self._SCALING)
+        if new_scaling != self._SCALING:
+            self.drop_normalized()
+            self._SCALING = new_scaling
+            self._add_metadata("SCALING", self._SCALING)
 
     @property
     def pseudo_count(self) -> int:
@@ -131,8 +133,10 @@ class MPRAData(ABC):
 
     @pseudo_count.setter
     def pseudo_count(self, new_pseudo_count: int) -> None:
-        self._PSEUDOCOUNT = new_pseudo_count
-        self._add_metadata("PSEUDOCOUNT", self._PSEUDOCOUNT)
+        if new_pseudo_count != self._PSEUDOCOUNT:
+            self.drop_normalized()
+            self._PSEUDOCOUNT = new_pseudo_count
+            self._add_metadata("PSEUDOCOUNT", self._PSEUDOCOUNT)
 
     @property
     def data(self) -> ad.AnnData:
@@ -418,9 +422,6 @@ class MPRAData(ABC):
                     del self.data.obsp[f"{method}_correlation_{layer}"]
                     del self.data.obsp[f"{method}_correlation_{layer}_pvalue"]
 
-    def write(self, file_data_path: os.PathLike) -> None:
-        self.data.write(file_data_path)
-
     def _add_metadata(self, key: str, value: Any) -> None:
         if isinstance(value, list):
             if key not in self.data.uns:
@@ -453,6 +454,31 @@ class MPRAData(ABC):
         self.data.var["allele"] = df_matched_metadata["allele"].values
 
         self._add_metadata("sequence_design_file", sequence_design_file_path)
+
+    def write(self, file_data_path: os.PathLike) -> None:
+        """
+        Writes the AnnData object to a file.
+
+        Parameters
+        ----------
+        file_data_path : os.PathLike
+            The path where the AnnData object will be saved.
+        """
+        self.data.write(file_data_path)
+        self.LOGGER.info(f"Data written to {file_data_path}")
+
+    @classmethod
+    def read(cls, file_data_path: str) -> "MPRAData":
+        """
+        Reads an AnnData object from a file.
+
+        Parameters
+        ----------
+        file_data_path : str
+            The path from which the AnnData object will be read.
+        """
+        data = ad.read_h5ad(file_data_path)
+        return cls(data)
 
 
 class MPRABarcodeData(MPRAData):
