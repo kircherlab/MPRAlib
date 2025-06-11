@@ -64,8 +64,8 @@
             <a id="indexLink" class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
             <a id="nextFileLink" class="nav" href="z_472848804eeb6296_exception_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.8.1">coverage.py v7.8.1</a>,
-            created at 2025-06-04 12:50 +0000
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.8.2">coverage.py v7.8.2</a>,
+            created at 2025-06-11 13:49 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -935,7 +935,7 @@
     <p class="pln"><span class="n"><a id="t853" href="#t853">853</a></span><span class="t">        <span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t854" href="#t854">854</a></span><span class="t">    <span class="op">]</span><span class="op">.</span><span class="nam">sort_values</span><span class="op">(</span><span class="nam">by</span><span class="op">=</span><span class="op">[</span><span class="str">"chr"</span><span class="op">,</span> <span class="str">"start"</span><span class="op">,</span> <span class="str">"end"</span><span class="op">]</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t855" href="#t855">855</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t856" href="#t856">856</a></span><span class="t">    <span class="key">with</span> <span class="nam">pysam</span><span class="op">.</span><span class="nam">BGZFile</span><span class="op">(</span><span class="nam">output_reporter_genomic_elements_file</span><span class="op">,</span> <span class="str">"ab"</span><span class="op">)</span> <span class="key">as</span> <span class="nam">f</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t856" href="#t856">856</a></span><span class="t">    <span class="key">with</span> <span class="nam">pysam</span><span class="op">.</span><span class="nam">BGZFile</span><span class="op">(</span><span class="nam">output_reporter_genomic_elements_file</span><span class="op">,</span> <span class="str">"ab"</span><span class="op">,</span> <span class="key">None</span><span class="op">)</span> <span class="key">as</span> <span class="nam">f</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t857" href="#t857">857</a></span><span class="t">        <span class="nam">f</span><span class="op">.</span><span class="nam">write</span><span class="op">(</span><span class="nam">out_df</span><span class="op">.</span><span class="nam">to_csv</span><span class="op">(</span><span class="nam">sep</span><span class="op">=</span><span class="str">"\t"</span><span class="op">,</span> <span class="nam">index</span><span class="op">=</span><span class="key">False</span><span class="op">,</span> <span class="nam">header</span><span class="op">=</span><span class="key">False</span><span class="op">,</span> <span class="nam">float_format</span><span class="op">=</span><span class="str">"%.4f"</span><span class="op">)</span><span class="op">.</span><span class="nam">encode</span><span class="op">(</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t858" href="#t858">858</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t859" href="#t859">859</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
@@ -1066,7 +1066,7 @@
     <p class="pln"><span class="n"><a id="t984" href="#t984">984</a></span><span class="t">        <span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t985" href="#t985">985</a></span><span class="t">    <span class="op">]</span><span class="op">.</span><span class="nam">sort_values</span><span class="op">(</span><span class="nam">by</span><span class="op">=</span><span class="op">[</span><span class="str">"chr"</span><span class="op">,</span> <span class="str">"start"</span><span class="op">,</span> <span class="str">"end"</span><span class="op">]</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t986" href="#t986">986</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t987" href="#t987">987</a></span><span class="t">    <span class="key">with</span> <span class="nam">pysam</span><span class="op">.</span><span class="nam">BGZFile</span><span class="op">(</span><span class="nam">output_reporter_genomic_variants_file</span><span class="op">,</span> <span class="str">"ab"</span><span class="op">)</span> <span class="key">as</span> <span class="nam">f</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t987" href="#t987">987</a></span><span class="t">    <span class="key">with</span> <span class="nam">pysam</span><span class="op">.</span><span class="nam">BGZFile</span><span class="op">(</span><span class="nam">output_reporter_genomic_variants_file</span><span class="op">,</span> <span class="str">"ab"</span><span class="op">,</span> <span class="key">None</span><span class="op">)</span> <span class="key">as</span> <span class="nam">f</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t988" href="#t988">988</a></span><span class="t">        <span class="nam">f</span><span class="op">.</span><span class="nam">write</span><span class="op">(</span><span class="nam">df</span><span class="op">.</span><span class="nam">to_csv</span><span class="op">(</span><span class="nam">sep</span><span class="op">=</span><span class="str">"\t"</span><span class="op">,</span> <span class="nam">index</span><span class="op">=</span><span class="key">False</span><span class="op">,</span> <span class="nam">header</span><span class="op">=</span><span class="key">False</span><span class="op">,</span> <span class="nam">float_format</span><span class="op">=</span><span class="str">"%.4f"</span><span class="op">)</span><span class="op">.</span><span class="nam">encode</span><span class="op">(</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t989" href="#t989">989</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t990" href="#t990">990</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
@@ -1265,8 +1265,8 @@
             <a class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
             <a class="nav" href="z_472848804eeb6296_exception_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.8.1">coverage.py v7.8.1</a>,
-            created at 2025-06-04 12:50 +0000
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.8.2">coverage.py v7.8.2</a>,
+            created at 2025-06-11 13:49 +0000
         </p>
     </div>
 </footer>
