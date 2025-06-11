@@ -1,5 +1,6 @@
 # MPRAlib
 
+[![Documentation Status](https://readthedocs.org/projects/mpralib/badge/?version=latest)](https://mpralib.readthedocs.io/latest/?badge=latest)
 ![Tests](https://github.com/kircherlab/MPRAlib/actions/workflows/tests.yml/badge.svg?branch=master)
 [![Coverage badge](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/kircherlab/MPRAlib/python-coverage-comment-action-data/endpoint.json)](https://htmlpreview.github.io/?https://github.com/kircherlab/MPRAlib/blob/python-coverage-comment-action-data/htmlcov/index.html)
 [![PyPI version](https://badge.fury.io/py/mpralib.svg)](https://badge.fury.io/py/mpralib)

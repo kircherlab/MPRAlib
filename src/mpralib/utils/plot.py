@@ -110,7 +110,7 @@ def barcodes_per_oligo(data: MPRAOligoData, replicates=None) -> sns.FacetGrid:
     return g
 
 
-def barcodes_outlier(data: MPRABarcodeData):
+def barcodes_outlier(data: MPRABarcodeData) -> None:
 
     # counts_dna = data.normalized_dna_counts.copy()
     # counts_rna = data.normalized_rna_counts.copy()

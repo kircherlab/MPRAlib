@@ -853,7 +853,7 @@ def get_reporter_genomic_elements(
         ]
     ].sort_values(by=["chr", "start", "end"])
 
-    with pysam.BGZFile(output_reporter_genomic_elements_file, "ab") as f:
+    with pysam.BGZFile(output_reporter_genomic_elements_file, "ab", None) as f:
         f.write(out_df.to_csv(sep="\t", index=False, header=False, float_format="%.4f").encode())
 
 
@@ -984,7 +984,7 @@ def get_reporter_genomic_variants(
         ]
     ].sort_values(by=["chr", "start", "end"])
 
-    with pysam.BGZFile(output_reporter_genomic_variants_file, "ab") as f:
+    with pysam.BGZFile(output_reporter_genomic_variants_file, "ab", None) as f:
         f.write(df.to_csv(sep="\t", index=False, header=False, float_format="%.4f").encode())
 
 
