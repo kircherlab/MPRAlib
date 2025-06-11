@@ -1,7 +1,7 @@
 ---
 name: Sync master to development after release
 
-on:
+on: # yamllint disable-line rule:truthy
   release:
     types: [published]
 

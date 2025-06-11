@@ -9,7 +9,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../src'))
-import mpralib
+import mpralib  # noqa: E402
 
 project = 'MPRAlib'
 copyright = '2025, Max Schubach'
