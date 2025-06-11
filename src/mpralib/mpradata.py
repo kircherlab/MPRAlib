@@ -7,10 +7,15 @@ from enum import Enum
 import logging
 import os
 from mpralib.exception import MPRAlibException
-from typing import Optional
+from typing import Any, Optional
+from numpy.typing import NDArray
 
 
 class Modality(Enum):
+    """
+    An enumeration representing different data modalities in MPRA (Massively Parallel Reporter Assay) experiments.
+    """
+
     DNA = "DNA"
     RNA = "RNA"
     DNA_NORMALIZED = "DNA_NORMALIZED"
@@ -31,12 +36,20 @@ class Modality(Enum):
 
 
 class CountSampling(Enum):
+    """
+    Enumeration representing the types of count sampling available for MPRA data.
+    """
+
     RNA = "RNA"
     DNA = "DNA"
     RNA_AND_DNA = "RNA_AND_DNA"
 
 
 class BarcodeFilter(Enum):
+    """
+    Enumeration of available barcode filtering methods.
+    """
+
     RNA_ZSCORE = "RNA_ZSCORE"
     MAD = "MAD"
     RANDOM = "RANDOM"
@@ -45,12 +58,38 @@ class BarcodeFilter(Enum):
 
 
 class MPRAData(ABC):
+    """
+    Abstract base class for handling MPRA (Massively Parallel Reporter Assay) data using AnnData objects.
+
+    This class provides a standardized interface and core functionality for managing, normalizing,
+    filtering, and analyzing MPRA data, including DNA/RNA counts, barcode handling,
+    activity computation, and correlation analysis. It is designed to be subclassed for specific MPRA data formats.
+
+    Parameters
+    ----------
+    data : ad.AnnData
+        The AnnData object containing MPRA data.
+    barcode_threshold : int, optional
+        Minimum barcode count threshold for filtering. Defaults to 0.
+
+    Attributes
+    ----------
+    _SCALING : float
+        Default scaling factor for normalization.
+    _PSEUDOCOUNT : int
+        Default pseudocount for normalization.
+    _data : ad.AnnData
+        The AnnData object containing MPRA data.
+
+    Raises:
+        ValueError: If required metadata (e.g., sequence design file) is not loaded.
+    """
 
     LOGGER = logging.getLogger(__name__)
     LOGGER.setLevel(logging.INFO)
 
-    SCALING = 1e6
-    PSEUDOCOUNT = 1
+    _SCALING = 1e6
+    _PSEUDOCOUNT = 1
 
     @classmethod
     @abstractmethod
@@ -62,8 +101,46 @@ class MPRAData(ABC):
         self.var_filter = None
         self.barcode_threshold = barcode_threshold
 
+        # Initialize scaling and pseudo count metadata
+        scaling = self._get_metadata("SCALING")
+        if scaling is not None:
+            self._SCALING = scaling
+        else:
+            self._add_metadata("SCALING", self._SCALING)
+
+        pseudo_count = self._get_metadata("PSEUDOCOUNT")
+        if pseudo_count is not None:
+            self._PSEUDOCOUNT = pseudo_count
+        else:
+            self._add_metadata("PSEUDOCOUNT", self._PSEUDOCOUNT)
+
+    @property
+    def scaling(self) -> float:
+        """float: Scaling factor for normalization."""
+        return self._SCALING
+
+    @scaling.setter
+    def scaling(self, new_scaling: float) -> None:
+        if new_scaling != self._SCALING:
+            self.drop_normalized()
+            self._SCALING = new_scaling
+            self._add_metadata("SCALING", self._SCALING)
+
+    @property
+    def pseudo_count(self) -> int:
+        """int: Pseudocount added during normalization to avoid division by zero."""
+        return self._PSEUDOCOUNT
+
+    @pseudo_count.setter
+    def pseudo_count(self, new_pseudo_count: int) -> None:
+        if new_pseudo_count != self._PSEUDOCOUNT:
+            self.drop_normalized()
+            self._PSEUDOCOUNT = new_pseudo_count
+            self._add_metadata("PSEUDOCOUNT", self._PSEUDOCOUNT)
+
     @property
     def data(self) -> ad.AnnData:
+        """ad.AnnData: The underlying AnnData object containing MPRA data."""
         return self._data
 
     @data.setter
@@ -72,60 +149,72 @@ class MPRAData(ABC):
 
     @property
     def var_names(self) -> pd.Index:
+        """pd.Index: Returns the variable names (samples) of the dataset."""
         return self.data.var_names
 
     @property
     def n_vars(self) -> int:
+        """int: Returns the number of variables (samples) in the dataset."""
         return self.data.n_vars
 
     @property
     def obs_names(self) -> pd.Index:
+        """pd.Index: Returns the observation names (barcodes) of the dataset."""
         return self.data.obs_names
 
     @property
     def n_obs(self) -> int:
+        """int: Returns the number of observations (barcodes) in the dataset."""
         return self.data.n_obs
 
     @property
     def oligos(self) -> pd.Series:
+        """pd.Series: Returns the oligo names for each variable in the dataset."""
         return self.data.var["oligo"]
 
     @property
-    def raw_rna_counts(self) -> np.ndarray:
+    def raw_rna_counts(self) -> NDArray[np.int32]:
+        """NDArray[np.int32]: Returns the raw RNA counts from the dataset."""
         return np.asarray(self.data.layers["rna"])
 
     @property
-    def normalized_dna_counts(self) -> np.ndarray:
+    def normalized_dna_counts(self) -> NDArray[np.float32]:
+        """NDArray[np.float32]: Returns the normalized DNA counts from the dataset."""
         if "dna_normalized" not in self.data.layers:
             self._normalize()
         return np.asarray(self.data.layers["dna_normalized"])
 
     @property
-    def rna_counts(self) -> np.ndarray:
+    def rna_counts(self) -> NDArray[np.int32]:
+        """NDArray[np.int32]: Returns the RNA counts, applying the variable filter if present."""
         if "rna_sampling" in self.data.layers:
             return np.asarray(self.data.layers["rna_sampling"]) * ~self.var_filter.T
         else:
             return self.raw_rna_counts * ~self.var_filter.T
 
     @property
-    def raw_dna_counts(self) -> np.ndarray:
+    def raw_dna_counts(self) -> NDArray[np.int32]:
+        """NDArray[np.int32]: Returns the raw DNA counts from the dataset."""
         return np.asarray(self.data.layers["dna"])
 
     @property
-    def dna_counts(self) -> np.ndarray:
+    def dna_counts(self) -> NDArray[np.int32]:
+        """NDArray[np.int32]: Returns the DNA counts, applying the variable filter if present."""
         if "dna_sampling" in self.data.layers:
             return np.asarray(self.data.layers["dna_sampling"]) * ~self.var_filter.T
         else:
             return self.raw_dna_counts * ~self.var_filter.T
 
     @property
-    def normalized_rna_counts(self) -> np.ndarray:
+    def normalized_rna_counts(self) -> NDArray[np.float32]:
+        """NDArray[np.float32]: Returns the normalized RNA counts from the dataset."""
         if "rna_normalized" not in self.data.layers:
             self._normalize()
         return np.asarray(self.data.layers["rna_normalized"])
 
     @property
-    def activity(self) -> np.ndarray:
+    def activity(self) -> NDArray[np.float32]:
+        """NDArray[np.float32]: Returns the activity values calculated from normalized RNA and DNA counts."""
         if "activity" not in self.data.layers:
             self._compute_activities()
         return np.asarray(self.data.layers["activity"])
@@ -142,24 +231,19 @@ class MPRAData(ABC):
         self.data.layers["activity"] = log2ratio * ~self.var_filter.T
 
     @property
-    def observed(self) -> np.ndarray:
-        """
-        Boolean array if the barcode or oligo is observed (non zero dna and rna counts).
-        Returns a boolean NumPy array indicating which elements have nonzero counts in either DNA or RNA.
+    def observed(self) -> NDArray[np.bool_]:
+        """:class:`NDArray[np.bool_]`: Returns a boolean NumPy array indicating which barcodes (observations) have non-zero counts in either DNA or RNA."""  # noqa: E501
 
-
-        Returns:
-            np.ndarray: A boolean array where each element is True if the corresponding element in either
-            `dna_counts` or `rna_counts` is greater than zero, and False otherwise.
-        """
         return (self.dna_counts + self.rna_counts) > 0
 
     @property
-    def var_filter(self) -> np.ndarray:
-        return np.asarray(self.data.varm["var_filter"])
+    def var_filter(self) -> NDArray[np.bool_]:
+        """:class:`NDArray[np.bool_]`: Returns a boolean NumPy array indicating which variables (samples) are filtered out."""
+
+        return np.asarray(self.data.varm["var_filter"], dtype=np.bool_)
 
     @var_filter.setter
-    def var_filter(self, new_data: Optional[np.ndarray]) -> None:
+    def var_filter(self, new_data: Optional[NDArray[np.bool_]]) -> None:
         if new_data is None:
             self.data.varm["var_filter"] = np.full((self.data.n_vars, self.data.n_obs), False)
             if "var_filter" in self.data.uns:
@@ -171,17 +255,18 @@ class MPRAData(ABC):
         self.drop_normalized()
 
     @property
-    def barcode_counts(self) -> np.ndarray:
+    def barcode_counts(self) -> NDArray[np.int32]:
+        """NDArray[np.int32]: Returns the barcode counts matrix, which is a sum of counts across all barcodes for each oligo."""  # noqa: E501
         if "barcode_counts" not in self.data.layers or self.data.layers["barcode_counts"] is None:
             self.data.layers["barcode_counts"] = self._barcode_counts()
-        return np.asarray(self.data.layers["barcode_counts"])
+        return np.asarray(self.data.layers["barcode_counts"], dtype=np.int32)
 
     @barcode_counts.setter
     def barcode_counts(self, new_data: pd.DataFrame) -> None:
         self.data.layers["barcode_counts"] = new_data
 
     @abstractmethod
-    def _barcode_counts(self) -> np.ndarray:
+    def _barcode_counts(self) -> NDArray[np.int32]:
         pass
 
     @abstractmethod
@@ -189,8 +274,14 @@ class MPRAData(ABC):
         pass
 
     @property
-    def barcode_threshold(self) -> Optional[int]:
-        return self._get_metadata("barcode_threshold")
+    def barcode_threshold(self) -> int:
+        """int: Returns the threshold for barcode filtering."""
+        threshold = self._get_metadata("barcode_threshold")
+        if threshold is None:
+            # If no threshold is set, default to 0
+            return 0
+        else:
+            return threshold
 
     @barcode_threshold.setter
     def barcode_threshold(self, barcode_threshold: int) -> None:
@@ -199,7 +290,12 @@ class MPRAData(ABC):
 
     @property
     def variant_map(self) -> pd.DataFrame:
-        # raise ValueError if metadata format not loaded.
+        """pd.DataFrame: Returns a DataFrame mapping SPDI IDs to alleles and oligos.
+
+        Raises
+        ------
+        ValueError: If the sequence design file is not loaded in the metadata.
+        """
         if not self._get_metadata("sequence_design_file") and not (
             isinstance(self, MPRAOligoData) and self._get_metadata("MPRABarcodeData_sequence_design_file")
         ):
@@ -220,10 +316,20 @@ class MPRAData(ABC):
         return df
 
     @abstractmethod
-    def _normalize(self):
+    def _normalize(self) -> None:
         pass
 
-    def drop_normalized(self):
+    def drop_normalized(self) -> None:
+        """
+        Removes normalized RNA and DNA data layers from the dataset.
+
+        This method deletes the "rna_normalized" and "dna_normalized" layers from the `self.data.layers` attribute,
+        logs the operation, updates the metadata to indicate that normalization is no longer present, and drops any
+        associated correlation data.
+
+        Returns:
+            None
+        """
 
         self.LOGGER.info("Dropping normalized data")
 
@@ -232,13 +338,14 @@ class MPRAData(ABC):
         self._drop_correlation()
         self._add_metadata("normalized", False)
 
-    def correlation(self, method="pearson", count_type=Modality.ACTIVITY) -> np.ndarray:
+    def correlation(self, method: str = "pearson", count_type: "Modality" = Modality.ACTIVITY) -> NDArray[np.float32]:
         """
         Calculates and return the correlation for activity or normalized counts.
 
         Returns:
-            np.ndarray: The Pearson or Spearman correlation matrix.
+            NDArray[np.float32]: The Pearson or Spearman correlation matrix.
         """
+
         if count_type == Modality.DNA_NORMALIZED:
             filtered = self.normalized_dna_counts.copy()
             layer_name = str(count_type.value)
@@ -252,22 +359,19 @@ class MPRAData(ABC):
             raise ValueError(f"Unsupported count type: {count_type}")
 
         filtered[self.barcode_counts < self.barcode_threshold] = np.nan
+
         return self._correlation(method, filtered, layer_name)
 
-    def _correlation(self, method: str, data: np.ndarray, layer: str):
+    def _correlation(self, method: str, data: NDArray[np.float32], layer: str) -> NDArray[np.float32]:
         if not self._get_metadata(f"correlation_{layer}"):
             self._compute_correlation(data, layer)
-        return self.data.obsp[f"{method}_correlation_{layer}"]
+        correlation = self.data.obsp[f"{method}_correlation_{layer}"]
+        correlation = np.asarray(correlation, dtype=np.float32)
+        return correlation
 
-    def _compute_correlation(self, data, layer):
+    def _compute_correlation(self, data: NDArray[np.float32], layer) -> None:
 
-        # apply var filter to data
-        data[self.var_filter.T] = np.nan
-
-        num_columns = self.n_obs
-        for correlation in ["pearson", "spearman"]:
-            self.data.obsp[f"{correlation}_correlation_{layer}"] = np.zeros((num_columns, num_columns))
-            self.data.obsp[f"{correlation}_correlation_{layer}_pvalue"] = np.zeros((num_columns, num_columns))
+        correlation_methods = ["pearson", "spearman"]
 
         def compute_correlation(x, y, method: str) -> tuple:
             if method == "spearman":
@@ -277,18 +381,33 @@ class MPRAData(ABC):
             else:
                 raise ValueError(f"Unsupported correlation method: {method}")
 
+        # apply var filter to data
+        data[self.var_filter.T] = np.nan
+
+        num_columns = self.n_obs
+
+        correlations = {}
+        pvalues = {}
+        for method in correlation_methods:
+            correlations[method] = np.zeros((num_columns, num_columns), dtype=np.float32)
+            pvalues[method] = np.zeros((num_columns, num_columns), dtype=np.float32)
+
         for i in range(num_columns):
             for j in range(i, num_columns):
                 mask = ~np.isnan(data[i, :]) & ~np.isnan(data[j, :])
                 x = data[i, mask]
                 y = data[j, mask]
 
-                for method in ["spearman", "pearson"]:
+                for method in correlation_methods:
                     corr, pvalue = compute_correlation(x, y, method)
-                    self.data.obsp[f"{method}_correlation_{layer}"][i, j] = corr
-                    self.data.obsp[f"{method}_correlation_{layer}_pvalue"][i, j] = pvalue
-                    self.data.obsp[f"{method}_correlation_{layer}"][j, i] = corr
-                    self.data.obsp[f"{method}_correlation_{layer}_pvalue"][j, i] = pvalue
+                    correlations[method][i, j] = corr
+                    pvalues[method][i, j] = pvalue
+                    correlations[method][j, i] = corr
+                    pvalues[method][j, i] = pvalue
+
+        for method in correlation_methods:
+            self.data.obsp[f"{method}_correlation_{layer}"] = correlations[method]
+            self.data.obsp[f"{method}_correlation_{layer}_pvalue"] = pvalues[method]
 
         self._add_metadata(f"correlation_{layer}", True)
 
@@ -303,10 +422,7 @@ class MPRAData(ABC):
                     del self.data.obsp[f"{method}_correlation_{layer}"]
                     del self.data.obsp[f"{method}_correlation_{layer}_pvalue"]
 
-    def write(self, file_data_path: os.PathLike) -> None:
-        self.data.write(file_data_path)
-
-    def _add_metadata(self, key, value):
+    def _add_metadata(self, key: str, value: Any) -> None:
         if isinstance(value, list):
             if key not in self.data.uns:
                 self.data.uns[key] = value
@@ -315,7 +431,7 @@ class MPRAData(ABC):
         else:
             self.data.uns[key] = value
 
-    def _get_metadata(self, key):
+    def _get_metadata(self, key) -> Optional[Any]:
         if key in self.data.uns:
             return self.data.uns[key]
         else:
@@ -339,10 +455,45 @@ class MPRAData(ABC):
 
         self._add_metadata("sequence_design_file", sequence_design_file_path)
 
+    def write(self, file_data_path: os.PathLike) -> None:
+        """
+        Writes the AnnData object to a file.
+
+        Parameters
+        ----------
+        file_data_path : os.PathLike
+            The path where the AnnData object will be saved.
+        """
+        self.data.write(file_data_path)
+        self.LOGGER.info(f"Data written to {file_data_path}")
+
+    @classmethod
+    def read(cls, file_data_path: str) -> "MPRAData":
+        """
+        Reads an AnnData object from a file.
+
+        Parameters
+        ----------
+        file_data_path : str
+            The path from which the AnnData object will be read.
+        """
+        data = ad.read_h5ad(file_data_path)
+        return cls(data)
+
 
 class MPRABarcodeData(MPRAData):
+    """
+    A class for handling barcode-level MPRA (Massively Parallel Reporter Assay) data, providing methods for data import, normalization, filtering, and aggregation to oligo-level data.
 
-    def _barcode_counts(self):
+    This class extends `MPRAData` and is designed to work with barcode-resolved MPRA datasets, supporting a variety of barcode filtering strategies, normalization routines, and data transformations. It leverages AnnData for data storage and manipulation.
+
+    Note
+    ----
+    - Filtering and normalization methods are barcode-aware and can be customized via method parameters.
+    - Aggregation to oligo-level data is supported for downstream analysis.
+    """   # noqa: E501
+
+    def _barcode_counts(self) -> NDArray[np.int32]:
         return (
             pd.DataFrame(
                 self.observed * ~self.var_filter.T,
@@ -353,7 +504,7 @@ class MPRABarcodeData(MPRAData):
             .transform("sum")
         ).T.values
 
-    def drop_barcode_counts(self):
+    def drop_barcode_counts(self) -> None:
 
         self.LOGGER.info("Dropping barcode counts")
 
@@ -361,6 +512,7 @@ class MPRABarcodeData(MPRAData):
 
     @property
     def oligo_data(self) -> "MPRAOligoData":
+        """:class:`MPRAOligoData`: Returns an instance of `MPRAOligoData` containing aggregated oligo-level data."""
         self.LOGGER.info("Computing oligo data")
 
         return self._oligo_data()
@@ -385,21 +537,22 @@ class MPRABarcodeData(MPRAData):
         The method assumes that the RNA and DNA replicate columns are interleaved, starting with DNA.
         The method processes the data to create an AnnData object with RNA and DNA layers, and additional metadata.
         """
+
         data = pd.read_csv(file_path, sep="\t", header=0, index_col=0)
         data = data.fillna(0)
 
         replicate_columns_rna = data.columns[2::2]
         replicate_columns_dna = data.columns[1::2]
 
-        anndata_replicate_rna = data[replicate_columns_rna].transpose().astype(int)
-        anndata_replicate_dna = data[replicate_columns_dna].transpose().astype(int)
+        anndata_replicate_rna = data[replicate_columns_rna].transpose().astype(np.int32)
+        anndata_replicate_dna = data[replicate_columns_dna].transpose().astype(np.int32)
 
         anndata_replicate_rna.index = pd.Index([replicate.split("_")[2] for replicate in replicate_columns_rna])
         anndata_replicate_dna.index = pd.Index([replicate.split("_")[2] for replicate in replicate_columns_dna])
 
         adata = ad.AnnData(anndata_replicate_rna)
-        adata.layers["rna"] = np.array(adata.X)
-        adata.layers["dna"] = anndata_replicate_dna.values
+        adata.layers["rna"] = np.array(adata.X, dtype=np.int32)
+        adata.layers["dna"] = np.asarray(anndata_replicate_dna.values, dtype=np.int32)
 
         adata.var["oligo"] = data["oligo_name"].astype("category")
 
@@ -417,7 +570,7 @@ class MPRABarcodeData(MPRAData):
 
         return cls(adata)
 
-    def complexity(self, method="lincoln") -> np.ndarray:
+    def complexity(self, method="lincoln") -> NDArray[np.int64]:
         """
         Calculates and returns the complexity of barcodes using the Lincoln-Peterson or Chapman estimation.
 
@@ -425,14 +578,15 @@ class MPRABarcodeData(MPRAData):
             method (str): Either "lincoln" or "chapman".
 
         Returns:
-            np.ndarray: The Lincoln-Peterson or Chapman estimate.
+            NDArray[np.int16]: The Lincoln-Peterson or Chapman estimate.
         """
+
         if method not in {"lincoln", "chapman"}:
             raise ValueError("Method must be either 'lincoln' or 'chapman'.")
 
         n_observed = np.sum(self.observed, axis=1)
         num_rows = self.observed.shape[0]
-        results = np.zeros((num_rows, num_rows), dtype=int)
+        results = np.zeros((num_rows, num_rows), dtype=np.int64)
         for i in range(num_rows):
             for j in range(i, num_rows):
                 n_recap = np.sum(np.sum(np.logical_and(self.observed[i, :], self.observed[j, :])))
@@ -454,16 +608,21 @@ class MPRABarcodeData(MPRAData):
         self.LOGGER.info("Normalizing data")
 
         self.data.layers["dna_normalized"] = self._normalize_layer(
-            self.dna_counts, self.observed, ~self.var_filter.T, self.SCALING, self.PSEUDOCOUNT
+            self.dna_counts, self.observed, ~self.var_filter.T, self.scaling, self.pseudo_count
         )
         self.data.layers["rna_normalized"] = self._normalize_layer(
-            self.rna_counts, self.observed, ~self.var_filter.T, self.SCALING, self.PSEUDOCOUNT
+            self.rna_counts, self.observed, ~self.var_filter.T, self.scaling, self.pseudo_count
         )
         self._add_metadata("normalized", True)
 
     def _normalize_layer(
-        self, counts: np.ndarray, observed: np.ndarray, not_var_filter: np.ndarray, scaling: float, pseudocount: int
-    ) -> np.ndarray:
+        self,
+        counts: NDArray[np.int32],
+        observed: NDArray[np.bool_],
+        not_var_filter: NDArray[np.bool_],
+        scaling: float,
+        pseudocount: int,
+    ) -> NDArray[np.float32]:
 
         # I do a pseudo count when normalizing to avoid division by zero when computing logfold ratios.
         # barcode filter has to be used again because we want to have a zero on filtered values.
@@ -504,13 +663,15 @@ class MPRABarcodeData(MPRAData):
         for key, value in self.data.uns.items():
             oligo_data.uns[f"MPRABarcodeData_{key}"] = value
 
+        oligo_data.uns["SCALING"] = self.scaling
+        oligo_data.uns["PSEUDOCOUNT"] = self.pseudo_count
         oligo_data.uns["correlation_activity"] = False
         oligo_data.uns["correlation_rna_normalized"] = False
         oligo_data.uns["correlation_dna_normalized"] = False
 
         return MPRAOligoData(oligo_data, self.barcode_threshold)
 
-    def _sum_counts_by_oligo(self, counts):
+    def _sum_counts_by_oligo(self, counts: NDArray[np.int32]) -> pd.DataFrame:
 
         grouped = pd.DataFrame(
             counts,
@@ -521,7 +682,7 @@ class MPRABarcodeData(MPRAData):
         # Perform an operation on each group, e.g., mean
         return grouped.sum().T
 
-    def _supporting_barcodes_per_oligo(self):
+    def _supporting_barcodes_per_oligo(self) -> pd.DataFrame:
 
         grouped = pd.DataFrame(
             self.observed * ~self.var_filter.T,
@@ -584,14 +745,16 @@ class MPRABarcodeData(MPRAData):
 
         return self.var_filter.apply(lambda col: col | ~self.var_filter.index.isin(df_sums.index))
 
-    def _barcode_filter_random(self, proportion=1.0, total=None, aggegate_over_replicates=True):
+    def _barcode_filter_random(
+        self, proportion: float = 1.0, total: Optional[int] = None, aggegate_over_replicates: bool = True
+    ):
 
         if aggegate_over_replicates and total is None:
             total = self.var_filter.shape[0]
         elif total is None:
             total = self.var_filter.size
 
-        num_true_cells = int(total * (1.0 - proportion))
+        num_true_cells = int(total * (1.0 - proportion))  # type: ignore
         true_indices = np.random.choice(total, num_true_cells, replace=False)
 
         mask = pd.DataFrame(
@@ -641,7 +804,7 @@ class MPRABarcodeData(MPRAData):
 
         return mask
 
-    def apply_barcode_filter(self, barcode_filter: BarcodeFilter, params: dict = {}):
+    def apply_barcode_filter(self, barcode_filter: BarcodeFilter, params: dict = {}) -> None:
         filter_switch = {
             BarcodeFilter.RNA_ZSCORE: self._barcode_filter_rna_zscore,
             BarcodeFilter.MAD: self._barcode_filter_mad,
@@ -658,7 +821,7 @@ class MPRABarcodeData(MPRAData):
 
         self._add_metadata("var_filter", [barcode_filter.value])
 
-    def drop_count_sampling(self):
+    def drop_count_sampling(self) -> None:
 
         self.drop_normalized()
 
@@ -668,7 +831,14 @@ class MPRABarcodeData(MPRAData):
         self.data.layers.pop("rna_sampling", None)
         self.data.layers.pop("dna_sampling", None)
 
-    def _calculate_proportions(self, proportion, total, aggregate_over_replicates, counts, replicates):
+    def _calculate_proportions(
+        self,
+        proportion: Optional[float],
+        total: Optional[int],
+        aggregate_over_replicates: bool,
+        counts: NDArray[np.int32],
+        replicates: int,
+    ):
         pp = [1.0] * replicates
 
         if proportion is not None:
@@ -677,43 +847,50 @@ class MPRABarcodeData(MPRAData):
         if total is not None:
             if aggregate_over_replicates:
                 for i, p in enumerate(pp):
-                    pp[i] = min(total / np.sum(counts), p)
+                    pp[i] = min(float(total) / float(np.sum(counts)), p)
             else:
                 for i, p in enumerate(pp):
-                    pp[i] = min(total / np.sum(counts[i, :]), p)
+                    pp[i] = min(float(total) / float(np.sum(counts[i, :])), p)
         return pp
 
-    def _sample_individual_counts(self, x, proportion):
+    def _sample_individual_counts(self, x, proportion: float) -> int:
         return int(
             np.floor(x * proportion)
             + (0.0 if x != 0 or np.random.rand() > (x * proportion - np.floor(x * proportion)) else 1.0)
         )
 
-    def _apply_sampling(self, layer_name, counts, proportion, total, max_value, aggregate_over_replicates):
-        self.data.layers[layer_name] = counts.copy()
+    def _apply_sampling(
+        self,
+        layer_name: str,
+        counts: NDArray[np.int32],
+        proportion: Optional[float],
+        total: Optional[int],
+        max_value: Optional[int],
+        aggregate_over_replicates: bool,
+    ) -> None:
+
+        sampled_counts = counts.copy()
 
         if total is not None or proportion is not None:
 
-            pp = self._calculate_proportions(
-                proportion, total, aggregate_over_replicates, self.data.layers[layer_name], self.n_obs
-            )
+            pp = self._calculate_proportions(proportion, total, aggregate_over_replicates, sampled_counts, self.n_obs)
 
             vectorized_sample_individual_counts = np.vectorize(self._sample_individual_counts)
 
             for i, p in enumerate(pp):
-                self.data.layers[layer_name][i, :] = vectorized_sample_individual_counts(
-                    self.data.layers[layer_name][i, :], proportion=p
-                )
+                sampled_counts[i, :] = vectorized_sample_individual_counts(sampled_counts[i, :], proportion=p)
 
         if max_value is not None:
-            self.data.layers[layer_name] = np.clip(self.data.layers[layer_name], None, max_value)
+            sampled_counts = np.clip(sampled_counts, None, max_value)
+
+        self.data.layers[layer_name] = sampled_counts
 
     def apply_count_sampling(
         self,
         count_type: CountSampling,
-        proportion: float = None,
-        total: int = None,
-        max_value: int = None,
+        proportion: Optional[float] = None,
+        total: Optional[int] = None,
+        max_value: Optional[int] = None,
         aggregate_over_replicates: bool = False,
     ) -> None:
 
@@ -741,6 +918,18 @@ class MPRABarcodeData(MPRAData):
 
 
 class MPRAOligoData(MPRAData):
+    """
+    MPRAOligoData is a subclass of MPRAData designed to handle MPRA (Massively Parallel Reporter Assay) oligo-level data.
+
+    This class provides methods for loading, normalizing,
+    and managing barcode counts and associated data layers for MPRA experiments.
+    Barcode counts must be pre-set before accessing, as they cannot be computed within this class.
+    The normalization process includes pseudocount handling to avoid division by zero and supports per-barcode normalization.
+
+    Raises
+    ------
+    - MPRAlibException: If barcode counts are not set when accessed.
+    """
 
     def _barcode_counts(self):
         raise MPRAlibException(
@@ -755,23 +944,28 @@ class MPRAOligoData(MPRAData):
 
         return MPRAOligoData(ad.read(file_path))
 
-    def _normalize(self):
+    def _normalize(self) -> None:
 
         self.drop_normalized()
 
         self.LOGGER.info("Normalizing data")
 
         self.data.layers["dna_normalized"] = self._normalize_layer(
-            self.dna_counts, ~self.var_filter.T, self.barcode_counts, self.SCALING, self.PSEUDOCOUNT
+            self.dna_counts, ~self.var_filter.T, self.barcode_counts, self.scaling, self.pseudo_count
         )
         self.data.layers["rna_normalized"] = self._normalize_layer(
-            self.rna_counts, ~self.var_filter.T, self.barcode_counts, self.SCALING, self.PSEUDOCOUNT
+            self.rna_counts, ~self.var_filter.T, self.barcode_counts, self.scaling, self.pseudo_count
         )
         self._add_metadata("normalized", True)
 
     def _normalize_layer(
-        self, counts: np.ndarray, not_var_filter: np.ndarray, barcode_counts: np.ndarray, scaling: float, pseudocount: int
-    ) -> np.ndarray:
+        self,
+        counts: NDArray[np.int32],
+        not_var_filter: NDArray[np.bool_],
+        barcode_counts: NDArray[np.int32],
+        scaling: float,
+        pseudocount: int,
+    ) -> NDArray[np.float32]:
 
         # I do a pseudo count when normalizing to avoid division by zero when computing logfold ratios.
         # Pseudocount has also be done per barcode.

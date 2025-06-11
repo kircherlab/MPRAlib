@@ -3,7 +3,7 @@ import pandas as pd
 import anndata as ad
 import copy
 import pytest
-from mpralib.mpradata import MPRABarcodeData, CountSampling, BarcodeFilter, Modality
+from mpralib.mpradata import MPRABarcodeData, CountSampling, BarcodeFilter, Modality, MPRAOligoData
 
 
 OBS = pd.DataFrame(index=["rep1", "rep2", "rep3"])
@@ -203,7 +203,7 @@ def test_apply_barcode_filter_max_count(mpra_data_barcode):
 def mpra_data_norm():
     layers = {"rna": COUNTS_RNA.copy(), "dna": COUNTS_DNA.copy()}
     data = MPRABarcodeData(ad.AnnData(X=COUNTS_RNA.copy(), obs=OBS.copy(), var=VAR.copy(), layers=layers))
-    data.SCALING = 10
+    data.scaling = 10
     return data
 
 
@@ -234,7 +234,7 @@ def test_normalize_counts(mpra_data_norm):
 
 def test_normalize_without_pseudocount(mpra_data_norm):
     mpra_data = copy.deepcopy(mpra_data_norm)
-    mpra_data.PSEUDOCOUNT = 0
+    mpra_data.pseudo_count = 0
     mpra_data._normalize()
     dna_normalized = np.asarray(mpra_data.data.layers["dna_normalized"])
     expected_dna_normalized = np.array(
@@ -262,7 +262,7 @@ def mpra_oligo_data():
     layers = {"rna": COUNTS_RNA.copy(), "dna": COUNTS_DNA.copy()}
     mpra_barcode_data = MPRABarcodeData(ad.AnnData(X=COUNTS_RNA.copy(), obs=OBS.copy(), var=VAR.copy(), layers=layers))
     data = mpra_barcode_data.oligo_data
-    data.SCALING = 10
+    data.scaling = 10
     return data
 
 
@@ -272,7 +272,7 @@ def mpra_oligo_data_with_bc_filter():
     mpra_barcode_data = MPRABarcodeData(ad.AnnData(X=COUNTS_RNA.copy(), obs=OBS.copy(), var=VAR.copy(), layers=layers))
     mpra_barcode_data.var_filter = FILTER
     data = mpra_barcode_data.oligo_data
-    data.SCALING = 10
+    data.scaling = 10
     return data
 
 
@@ -287,7 +287,7 @@ def test_oligo_normalize_counts(mpra_oligo_data):
 
 def test_oligo_normalize_without_pseudocount(mpra_oligo_data):
     mpra_data = copy.deepcopy(mpra_oligo_data)
-    mpra_data.PSEUDOCOUNT = 0
+    mpra_data.pseudo_count = 0
     dna_normalized = mpra_data.normalized_dna_counts
     expected_dna_normalized = np.array([[1.667, 3.333, 1.667], [1.875, 2.5, 1.875], [0.56, 0.672, 4.104]])
     np.testing.assert_almost_equal(dna_normalized, expected_dna_normalized, decimal=3)
@@ -357,3 +357,41 @@ def test_chapman_complexity(mpra_complexity_data):
 def test_fail_complexity(mpra_complexity_data):
     with pytest.raises(ValueError):
         mpra_complexity_data.complexity(method="unknown")
+
+
+def test_read_and_write(tmp_path, mpra_data):
+    out_path = tmp_path / "bc_data.h5ad"
+    mpra_data.write(out_path)
+
+    data = MPRABarcodeData.read(out_path)
+    assert isinstance(data, MPRABarcodeData)
+    assert data.data.shape == mpra_data.data.shape
+    assert data.data.layers.keys() == mpra_data.data.layers.keys()
+    assert np.all(data.rna_counts == mpra_data.rna_counts)
+    assert np.all(data.activity == mpra_data.activity)
+    assert data.pseudo_count == mpra_data.pseudo_count
+    assert data.scaling == mpra_data.scaling
+
+
+def test_read_and_write_oligo(tmp_path, mpra_oligo_data):
+    out_path = tmp_path / "oligo_data.h5ad"
+    mpra_oligo_data.write(out_path)
+
+    data = MPRAOligoData.read(out_path)
+    assert isinstance(data, MPRAOligoData)
+    assert data.data.shape == mpra_oligo_data.data.shape
+    assert data.data.layers.keys() == mpra_oligo_data.data.layers.keys()
+    assert np.all(data.rna_counts == mpra_oligo_data.rna_counts)
+    assert np.all(data.activity == mpra_oligo_data.activity)
+
+
+def test_read_and_write_with_modifications(tmp_path, mpra_data):
+    out_path = tmp_path / "bc_data_mod.h5ad"
+    mpra_data.scaling = 10.0
+    mpra_data.pseudo_count = 0
+    mpra_data.write(out_path)
+
+    data = MPRABarcodeData.read(out_path)
+    assert isinstance(data, MPRABarcodeData)
+    assert data.scaling == 10.0
+    assert data.pseudo_count == 0
