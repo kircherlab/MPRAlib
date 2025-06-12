@@ -78,14 +78,19 @@ License
 
 MIT License
 
+.. toctree::
+   :maxdepth: 4
+   :hidden:
+
+   doc/overview
 
 .. toctree::
    :maxdepth: 4
    :caption: Documentation
    :hidden:
 
-   doc/overview
-   getting-started
+   doc/getting-started
+   doc/cli
 
 .. toctree::
    :maxdepth: 4

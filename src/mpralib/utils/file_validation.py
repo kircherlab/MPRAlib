@@ -69,19 +69,18 @@ def _convert_row_value(value: str, prop_schema: dict):
 
 
 def validate_tsv_with_schema(tsv_file_path: str, schema_type: ValidationSchema) -> bool:
-    """
-    Validates a TSV file against a specified JSON schema.
+    """Validates a TSV file against a specified JSON schema.
 
     This function reads a TSV file (optionally gzipped), converts each row to a dictionary,
     and validates each row against the provided JSON schema. If any row fails validation,
     a warning is logged. If an unexpected error occurs during validation, it is logged and raised.
 
-    Parameters:
+    Args:
         tsv_file_path (str): Path to the TSV file to validate. The file may be gzipped.
         schema_type (ValidationSchema): The type of schema to validate against.
 
     Returns:
-        bool: True if all rows are valid according to the schema, False otherwise.
+        True if all rows are valid according to the schema, False otherwise.
 
     Raises:
         Exception: If an unexpected error occurs during validation.

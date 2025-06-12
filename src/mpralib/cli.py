@@ -262,7 +262,18 @@ functional.command(help="Filter out outliers based on RNA z-score and copute cor
     help="Output file of results.",
 )
 def filter_outliers(input_file, rna_zscore_times, bc_threshold, output_file):
-    """Reads a file and generates an MPRAdata object."""
+    """Filters outliers from MPRA barcode data based on RNA z-score and barcode count threshold.
+
+    Reads an input file to create an MPRAdata object, applies a barcode filter to remove outliers
+    using the specified RNA z-score threshold, and optionally exports the filtered activity data
+    to an output file. Prints Pearson correlation of log2FoldChange before and after outlier removal.
+
+    Args:
+        input_file (str): Path to the input file containing barcode data.
+        rna_zscore_times (float): Number of standard deviations for RNA z-score outlier filtering.
+        bc_threshold (int): Minimum barcode count threshold for filtering.
+        output_file (str): Path to the output file to export filtered activity data. If None, no file is written.
+    """
     mpradata = MPRABarcodeData.from_file(input_file)
 
     mpradata.barcode_threshold = bc_threshold
@@ -483,7 +494,25 @@ def get_counts(input_file, sequence_design_file, bc_threshold, normalized_counts
     help="Output file of all non zero counts, divided by ref and alt.",
 )
 def get_variant_counts(input_file, sequence_design_file, bc_threshold, normalized_counts, use_oligos, output_file):
-    """Reads a file and generates an MPRAdata object."""
+    """Processes MPRA (Massively Parallel Reporter Assay) data to generate variant-level count tables.
+
+    Args:
+        input_file (str): Path to the input file containing barcode count data.
+        sequence_design_file (str): Path to the sequence design file mapping barcodes to variants/oligos.
+        bc_threshold (int): Minimum barcode count threshold for filtering.
+        normalized_counts (bool): If True, use normalized counts; otherwise, use raw counts.
+        use_oligos (bool): If True, aggregate counts at the oligo level and map to variants; otherwise, export counts directly.
+        output_file (str): Path to the output file where the variant count table will be saved.
+
+    Returns:
+        None. The function writes the resulting count table to the specified output file.
+
+    Notes:
+        - When `use_oligos` is True, the function aggregates DNA and RNA counts for reference and alternate oligos
+          per variant, across all replicates, and outputs a table with these counts.
+        - When `use_oligos` is False, the function exports the counts using `export_counts_file`.
+        - Variants with all-zero counts or counts only on reference or alternate are removed from the output.
+    """
     mpradata = MPRABarcodeData.from_file(input_file)
 
     mpradata.add_sequence_design(read_sequence_design_file(sequence_design_file), sequence_design_file)

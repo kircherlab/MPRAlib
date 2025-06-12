@@ -1,8 +1,7 @@
 class MPRAlibException(Exception):
-    """
-    MPRAlib error class for specific exceptions.
+    """MPRAlib error class for specific exceptions.
 
-    Attributes:
+    Args:
         message (str): A description of the error.
     """
 
@@ -15,10 +14,9 @@ class MPRAlibException(Exception):
 
 
 class IOException(MPRAlibException):
-    """
-    Exception raised for IO-related errors.
+    """Exception raised for IO-related errors.
 
-    Attributes:
+    Args:
         message (str): A description of the IO error.
     """
 
@@ -27,10 +25,9 @@ class IOException(MPRAlibException):
 
 
 class SequenceDesignException(IOException):
-    """
-    Exception raised for errors related to sequence design file.
+    """Exception raised for errors related to sequence design file.
 
-    Attributes:
+    Args:
         message (str): A description of the sequence design error.
     """
 
