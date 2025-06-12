@@ -7,7 +7,7 @@ from enum import Enum
 import logging
 import os
 from mpralib.exception import MPRAlibException
-from typing import Any, Optional, override
+from typing import Any, Optional
 from numpy.typing import NDArray
 
 
@@ -539,7 +539,6 @@ class MPRABarcodeData(MPRAData):
         return self._oligo_data()
 
     @classmethod
-    @override
     def from_file(cls, file_path: str) -> "MPRABarcodeData":
 
         data = pd.read_csv(file_path, sep="\t", header=0, index_col=0)
@@ -604,7 +603,6 @@ class MPRABarcodeData(MPRAData):
 
         return results
 
-    @override
     def _normalize(self) -> None:
 
         self.drop_normalized()
@@ -972,12 +970,10 @@ class MPRAOligoData(MPRAData):
         pass
 
     @classmethod
-    @override
     def from_file(cls, file_path: str) -> "MPRAOligoData":
 
         return MPRAOligoData(ad.read(file_path))
 
-    @override
     def _normalize(self) -> None:
 
         self.drop_normalized()
