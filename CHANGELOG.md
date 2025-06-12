@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.2](https://github.com/kircherlab/MPRAlib/compare/v0.7.1...v0.7.2) (2025-06-12)
+
+
+### Documentation
+
+* better API documentation on readthedocs ([d289a4c](https://github.com/kircherlab/MPRAlib/commit/d289a4cccf2ec42241d5e46494ae7b5f6b1c19f8))
+
 ## [0.7.1](https://github.com/kircherlab/MPRAlib/compare/v0.7.0...v0.7.1) (2025-06-11)
 
 
