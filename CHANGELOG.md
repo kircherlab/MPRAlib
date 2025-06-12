@@ -5,8 +5,7 @@
 
 ### Documentation
 
-* better API documentation ([4fe5630](https://github.com/kircherlab/MPRAlib/commit/4fe5630f8290eb397fd2e9cfcf5aa1278735f656))
-* better API on readthedocs ([d289a4c](https://github.com/kircherlab/MPRAlib/commit/d289a4cccf2ec42241d5e46494ae7b5f6b1c19f8))
+* better API documentation on readthedocs ([d289a4c](https://github.com/kircherlab/MPRAlib/commit/d289a4cccf2ec42241d5e46494ae7b5f6b1c19f8))
 
 ## [0.7.1](https://github.com/kircherlab/MPRAlib/compare/v0.7.0...v0.7.1) (2025-06-11)
 
