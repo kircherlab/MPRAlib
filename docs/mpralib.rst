@@ -1,45 +1,75 @@
-mpralib package
+MPRAlib package
 ===============
 
-Subpackages
+mpralib.cli
 -----------
-
-.. toctree::
-   :maxdepth: 4
-
-   mpralib.utils
-
-Submodules
-----------
-
-mpralib.cli module
-------------------
 
 .. automodule:: mpralib.cli
    :members:
    :show-inheritance:
    :undoc-members:
 
-mpralib.exception module
-------------------------
+mpralib.exception
+-----------------
 
 .. automodule:: mpralib.exception
    :members:
    :show-inheritance:
    :undoc-members:
 
-mpralib.mpradata module
------------------------
+mpralib.mpradata
+----------------
 
 .. automodule:: mpralib.mpradata
    :members:
    :show-inheritance:
    :undoc-members:
 
-Module contents
----------------
+mpralib.utils.file\_validation
+------------------------------
 
-.. automodule:: mpralib
+.. automodule:: mpralib.utils.file_validation
    :members:
    :show-inheritance:
    :undoc-members:
+
+mpralib.utils.io
+----------------
+
+.. automodule:: mpralib.utils.io
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+mpralib.utils.plot
+------------------
+
+.. automodule:: mpralib.utils.plot
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+.. Module contents
+.. ---------------
+
+.. .. automodule:: mpralib.utils
+..    :members:
+..    :show-inheritance:
+..    :undoc-members:
+
+
+.. Module contents
+.. ---------------
+
+.. .. automodule:: mpralib
+..    :members:
+..    :show-inheritance:
+..    :undoc-members:
+
+.. Subpackages
+.. -----------
+
+.. .. toctree::
+..    :maxdepth: 4
+
+..    mpralib.utils

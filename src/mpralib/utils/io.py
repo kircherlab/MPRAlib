@@ -24,27 +24,25 @@ def chromosome_map() -> pd.DataFrame:
 
 
 def is_compressed_file(filepath):
-    """
-    Check if a file is compressed (gzip or bgz).
+    """Check if a file is compressed (gzip or bgz).
 
-    Parameters:
+    Args:
         filepath (str): Path to the file to check.
 
     Returns:
-        bool: True if the file is compressed, False otherwise.
+        True if the file is compressed, False otherwise.
     """
     return is_gzip_file(filepath) or is_bgzf(filepath)
 
 
 def is_gzip_file(filepath):
-    """
-    Check if a file is a gzip-compressed file based on its magic number.
+    """Check if a file is a gzip-compressed file based on its magic number.
 
-    Parameters:
+    Args:
         filepath (str or Path): Path to the file to check.
 
     Returns:
-        bool: True if the file is gzip-compressed, False otherwise.
+        True if the file is gzip-compressed, False otherwise.
     """
     with open(filepath, "rb") as f:
         magic = f.read(2)
@@ -52,17 +50,16 @@ def is_gzip_file(filepath):
 
 
 def is_bgzf(filepath):
-    """
-    Check if a file is in BGZF (Blocked GNU Zip Format) format.
+    """Check if a file is in BGZF (Blocked GNU Zip Format) format.
 
     BGZF is a variant of the standard gzip format with extra fields that allow for random access.
     This function reads the file header and checks for the BGZF-specific magic numbers and flags.
 
-    Parameters:
+    Args:
         filepath (str): Path to the file to be checked.
 
     Returns:
-        bool: True if the file is in BGZF format, False otherwise.
+        True if the file is in BGZF format, False otherwise.
     """
     with open(filepath, "rb") as f:
         header = f.read(18)
@@ -75,22 +72,14 @@ def is_bgzf(filepath):
 
 
 def export_activity_file(mpradata: MPRAOligoData, output_file_path: str) -> None:
-    """
-    Export activity data from an MPRAdata object to a tab-separated values (TSV) file.
+    """Export activity data from an MPRAdata object to a tab-separated values (TSV) file.
 
-    The function processes the grouped data from the MPRAdata object, extracts relevant information
-    for each replicate, and writes the data to a TSV file. The output file contains columns for
-    replicate, oligo name, DNA counts, RNA counts, normalized DNA counts, normalized RNA counts,
-    log2 fold change, and the number of barcodes. Barcode filters, count sampling
-    and barcode thresholds are applied.
+    The function processes the grouped data from the MPRAdata object, extracts relevant information for each replicate, and writes the data to a TSV file. The output file contains columns for replicate, oligo name, DNA counts, RNA counts, normalized DNA counts, normalized RNA counts, log2 fold change, and the number of barcodes. Barcode filters, count sampling and barcode thresholds are applied.
 
-    Parameters:
+    Args:
         mpradata (MPRAdata): An object containing MPRA (Massively Parallel Reporter Assay) data.
         output_file_path (str): The file path where the output TSV file will be saved.
-
-    Returns:
-        None
-    """
+    """  # noqa: E501
 
     output = pd.DataFrame()
 
@@ -117,22 +106,14 @@ def export_activity_file(mpradata: MPRAOligoData, output_file_path: str) -> None
 
 
 def export_barcode_file(mpradata: MPRABarcodeData, output_file_path: str) -> None:
-    """
-    Export barcode count data to a file.
+    """Export barcode count data to a file.
 
-    This function takes an MPRAdata object and exports its barcode count data
-    to a specified file path in tab-separated values (TSV) format. The output file
-    will contain columns for barcodes, oligo names, and DNA/RNA counts for each replicate.
-    Modifides counts (barcode filter/sampling) if applicable will be written.
+    This function takes an MPRAdata object and exports its barcode count data to a specified file path in tab-separated values (TSV) format. The output file will contain columns for barcodes, oligo names, and DNA/RNA counts for each replicate. Modifides counts (barcode filter/sampling) if applicable will be written.
 
-    Parameters:
-        mpradata (MPRAdata): An object containing MPRA data, including barcodes, oligos,
-                         DNA counts, RNA counts, and replicates.
-    output_file_path (str): The file path where the output TSV file will be saved.
-
-    Returns:
-    None
-    """
+    Args:
+        mpradata (MPRAdata): An object containing MPRA data, including barcodes, oligos, DNA counts, RNA counts, and replicates.
+        output_file_path (str): The file path where the output TSV file will be saved.
+    """  # noqa: E501
 
     output = pd.DataFrame({"barcode": mpradata.var_names, "oligo_name": mpradata.oligos})
 
@@ -194,19 +175,16 @@ def export_counts_file(
 
 
 def read_sequence_design_file(file_path: str) -> pd.DataFrame:
-    """
-    Read sequence design from a tab-separated values (TSV) file.
+    """Read sequence design from a tab-separated values (TSV) file.
 
-    This function reads metadata from a TSV file and returns it as a pandas DataFrame.
-    The metadata file should contain columns for sample ID, replicate, and any additional
-    metadata. The sample ID should correspond to the oligo name in the MPRA data object.
+    This function reads metadata from a TSV file and returns it as a pandas DataFrame. The metadata file should contain columns for sample ID, replicate, and any additional metadata. The sample ID should correspond to the oligo name in the MPRA data object.
 
-    Parameters:
+    Args:
         file_path (str): The file path of the metadata TSV file.
 
     Returns:
-        pd.DataFrame: A DataFrame containing the metadata.
-    """
+        A DataFrame containing the metadata.
+    """  # noqa: E501
 
     df = pd.read_csv(
         file_path,

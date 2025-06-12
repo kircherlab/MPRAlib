@@ -12,15 +12,18 @@ from numpy.typing import NDArray
 
 
 class Modality(Enum):
-    """
-    An enumeration representing different data modalities in MPRA (Massively Parallel Reporter Assay) experiments.
-    """
+    """An enumeration representing different data modalities in MPRA (Massively Parallel Reporter Assay) experiments."""
 
     DNA = "DNA"
+    """str: Represents DNA data modality. """
     RNA = "RNA"
+    """str: Represents RNA data modality."""
     DNA_NORMALIZED = "DNA_NORMALIZED"
+    """str: Represents normalized DNA data modality."""
     RNA_NORMALIZED = "RNA_NORMALIZED"
+    """str: Represents normalized RNA data modality."""
     ACTIVITY = "ACTIVITY"
+    """str: Represents activity data modality, typically calculated as the log2 ratio of normalized RNA to DNA counts."""
 
     def __new__(cls, value):
         obj = object.__new__(cls)
@@ -29,6 +32,17 @@ class Modality(Enum):
 
     @classmethod
     def from_string(cls, value: str) -> "Modality":
+        """Creates a Modality enum member from a string value.
+
+        Args:
+            value (str): The string representation of the enum member.
+
+        Returns:
+            The corresponding Modality enum member.
+
+        Raises:
+            ValueError: If the provided string does not match any Modality member.
+        """
         for member in cls:
             if member.value == value.lower():
                 return member
@@ -36,56 +50,51 @@ class Modality(Enum):
 
 
 class CountSampling(Enum):
-    """
-    Enumeration representing the types of count sampling available for MPRA data.
-    """
+    """Enumeration representing the types of count sampling available for MPRA data."""
 
     RNA = "RNA"
+    """str: Represents RNA count sampling."""
     DNA = "DNA"
+    """str: Represents DNA count sampling."""
     RNA_AND_DNA = "RNA_AND_DNA"
+    """str: Represents both RNA and DNA count sampling."""
 
 
 class BarcodeFilter(Enum):
-    """
-    Enumeration of available barcode filtering methods.
-    """
+    """Enumeration of available barcode filtering methods."""
 
     RNA_ZSCORE = "RNA_ZSCORE"
+    """str: Filter barcodes based on RNA z-score."""
     MAD = "MAD"
+    """str: Filter barcodes based on Median Absolute Deviation (MAD)."""
     RANDOM = "RANDOM"
+    """str: Randomly filter barcodes."""
     MIN_COUNT = "MIN_COUNT"
+    """str: Filter barcodes with counts below a specified minimum."""
     MAX_COUNT = "MAX_COUNT"
+    """str: Filter barcodes with counts above a specified maximum."""
 
 
 class MPRAData(ABC):
-    """
-    Abstract base class for handling MPRA (Massively Parallel Reporter Assay) data using AnnData objects.
+    """Abstract base class for handling MPRA (Massively Parallel Reporter Assay) data using AnnData objects.
 
-    This class provides a standardized interface and core functionality for managing, normalizing,
-    filtering, and analyzing MPRA data, including DNA/RNA counts, barcode handling,
-    activity computation, and correlation analysis. It is designed to be subclassed for specific MPRA data formats.
+    This class provides a standardized interface and core functionality for managing, normalizing filtering, and analyzing MPRA data, including DNA/RNA counts, barcode handling, activity computation, and correlation analysis. It is designed to be subclassed for specific MPRA data formats.
 
-    Parameters
-    ----------
-    data : ad.AnnData
-        The AnnData object containing MPRA data.
-    barcode_threshold : int, optional
-        Minimum barcode count threshold for filtering. Defaults to 0.
+    Args:
+        data (anndata.AnnData): The AnnData object containing MPRA data.
+        barcode_threshold (int, optional): Minimum barcode count threshold for filtering. Defaults to 0.
 
-    Attributes
-    ----------
-    _SCALING : float
-        Default scaling factor for normalization.
-    _PSEUDOCOUNT : int
-        Default pseudocount for normalization.
-    _data : ad.AnnData
-        The AnnData object containing MPRA data.
+    Attributes:
+        _SCALING (float): Default scaling factor for normalization.
+        _PSEUDOCOUNT (int): Default pseudocount for normalization.
+        _data (anndata.AnnData): The AnnData object containing MPRA data.
 
     Raises:
         ValueError: If required metadata (e.g., sequence design file) is not loaded.
-    """
+    """  # noqa: E501
 
     LOGGER = logging.getLogger(__name__)
+    """logging.Logger: Logger for the class."""
     LOGGER.setLevel(logging.INFO)
 
     _SCALING = 1e6
@@ -94,6 +103,20 @@ class MPRAData(ABC):
     @classmethod
     @abstractmethod
     def from_file(cls, file_path: str) -> "MPRAData":
+        """Create an instance of the class from a file.
+
+        This method reads data from a specified file (reporter experiment barcode or reporter experiment file format), processes it, and returns an instance of the class containing the data in an AnnData object.
+
+        Args:
+            file_path (str): Path to the input file containing reporter experiment barcode or reporter experiment data.
+
+        Returns:
+            An instance of MPRAData containing the processed data in an AnnData object.
+
+        Raises:
+            IOError: If the file cannot be read or parsed.
+            ValueError: If the file format is invalid.
+        """  # noqa: E501
         pass
 
     def __init__(self, data: ad.AnnData, barcode_threshold: int = 0):
@@ -271,6 +294,11 @@ class MPRAData(ABC):
 
     @abstractmethod
     def drop_barcode_counts(self) -> None:
+        """Removes or clears the barcode counts data from the current object.
+
+        Raises:
+            NotImplementedError: If the method is not yet implemented.
+        """
         pass
 
     @property
@@ -292,9 +320,8 @@ class MPRAData(ABC):
     def variant_map(self) -> pd.DataFrame:
         """pd.DataFrame: Returns a DataFrame mapping SPDI IDs to alleles and oligos.
 
-        Raises
-        ------
-        ValueError: If the sequence design file is not loaded in the metadata.
+        Raises:
+            ValueError: If the sequence design file is not loaded in the metadata.
         """
         if not self._get_metadata("sequence_design_file") and not (
             isinstance(self, MPRAOligoData) and self._get_metadata("MPRABarcodeData_sequence_design_file")
@@ -320,16 +347,10 @@ class MPRAData(ABC):
         pass
 
     def drop_normalized(self) -> None:
-        """
-        Removes normalized RNA and DNA data layers from the dataset.
+        """Removes normalized RNA and DNA data layers from the dataset.
 
-        This method deletes the "rna_normalized" and "dna_normalized" layers from the `self.data.layers` attribute,
-        logs the operation, updates the metadata to indicate that normalization is no longer present, and drops any
-        associated correlation data.
-
-        Returns:
-            None
-        """
+        This method deletes the "rna_normalized" and "dna_normalized" layers from the `self.data.layers` attribute, logs the operation, updates the metadata to indicate that normalization is no longer present, and drops any associated correlation data.
+        """  # noqa: E501
 
         self.LOGGER.info("Dropping normalized data")
 
@@ -339,11 +360,10 @@ class MPRAData(ABC):
         self._add_metadata("normalized", False)
 
     def correlation(self, method: str = "pearson", count_type: "Modality" = Modality.ACTIVITY) -> NDArray[np.float32]:
-        """
-        Calculates and return the correlation for activity or normalized counts.
+        """Calculates and return the correlation for activity or normalized counts.
 
         Returns:
-            NDArray[np.float32]: The Pearson or Spearman correlation matrix.
+            The Pearson or Spearman correlation matrix.
         """
 
         if count_type == Modality.DNA_NORMALIZED:
@@ -438,6 +458,12 @@ class MPRAData(ABC):
             return None
 
     def add_sequence_design(self, df_sequence_design: pd.DataFrame, sequence_design_file_path) -> None:
+        """Add sequence design metadata to the object's data.
+
+        Args:
+            df_sequence_design (pd.DataFrame): DataFrame containing sequence design information, indexed by oligo identifiers.
+            sequence_design_file_path (str): Path to the file from which the sequence design data was loaded to store it into the metadata.
+        """  # noqa: E501
 
         df_matched_metadata = df_sequence_design.loc[self.oligos]
 
@@ -456,42 +482,37 @@ class MPRAData(ABC):
         self._add_metadata("sequence_design_file", sequence_design_file_path)
 
     def write(self, file_data_path: os.PathLike) -> None:
-        """
-        Writes the AnnData object to a file.
+        """Writes the AnnData object to a file.
 
-        Parameters
-        ----------
-        file_data_path : os.PathLike
-            The path where the AnnData object will be saved.
+        Args:
+            file_data_path (os.PathLike): The path where the AnnData object will be saved.
         """
         self.data.write(file_data_path)
         self.LOGGER.info(f"Data written to {file_data_path}")
 
     @classmethod
     def read(cls, file_data_path: str) -> "MPRAData":
-        """
-        Reads an AnnData object from a file.
+        """Reads an AnnData object from a file.
 
-        Parameters
-        ----------
-        file_data_path : str
-            The path from which the AnnData object will be read.
+        Args:
+            file_data_path (str): The path from which the AnnData object will be read.
+
+        Returns:
+            MPRAData: An instance of the class containing the data read from the file.
         """
         data = ad.read_h5ad(file_data_path)
         return cls(data)
 
 
 class MPRABarcodeData(MPRAData):
-    """
-    A class for handling barcode-level MPRA (Massively Parallel Reporter Assay) data, providing methods for data import, normalization, filtering, and aggregation to oligo-level data.
+    """A class for handling barcode-level MPRA (Massively Parallel Reporter Assay) data, providing methods for data import, normalization, filtering, and aggregation to oligo-level data.
 
     This class extends `MPRAData` and is designed to work with barcode-resolved MPRA datasets, supporting a variety of barcode filtering strategies, normalization routines, and data transformations. It leverages AnnData for data storage and manipulation.
 
-    Note
-    ----
-    - Filtering and normalization methods are barcode-aware and can be customized via method parameters.
-    - Aggregation to oligo-level data is supported for downstream analysis.
-    """   # noqa: E501
+    Note:
+        - Filtering and normalization methods are barcode-aware and can be customized via method parameters.
+        - Aggregation to oligo-level data is supported for downstream analysis.
+    """  # noqa: E501
 
     def _barcode_counts(self) -> NDArray[np.int32]:
         return (
@@ -512,31 +533,13 @@ class MPRABarcodeData(MPRAData):
 
     @property
     def oligo_data(self) -> "MPRAOligoData":
-        """:class:`MPRAOligoData`: Returns an instance of `MPRAOligoData` containing aggregated oligo-level data."""
+        """MPRAOligoData: Returns an instance of `MPRAOligoData` containing aggregated oligo-level data."""
         self.LOGGER.info("Computing oligo data")
 
         return self._oligo_data()
 
     @classmethod
     def from_file(cls, file_path: str) -> "MPRABarcodeData":
-        """
-        Create an instance of the class from a file.
-        This method reads data from a specified file, processes it, and returns an instance of the class containing the
-        data in an AnnData object.
-        Parameters
-        ----------
-        file_path : str
-            The path to the file containing the data.
-        Returns
-        -------
-        cls
-            An instance of the class containing the processed data.
-        Notes
-        -----
-        The input file is expected to be a tab-separated values (TSV) file with a header and an index column.
-        The method assumes that the RNA and DNA replicate columns are interleaved, starting with DNA.
-        The method processes the data to create an AnnData object with RNA and DNA layers, and additional metadata.
-        """
 
         data = pd.read_csv(file_path, sep="\t", header=0, index_col=0)
         data = data.fillna(0)
@@ -571,14 +574,13 @@ class MPRABarcodeData(MPRAData):
         return cls(adata)
 
     def complexity(self, method="lincoln") -> NDArray[np.int64]:
-        """
-        Calculates and returns the complexity of barcodes using the Lincoln-Peterson or Chapman estimation.
+        """Calculates and returns the complexity of barcodes using the Lincoln-Peterson or Chapman estimation.
 
         Args:
             method (str): Either "lincoln" or "chapman".
 
         Returns:
-            NDArray[np.int16]: The Lincoln-Peterson or Chapman estimate.
+           The Lincoln-Peterson or Chapman estimate.
         """
 
         if method not in {"lincoln", "chapman"}:
@@ -805,6 +807,18 @@ class MPRABarcodeData(MPRAData):
         return mask
 
     def apply_barcode_filter(self, barcode_filter: BarcodeFilter, params: dict = {}) -> None:
+        """Applies a specified barcode filter to the dataset using the provided parameters.
+
+        This method selects the appropriate barcode filtering function based on the `barcode_filter` argument and applies it to update the `var_filter` attribute. Supported filters include RNA z-score, MAD, random, minimum count, and maximum count. After applying the filter, metadata is updated to record the applied filter.
+
+        Args:
+            barcode_filter (BarcodeFilter): The type of barcode filter to apply.
+            params (dict, optional): Additional parameters to pass to the filter function. Defaults to an empty dictionary.
+
+        Raises:
+            ValueError: If an unsupported barcode filter is provided.
+        """  # noqa: E501
+
         filter_switch = {
             BarcodeFilter.RNA_ZSCORE: self._barcode_filter_rna_zscore,
             BarcodeFilter.MAD: self._barcode_filter_mad,
@@ -822,6 +836,14 @@ class MPRABarcodeData(MPRAData):
         self._add_metadata("var_filter", [barcode_filter.value])
 
     def drop_count_sampling(self) -> None:
+        """Removes count sampling data from the dataset.
+
+        This method performs the following actions:
+        - Calls `drop_normalized()` to remove any normalized data.
+        - Logs the action of dropping count sampling.
+        - Deletes the "count_sampling" entry from the `.uns` attribute of the data.
+        - Removes "rna_sampling" and "dna_sampling" layers from the data, if they exist.
+        """
 
         self.drop_normalized()
 
@@ -893,6 +915,19 @@ class MPRABarcodeData(MPRAData):
         max_value: Optional[int] = None,
         aggregate_over_replicates: bool = False,
     ) -> None:
+        """Applies count sampling to RNA and/or DNA count data according to the specified parameters.
+
+        Args:
+            count_type (CountSampling): Specifies which counts to sample. Options are RNA, DNA, or RNA_AND_DNA.
+            proportion (Optional[float]): Proportion of counts to sample (between 0 and 1). If None, this parameter is ignored.
+            total (Optional[int]): Total number of counts to sample. If None, this parameter is ignored.
+            max_value (Optional[int]): Maximum value for sampled counts. If None, this parameter is ignored.
+            aggregate_over_replicates (bool): Whether to aggregate counts over replicates before sampling.
+
+        Side Effects:
+            - Adds sampling metadata to the object.
+            - Drops any normalized data associated with the object.
+        """
 
         if count_type == CountSampling.RNA or count_type == CountSampling.RNA_AND_DNA:
             self._apply_sampling("rna_sampling", self.rna_counts, proportion, total, max_value, aggregate_over_replicates)
@@ -918,18 +953,13 @@ class MPRABarcodeData(MPRAData):
 
 
 class MPRAOligoData(MPRAData):
-    """
-    MPRAOligoData is a subclass of MPRAData designed to handle MPRA (Massively Parallel Reporter Assay) oligo-level data.
+    """MPRAOligoData is a subclass of MPRAData designed to handle MPRA (Massively Parallel Reporter Assay) oligo-level data.
 
-    This class provides methods for loading, normalizing,
-    and managing barcode counts and associated data layers for MPRA experiments.
-    Barcode counts must be pre-set before accessing, as they cannot be computed within this class.
-    The normalization process includes pseudocount handling to avoid division by zero and supports per-barcode normalization.
+    This class provides methods for loading, normalizing, and managing barcode counts and associated data layers for MPRA experiments. Barcode counts must be pre-set before accessing, as they cannot be computed within this class. The normalization process includes pseudocount handling to avoid division by zero and supports per-barcode normalization.
 
-    Raises
-    ------
-    - MPRAlibException: If barcode counts are not set when accessed.
-    """
+    Raises:
+        MPRAlibException: If barcode counts are not set when accessed.
+    """  # noqa: E501
 
     def _barcode_counts(self):
         raise MPRAlibException(
