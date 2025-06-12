@@ -32,6 +32,17 @@ class Modality(Enum):
 
     @classmethod
     def from_string(cls, value: str) -> "Modality":
+        """Creates a Modality enum member from a string value.
+
+        Args:
+            value (str): The string representation of the enum member.
+
+        Returns:
+            The corresponding Modality enum member.
+
+        Raises:
+            ValueError: If the provided string does not match any Modality member.
+        """
         for member in cls:
             if member.value == value.lower():
                 return member
@@ -283,6 +294,11 @@ class MPRAData(ABC):
 
     @abstractmethod
     def drop_barcode_counts(self) -> None:
+        """Removes or clears the barcode counts data from the current object.
+
+        Raises:
+            NotImplementedError: If the method is not yet implemented.
+        """
         pass
 
     @property
@@ -442,6 +458,12 @@ class MPRAData(ABC):
             return None
 
     def add_sequence_design(self, df_sequence_design: pd.DataFrame, sequence_design_file_path) -> None:
+        """Add sequence design metadata to the object's data.
+
+        Args:
+            df_sequence_design (pd.DataFrame): DataFrame containing sequence design information, indexed by oligo identifiers.
+            sequence_design_file_path (str): Path to the file from which the sequence design data was loaded to store it into the metadata.
+        """  # noqa: E501
 
         df_matched_metadata = df_sequence_design.loc[self.oligos]
 
@@ -787,6 +809,18 @@ class MPRABarcodeData(MPRAData):
         return mask
 
     def apply_barcode_filter(self, barcode_filter: BarcodeFilter, params: dict = {}) -> None:
+        """Applies a specified barcode filter to the dataset using the provided parameters.
+
+        This method selects the appropriate barcode filtering function based on the `barcode_filter` argument and applies it to update the `var_filter` attribute. Supported filters include RNA z-score, MAD, random, minimum count, and maximum count. After applying the filter, metadata is updated to record the applied filter.
+
+        Args:
+            barcode_filter (BarcodeFilter): The type of barcode filter to apply.
+            params (dict, optional): Additional parameters to pass to the filter function. Defaults to an empty dictionary.
+
+        Raises:
+            ValueError: If an unsupported barcode filter is provided.
+        """ # noqa: E501
+
         filter_switch = {
             BarcodeFilter.RNA_ZSCORE: self._barcode_filter_rna_zscore,
             BarcodeFilter.MAD: self._barcode_filter_mad,
@@ -804,6 +838,14 @@ class MPRABarcodeData(MPRAData):
         self._add_metadata("var_filter", [barcode_filter.value])
 
     def drop_count_sampling(self) -> None:
+        """Removes count sampling data from the dataset.
+
+        This method performs the following actions:
+        - Calls `drop_normalized()` to remove any normalized data.
+        - Logs the action of dropping count sampling.
+        - Deletes the "count_sampling" entry from the `.uns` attribute of the data.
+        - Removes "rna_sampling" and "dna_sampling" layers from the data, if they exist.
+        """
 
         self.drop_normalized()
 
@@ -875,6 +917,19 @@ class MPRABarcodeData(MPRAData):
         max_value: Optional[int] = None,
         aggregate_over_replicates: bool = False,
     ) -> None:
+        """Applies count sampling to RNA and/or DNA count data according to the specified parameters.
+
+        Args:
+            count_type (CountSampling): Specifies which counts to sample. Options are RNA, DNA, or RNA_AND_DNA.
+            proportion (Optional[float]): Proportion of counts to sample (between 0 and 1). If None, this parameter is ignored.
+            total (Optional[int]): Total number of counts to sample. If None, this parameter is ignored.
+            max_value (Optional[int]): Maximum value for sampled counts. If None, this parameter is ignored.
+            aggregate_over_replicates (bool): Whether to aggregate counts over replicates before sampling.
+
+        Side Effects:
+            - Adds sampling metadata to the object.
+            - Drops any normalized data associated with the object.
+        """
 
         if count_type == CountSampling.RNA or count_type == CountSampling.RNA_AND_DNA:
             self._apply_sampling("rna_sampling", self.rna_counts, proportion, total, max_value, aggregate_over_replicates)
