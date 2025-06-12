@@ -819,7 +819,7 @@ class MPRABarcodeData(MPRAData):
 
         Raises:
             ValueError: If an unsupported barcode filter is provided.
-        """ # noqa: E501
+        """  # noqa: E501
 
         filter_switch = {
             BarcodeFilter.RNA_ZSCORE: self._barcode_filter_rna_zscore,
