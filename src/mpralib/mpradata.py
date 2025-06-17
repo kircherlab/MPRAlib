@@ -950,6 +950,7 @@ class MPRABarcodeData(MPRAData):
         )
 
         self.drop_normalized()
+        self.drop_barcode_counts()
 
 
 class MPRAOligoData(MPRAData):
