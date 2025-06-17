@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.3](https://github.com/kircherlab/MPRAlib/compare/v0.7.2...v0.7.3) (2025-06-17)
+
+
+### Bug Fixes
+
+* BC counts per oligo where not dropped and therefor enot recomputed after (down) sampling ([#63](https://github.com/kircherlab/MPRAlib/issues/63)) ([d615251](https://github.com/kircherlab/MPRAlib/commit/d615251336643285f2dd9f1e641cc156dcc540b7))
+
 ## [0.7.2](https://github.com/kircherlab/MPRAlib/compare/v0.7.1...v0.7.2) (2025-06-12)
 
 
