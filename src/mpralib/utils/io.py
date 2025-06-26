@@ -163,7 +163,7 @@ def export_counts_file(
     nan_columns = df.isna().all(axis=1)
 
     if isinstance(mpradata, MPRABarcodeData):
-        df.insert(0, "name", mpradata.oligos)
+        df.insert(0, "oligo_name", mpradata.oligos)
 
     # remove IDs which are all zero
     df = df[~nan_columns]
