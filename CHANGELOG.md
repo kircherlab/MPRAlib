@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.4](https://github.com/kircherlab/MPRAlib/compare/v0.7.3...v0.7.4) (2025-06-26)
+
+
+### Bug Fixes
+
+* correct header of count file (reporter experiment file format) ([#65](https://github.com/kircherlab/MPRAlib/issues/65)) ([d8fe22d](https://github.com/kircherlab/MPRAlib/commit/d8fe22df47f4a44e81f9c214c732161ce1b98d6f))
+
 ## [0.7.3](https://github.com/kircherlab/MPRAlib/compare/v0.7.2...v0.7.3) (2025-06-17)
 
 
