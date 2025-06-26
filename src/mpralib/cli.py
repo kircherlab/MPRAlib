@@ -354,8 +354,13 @@ def get_variant_map(input_file, sequence_design_file, output_file):
                 "oligo": df_sequence_design.index.values.repeat(df_sequence_design["SPDI"].apply(lambda x: len(x))),
             }
         )
-        variant_map["REF"] = variant_map.apply(lambda row: row["oligo"] if row["allele"] == "ref" else None, axis=1)
-        variant_map["ALT"] = variant_map.apply(lambda row: row["oligo"] if row["allele"] == "alt" else None, axis=1)
+
+        variant_map["REF"] = np.where(
+            variant_map["allele"] == "ref", variant_map["oligo"], np.full(len(variant_map["allele"]), None, dtype=object)
+        )
+        variant_map["ALT"] = np.where(
+            variant_map["allele"] == "alt", variant_map["oligo"], np.full(len(variant_map["allele"]), None, dtype=object)
+        )
         variant_map = variant_map.groupby("ID").agg(
             {"REF": lambda x: list(filter(None, x)), "ALT": lambda x: list(filter(None, x))}
         )
@@ -439,7 +444,7 @@ def get_counts(input_file, sequence_design_file, bc_threshold, normalized_counts
     element_mask = None
     if elements_only:
 
-        element_mask = mpradata.data.var["allele"].apply(lambda x: "ref" in x).values | (
+        element_mask = np.array(mpradata.data.var["allele"].apply(lambda x: "ref" in x).values, dtype=bool) | (
             mpradata.data.var["category"] == "element"
         )
         element_mask = ~np.repeat(np.array(element_mask)[np.newaxis, :], mpradata.n_obs, axis=0)
@@ -639,13 +644,13 @@ def get_reporter_elements(input_file, sequence_design_file, statistics_file, bc_
 
     indexes_in_order = [mpradata.oligos[mpradata.oligos == ID].index.tolist() for ID in df["ID"]]
     indexes_in_order = [index for sublist in indexes_in_order for index in sublist]
-    df.index = indexes_in_order
+    df.index = pd.Index(indexes_in_order)
 
     df = df.join(mpradata.oligos, how="right")
 
     mpradata.data.varm["mpralm_element"] = df
 
-    out_df = mpradata.data.varm["mpralm_element"][["oligo", "logFC", "P.Value", "adj.P.Val"]]
+    out_df = df[["oligo", "logFC", "P.Value", "adj.P.Val"]]
     out_df.loc[:, "inputCount"] = mpradata.normalized_dna_counts.mean(axis=0)
     out_df.loc[:, "outputCount"] = mpradata.normalized_rna_counts.mean(axis=0)
     out_df.dropna(inplace=True)
@@ -732,11 +737,13 @@ def get_reporter_variants(input_file, sequence_design_file, statistics_file, bc_
         rna_counts_alt = rna_counts[:, mask_alt].sum(axis=1)
 
         if spdi in df.index:
-            df.loc[spdi, "inputCountRef"] = dna_counts_ref.mean()
-            df.loc[spdi, "inputCountAlt"] = dna_counts_alt.mean()
-            df.loc[spdi, "outputCountRef"] = rna_counts_ref.mean()
-            df.loc[spdi, "outputCountAlt"] = rna_counts_alt.mean()
-            df.loc[spdi, "variantPos"] = int(mpradata.data.var["variant_pos"][mpradata.oligos.isin(row["REF"])].values[0][0])
+            df.loc[str(spdi), "inputCountRef"] = dna_counts_ref.mean()
+            df.loc[str(spdi), "inputCountAlt"] = dna_counts_alt.mean()
+            df.loc[str(spdi), "outputCountRef"] = rna_counts_ref.mean()
+            df.loc[str(spdi), "outputCountAlt"] = rna_counts_alt.mean()
+            df.loc[str(spdi), "variantPos"] = int(
+                mpradata.data.var["variant_pos"][mpradata.oligos.isin(row["REF"])].values[0][0]
+            )
 
     df.loc[df["P.Value"] == 0, "P.Value"] = np.finfo(float).eps
     df.loc[df["adj.P.Val"] == 0, "adj.P.Val"] = np.finfo(float).eps
@@ -832,20 +839,22 @@ def get_reporter_genomic_elements(
 
     mpradata = mpradata.oligo_data
 
-    mask = mpradata.data.var["allele"].apply(lambda x: "ref" in x).values | (mpradata.data.var["category"] == "element")
+    mask = np.array(mpradata.data.var["allele"].apply(lambda x: "ref" in x).values, dtype=bool) | (
+        mpradata.data.var["category"] == "element"
+    )
     mask = mask & (mpradata.data.var["ref"] == reference)
 
     df = pd.read_csv(statistics_file, sep="\t", header=0)
 
     indexes_in_order = [mpradata.oligos[mpradata.oligos == ID].index.tolist() for ID in df["ID"]]
     indexes_in_order = [index for sublist in indexes_in_order for index in sublist]
-    df.index = indexes_in_order
+    df.index = pd.Index(indexes_in_order)
 
     df = df.join(mpradata.oligos, how="right")
 
     mpradata.data.varm["mpralm_element"] = df
 
-    out_df = mpradata.data.varm["mpralm_element"][["oligo", "logFC", "P.Value", "adj.P.Val"]]
+    out_df = df[["oligo", "logFC", "P.Value", "adj.P.Val"]]
 
     out_df.loc[:, ["inputCount"]] = mpradata.normalized_dna_counts.mean(axis=0)
     out_df.loc[:, ["outputCount"]] = mpradata.normalized_rna_counts.mean(axis=0)
@@ -954,12 +963,14 @@ def get_reporter_genomic_variants(
         rna_counts_alt = rna_counts[:, mask_alt].sum(axis=1)
 
         if spdi in df.index:
-            df.loc[spdi, "inputCountRef"] = dna_counts_ref.mean()
-            df.loc[spdi, "inputCountAlt"] = dna_counts_alt.mean()
-            df.loc[spdi, "outputCountRef"] = rna_counts_ref.mean()
-            df.loc[spdi, "outputCountAlt"] = rna_counts_alt.mean()
-            df.loc[spdi, "variantPos"] = int(mpradata.data.var["variant_pos"][mpradata.oligos.isin(row["REF"])].values[0][0])
-            df.loc[spdi, "strand"] = mpradata.data.var["strand"][mpradata.oligos.isin(row["REF"])].values[0]
+            df.loc[str(spdi), "inputCountRef"] = dna_counts_ref.mean()
+            df.loc[str(spdi), "inputCountAlt"] = dna_counts_alt.mean()
+            df.loc[str(spdi), "outputCountRef"] = rna_counts_ref.mean()
+            df.loc[str(spdi), "outputCountAlt"] = rna_counts_alt.mean()
+            df.loc[str(spdi), "variantPos"] = int(
+                mpradata.data.var["variant_pos"][mpradata.oligos.isin(row["REF"])].values[0][0]
+            )
+            df.loc[str(spdi), "strand"] = mpradata.data.var["strand"][mpradata.oligos.isin(row["REF"])].values[0]
 
     df["variantPos"] = df["variantPos"].astype(int)
     df.loc[df["P.Value"] == 0, "P.Value"] = np.finfo(float).eps
