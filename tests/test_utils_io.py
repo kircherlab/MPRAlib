@@ -59,14 +59,14 @@ def test_export_counts_file_barcode(tmp_path, barcode_data):
     export_counts_file(barcode_data, str(out_path), normalized=False)
     df = pd.read_csv(out_path, sep="\t", na_values=["X"])
     # Only rows with observed=True and barcode_counts >= threshold should remain
-    assert "name" in df.columns
-    assert set(df["name"]) == {"ol1", "ol2", "ol3"}
+    assert "oligo_name" in df.columns
+    assert set(df["oligo_name"]) == {"ol1", "ol2", "ol3"}
     assert "dna_count_rep1" in df.columns
     assert "rna_count_rep2" in df.columns
     assert "rna_count_rep2" in df.columns
-    assert df.loc[df["name"] == "ol3", "dna_count_rep1"].values[0] == 5
+    assert df.loc[df["oligo_name"] == "ol3", "dna_count_rep1"].values[0] == 5
     # Check that zeros are written as empty
-    assert np.isnan(df.loc[df["name"] == "ol3", "dna_count_rep2"].values[0])
+    assert np.isnan(df.loc[df["oligo_name"] == "ol3", "dna_count_rep2"].values[0])
 
 
 def test_export_counts_file_oligo(tmp_path, oligo_data):
@@ -95,7 +95,7 @@ def test_export_counts_file_with_filter(tmp_path, barcode_data):
     export_counts_file(barcode_data, str(out_path), normalized=False, filter=filter_mask)
     df = pd.read_csv(out_path, sep="\t")
     # Only ol3 should remain (ol2 fails barcode_threshold, ol1 is masked)
-    assert set(df["name"]) == {"ol2", "ol3"}
+    assert set(df["oligo_name"]) == {"ol2", "ol3"}
 
 
 def test_export_counts_file_invalid_type(tmp_path):
