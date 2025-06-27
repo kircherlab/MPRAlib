@@ -1,24 +1,24 @@
 import pandas as pd
 import numpy as np
 import ast
-import os
+from importlib.resources import files
 from mpralib.mpradata import MPRABarcodeData, MPRAOligoData, MPRAData
 from mpralib.exception import SequenceDesignException, MPRAlibException
 from typing import Optional
 
 
 def chromosome_map() -> pd.DataFrame:
-    base_path = os.path.dirname(os.path.abspath(__file__))
-    file_path = os.path.join(base_path, "../data", "hg19.chromAlias.txt")
-    df = pd.read_csv(file_path, sep="\t", header=None, comment="#", dtype="category")
-    file_path = os.path.join(base_path, "../data", "hg38.chromAlias.txt")
-    df = pd.concat(
-        [
-            df,
-            pd.read_csv(file_path, sep="\t", header=None, comment="#", dtype="category"),
-        ],
-        ignore_index=True,
-    )
+
+    with files("mpralib.data").joinpath("hg19.chromAlias.txt").open() as chromAlias_hg19:
+        df = pd.read_csv(chromAlias_hg19, sep="\t", header=None, comment="#", dtype="category")
+    with files("mpralib.data").joinpath("hg38.chromAlias.txt").open() as chromAlias_hg38:
+        df = pd.concat(
+            [
+                df,
+                pd.read_csv(chromAlias_hg38, sep="\t", header=None, comment="#", dtype="category"),
+            ],
+            ignore_index=True,
+        )
     df.columns = ["ucsc", "assembly", "genbank", "refseq"]
     return df
 
