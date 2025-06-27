@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.1](https://github.com/kircherlab/MPRAlib/compare/v0.8.0...v0.8.1) (2025-06-27)
+
+
+### Bug Fixes
+
+* correctly defining extra data in pyproject.toml ([#69](https://github.com/kircherlab/MPRAlib/issues/69)) ([9e0a09d](https://github.com/kircherlab/MPRAlib/commit/9e0a09de0a8a5bd3e3641642c48f48daae62f41a))
+
 ## [0.8.0](https://github.com/kircherlab/MPRAlib/compare/v0.7.4...v0.8.0) (2025-06-27)
 
 
