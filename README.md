@@ -10,7 +10,7 @@
 | src/mpralib/mpradata.py               |      494 |       85 |     83% |46-49, 120, 171, 214, 293, 302, 310, 326-343, 347, 379, 402, 438-443, 450, 468-482, 699-710, 715-748, 754-780, 834, 848-854, 966, 976 |
 | src/mpralib/utils/\_\_init\_\_.py     |        0 |        0 |    100% |           |
 | src/mpralib/utils/file\_validation.py |      110 |        9 |     92% |32, 34, 41, 114-117, 129, 187 |
-| src/mpralib/utils/io.py               |       97 |       10 |     90% |11-23, 64-66 |
+| src/mpralib/utils/io.py               |       96 |        9 |     91% |12-23, 64-66 |
 | src/mpralib/utils/plot.py             |      108 |       34 |     69% |   117-184 |
 | tests/\_\_init\_\_.py                 |        0 |        0 |    100% |           |
 | tests/test\_cli.py                    |       59 |        0 |    100% |           |
@@ -18,7 +18,7 @@
 | tests/test\_mpradata.py               |      259 |        0 |    100% |           |
 | tests/test\_utils\_io.py              |      111 |        0 |    100% |           |
 | tests/test\_utils\_plot.py            |       90 |        0 |    100% |           |
-|                             **TOTAL** | **1794** |  **393** | **78%** |           |
+|                             **TOTAL** | **1793** |  **392** | **78%** |           |
 
 
 ## Setup coverage badge
