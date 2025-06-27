@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.8.0](https://github.com/kircherlab/MPRAlib/compare/v0.7.4...v0.8.0) (2025-06-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* loading chro map files in source. requires python 3.9+ ([#67](https://github.com/kircherlab/MPRAlib/issues/67))
+
+### Bug Fixes
+
+* loading chro map files in source. requires python 3.9+ ([#67](https://github.com/kircherlab/MPRAlib/issues/67)) ([5852748](https://github.com/kircherlab/MPRAlib/commit/585274832f5bed4893b34875b06912434e868114))
+
 ## [0.7.4](https://github.com/kircherlab/MPRAlib/compare/v0.7.3...v0.7.4) (2025-06-26)
 
 
