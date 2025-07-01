@@ -944,6 +944,14 @@ def get_reporter_genomic_elements(
     help="Using a barcode threshold for output.",
 )
 @click.option(
+    "--reference",
+    "reference",
+    required=True,
+    default="GRCh38",
+    type=click.Choice(["GRCh38", "GRCh37"]),
+    help="Using only this reference as denoted in ref in the sequence design file.",
+)
+@click.option(
     "--output-reporter-genomic-variants",
     "output_reporter_genomic_variants_file",
     required=True,
@@ -955,6 +963,7 @@ def get_reporter_genomic_variants(
     sequence_design_file: str,
     statistics_file: str,
     bc_threshold: int,
+    reference: str,
     output_reporter_genomic_variants_file: str,
 ) -> None:
 
@@ -1015,6 +1024,7 @@ def get_reporter_genomic_variants(
     df["end"] = df["start"] + df["refAllele"].apply(lambda x: len(x)).astype(int)
 
     map = chromosome_map()
+    map = map[map["release"] == reference]
     df["chr"] = df["variant_id"].apply(lambda x: _get_chr(map, x, mpradata.LOGGER))
 
     df.dropna(inplace=True)

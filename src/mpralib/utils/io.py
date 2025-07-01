@@ -11,15 +11,14 @@ def chromosome_map() -> pd.DataFrame:
 
     with files("mpralib.data").joinpath("hg19.chromAlias.txt").open() as chromAlias_hg19:
         df = pd.read_csv(chromAlias_hg19, sep="\t", header=None, comment="#", dtype="category")
+    df["release"] = "GRCh37"
+
     with files("mpralib.data").joinpath("hg38.chromAlias.txt").open() as chromAlias_hg38:
-        df = pd.concat(
-            [
-                df,
-                pd.read_csv(chromAlias_hg38, sep="\t", header=None, comment="#", dtype="category"),
-            ],
-            ignore_index=True,
-        )
-    df.columns = ["ucsc", "assembly", "genbank", "refseq"]
+        df_38 = pd.read_csv(chromAlias_hg38, sep="\t", header=None, comment="#", dtype="category")
+    df_38["release"] = "GRCh38"
+
+    df = pd.concat([df, df_38], ignore_index=True)
+    df.columns = ["ucsc", "assembly", "genbank", "refseq", "release"]
     return df
 
 
