@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.8.2](https://github.com/kircherlab/MPRAlib/compare/v0.8.1...v0.8.2) (2025-07-01)
+
+
+### Features
+
+* improved cli get reporter genomic elements/variants ([044b2a5](https://github.com/kircherlab/MPRAlib/commit/044b2a562e31200a90b5028338f92e978a32489b))
+
+
+### Bug Fixes
+
+* chromosome maps with X and Y ([0becc21](https://github.com/kircherlab/MPRAlib/commit/0becc21cd4597c3f555313cdc5ab578bc3acee6b))
+* chromosome_map can distiguish between hg19 and hg38 ([dd8afe5](https://github.com/kircherlab/MPRAlib/commit/dd8afe5efb4bce7566a8854b34579a677b170979))
+
 ## [0.8.1](https://github.com/kircherlab/MPRAlib/compare/v0.8.0...v0.8.1) (2025-06-27)
 
 
