@@ -21,12 +21,12 @@ pd.options.mode.copy_on_write = True
 
 
 @click.group(help="Command line interface of MPRAlib, a library for MPRA data analysis.")
-def cli():
+def cli() -> None:
     pass
 
 
 @cli.group(help="Validate standardized MPRA reporter formats.")
-def validate_file():
+def validate_file() -> None:
     pass
 
 
@@ -38,7 +38,7 @@ def validate_file():
     type=click.Path(exists=True, readable=True),
     help="MPRA Reporter Sequence Design file to validate.",
 )
-def reporter_sequence_design(input_file):
+def reporter_sequence_design(input_file: str) -> None:
     if not validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_SEQUENCE_DESIGN):
         raise click.ClickException("Validation failed. Please check the input file.")
 
@@ -51,7 +51,7 @@ def reporter_sequence_design(input_file):
     type=click.Path(exists=True, readable=True),
     help="MPRA Reporter Barcode to Element Mapping file to validate.",
 )
-def reporter_barcode_to_element_mapping(input_file):
+def reporter_barcode_to_element_mapping(input_file: str) -> None:
     if not validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_BARCODE_TO_ELEMENT_MAPPING):
         raise click.ClickException("Validation failed. Please check the input file.")
 
@@ -64,7 +64,7 @@ def reporter_barcode_to_element_mapping(input_file):
     type=click.Path(exists=True, readable=True),
     help="MPRA Reporter Experiment Barcode file to validate.",
 )
-def reporter_experiment_barcode(input_file):
+def reporter_experiment_barcode(input_file: str) -> None:
     if not validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_EXPERIMENT_BARCODE):
         raise click.ClickException("Validation failed. Please check the input file.")
 
@@ -77,7 +77,7 @@ def reporter_experiment_barcode(input_file):
     type=click.Path(exists=True, readable=True),
     help="MPRA Reporter Experiment file to validate.",
 )
-def reporter_experiment(input_file):
+def reporter_experiment(input_file: str) -> None:
     if not validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_EXPERIMENT):
         raise click.ClickException("Validation failed. Please check the input file.")
 
@@ -90,7 +90,7 @@ def reporter_experiment(input_file):
     type=click.Path(exists=True, readable=True),
     help="MPRA Reporter Element file to validate.",
 )
-def reporter_element(input_file):
+def reporter_element(input_file: str) -> None:
     if not validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_ELEMENT):
         raise click.ClickException("Validation failed. Please check the input file.")
 
@@ -103,7 +103,7 @@ def reporter_element(input_file):
     type=click.Path(exists=True, readable=True),
     help="MPRA Reporter Variant file to validate.",
 )
-def reporter_variant(input_file):
+def reporter_variant(input_file: str) -> None:
     if not validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_VARIANT):
         raise click.ClickException("Validation failed. Please check the input file.")
 
@@ -116,7 +116,7 @@ def reporter_variant(input_file):
     type=click.Path(exists=True, readable=True),
     help="MPRA Reporter Genomic Element file to validate.",
 )
-def reporter_genomic_element(input_file):
+def reporter_genomic_element(input_file: str) -> None:
     if not validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_GENOMIC_ELEMENT):
         raise click.ClickException("Validation failed. Please check the input file.")
 
@@ -129,13 +129,13 @@ def reporter_genomic_element(input_file):
     type=click.Path(exists=True, readable=True),
     help="MPRA Reporter Genomic Variant file to validate.",
 )
-def reporter_genomic_variant(input_file):
+def reporter_genomic_variant(input_file: str) -> None:
     if not validate_tsv_with_schema(input_file, ValidationSchema.REPORTER_GENOMIC_VARIANT):
         raise click.ClickException("Validation failed. Please check the input file.")
 
 
 @cli.group(help="General functionality.")
-def functional():
+def functional() -> None:
     pass
 
 
@@ -168,7 +168,7 @@ def functional():
     type=click.Path(writable=True),
     help="Output file of results.",
 )
-def activities(input_file, bc_threshold, element_level, output_file):
+def activities(input_file: str, bc_threshold: int, element_level: bool, output_file: str) -> None:
     mpradata = MPRABarcodeData.from_file(input_file)
 
     mpradata.barcode_threshold = bc_threshold
@@ -211,24 +211,24 @@ def activities(input_file, bc_threshold, element_level, output_file):
     type=click.Choice(["dna_normalized", "rna_normalized", "activity", "all"]),
     help="Using a barcode threshold for output (element level only).",
 )
-def compute_correlation(input_file, bc_threshold, correlation_on, correlation_method):
+def compute_correlation(input_file: str, bc_threshold: int, correlation_on: str, correlation_method: str) -> None:
     mpradata = MPRABarcodeData.from_file(input_file).oligo_data
 
     mpradata.barcode_threshold = bc_threshold
 
     if correlation_on == "all":
-        correlation_on = [Modality.DNA_NORMALIZED, Modality.RNA_NORMALIZED, Modality.ACTIVITY]
+        correlation_on_mode = [Modality.DNA_NORMALIZED, Modality.RNA_NORMALIZED, Modality.ACTIVITY]
     else:
-        correlation_on = [Modality.from_string(correlation_on)]
+        correlation_on_mode = [Modality.from_string(correlation_on)]
 
     if correlation_method == "all":
-        correlation_method = ["pearson", "spearman"]
+        correlation_method_list = ["pearson", "spearman"]
     else:
-        correlation_method = [correlation_method]
+        correlation_method_list = [correlation_method]
 
-    for method in correlation_method:
-        for on in correlation_on:
-            click.echo(f"{method} correlation on {on}: {mpradata.correlation(method, on).flatten()[[1, 2, 5]]}")
+    for method in correlation_method_list:
+        for mode in correlation_on_mode:
+            click.echo(f"{method} correlation on {mode}: {mpradata.correlation(method, mode).flatten()[[1, 2, 5]]}")
 
 
 functional.command(help="Filter out outliers based on RNA z-score and copute correlations before and afterwards.")
@@ -328,7 +328,7 @@ def sequence_design():
     type=click.Path(writable=True),
     help="Output file of results.",
 )
-def get_variant_map(input_file, sequence_design_file, output_file):
+def get_variant_map(input_file: str, sequence_design_file: str, output_file: str) -> None:
 
     df_sequence_design = read_sequence_design_file(sequence_design_file)
 
@@ -432,8 +432,15 @@ def get_variant_map(input_file, sequence_design_file, output_file):
     type=click.Path(writable=True),
     help="Output file of all non zero counts.",
 )
-def get_counts(input_file, sequence_design_file, bc_threshold, normalized_counts, use_oligos, elements_only, output_file):
-
+def get_counts(
+    input_file: str,
+    sequence_design_file: str,
+    bc_threshold: int,
+    normalized_counts: bool,
+    use_oligos: bool,
+    elements_only: bool,
+    output_file: str,
+) -> None:
     mpradata = MPRABarcodeData.from_file(input_file)
 
     mpradata.barcode_threshold = bc_threshold
@@ -500,7 +507,9 @@ def get_counts(input_file, sequence_design_file, bc_threshold, normalized_counts
     type=click.Path(writable=True),
     help="Output file of all non zero counts, divided by ref and alt.",
 )
-def get_variant_counts(input_file, sequence_design_file, bc_threshold, normalized_counts, use_oligos, output_file):
+def get_variant_counts(
+    input_file: str, sequence_design_file: str, bc_threshold: int, normalized_counts: bool, use_oligos: bool, output_file: str
+) -> None:
     """Processes MPRA (Massively Parallel Reporter Assay) data to generate variant-level count tables.
 
     Args:
@@ -634,8 +643,9 @@ def get_variant_counts(input_file, sequence_design_file, bc_threshold, normalize
     type=click.Path(writable=True),
     help="Output file of MPRA data object.",
 )
-def get_reporter_elements(input_file, sequence_design_file, statistics_file, bc_threshold, output_reporter_elements_file):
-
+def get_reporter_elements(
+    input_file: str, sequence_design_file: str, statistics_file: str, bc_threshold: int, output_reporter_elements_file: str
+) -> None:
     mpradata = MPRABarcodeData.from_file(input_file).oligo_data
 
     mpradata.add_sequence_design(read_sequence_design_file(sequence_design_file), sequence_design_file)
@@ -710,8 +720,9 @@ def get_reporter_elements(input_file, sequence_design_file, statistics_file, bc_
     type=click.Path(writable=True),
     help="Output file of MPRA data object.",
 )
-def get_reporter_variants(input_file, sequence_design_file, statistics_file, bc_threshold, output_reporter_variants_file):
-
+def get_reporter_variants(
+    input_file: str, sequence_design_file: str, statistics_file: str, bc_threshold: int, output_reporter_variants_file: str
+) -> None:
     mpradata = MPRABarcodeData.from_file(input_file)
 
     mpradata.add_sequence_design(read_sequence_design_file(sequence_design_file), sequence_design_file)
@@ -820,7 +831,7 @@ def get_reporter_variants(input_file, sequence_design_file, statistics_file, bc_
     "reference",
     required=True,
     type=str,
-    help="Using only this reference as denoted inas ref in the sequence design file.",
+    help="Using only this reference as denoted in ref in the sequence design file.",
 )
 @click.option(
     "--output-reporter-genomic-elements",
@@ -830,8 +841,13 @@ def get_reporter_variants(input_file, sequence_design_file, statistics_file, bc_
     help="Output file of MPRA data object.",
 )
 def get_reporter_genomic_elements(
-    input_file, sequence_design_file, statistics_file, bc_threshold, reference, output_reporter_genomic_elements_file
-):
+    input_file: str,
+    sequence_design_file: str,
+    statistics_file: str,
+    bc_threshold: int,
+    reference: str,
+    output_reporter_genomic_elements_file: str,
+) -> None:
 
     mpradata = MPRABarcodeData.from_file(input_file)
 
@@ -935,8 +951,12 @@ def get_reporter_genomic_elements(
     help="Output file of MPRA data object.",
 )
 def get_reporter_genomic_variants(
-    input_file, sequence_design_file, statistics_file, bc_threshold, output_reporter_genomic_variants_file
-):
+    input_file: str,
+    sequence_design_file: str,
+    statistics_file: str,
+    bc_threshold: int,
+    output_reporter_genomic_variants_file: str,
+) -> None:
 
     mpradata = MPRABarcodeData.from_file(input_file)
 
@@ -1040,7 +1060,7 @@ def _get_chr(map: pd.DataFrame, variant_id: str, logger: logging.Logger) -> Opti
 
 
 @cli.group(help="Plotting functions.")
-def plot():
+def plot() -> None:
     pass
 
 
@@ -1091,7 +1111,9 @@ def plot():
     type=click.Path(writable=True),
     help="Output plot file.",
 )
-def correlation(input_file, use_oligos, bc_threshold, modality, replicates, output_file):
+def correlation(
+    input_file: str, use_oligos: bool, bc_threshold: int, modality: str, replicates: Optional[list], output_file
+) -> None:
     mpradata = MPRABarcodeData.from_file(input_file)
 
     mpradata.barcode_threshold = bc_threshold
@@ -1099,12 +1121,12 @@ def correlation(input_file, use_oligos, bc_threshold, modality, replicates, outp
     if use_oligos:
         mpradata = mpradata.oligo_data
 
-    modality = Modality.from_string(modality)
+    mod = Modality.from_string(modality)
 
     if replicates:
-        fig = plt.correlation(mpradata, modality, replicates)
+        fig = plt.correlation(mpradata, mod, replicates)
     else:
-        fig = plt.correlation(mpradata, modality)
+        fig = plt.correlation(mpradata, mod)
 
     fig.savefig(output_file)
 
@@ -1187,7 +1209,7 @@ def dna_vs_rna(input_file, use_oligos, bc_threshold, replicates, output_file):
     type=click.Path(writable=True),
     help="Output plot file.",
 )
-def barcodes_per_oligo(input_file, replicates, output_file):
+def barcodes_per_oligo(input_file: str, replicates: Optional[list], output_file: str) -> None:
     mpradata = MPRABarcodeData.from_file(input_file).oligo_data
 
     if replicates:
@@ -1214,7 +1236,7 @@ def barcodes_per_oligo(input_file, replicates, output_file):
     type=int,
     help="Using a barcode threshold for output.",
 )
-def outlier(input_file, bc_threshold):
+def outlier(input_file: str, bc_threshold: int) -> None:
     mpradata = MPRABarcodeData.from_file(input_file)
 
     mpradata.barcode_threshold = bc_threshold
