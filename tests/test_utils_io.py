@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import pytest
 import anndata as ad
-from mpralib.utils.io import read_sequence_design_file, export_counts_file
+from mpralib.utils.io import read_sequence_design_file, export_counts_file, chromosome_map
 from mpralib.exception import SequenceDesignException, MPRAlibException
 from mpralib.mpradata import MPRABarcodeData, MPRAOligoData, MPRAData
 
@@ -169,3 +169,25 @@ def test_read_sequence_design_file_invalid_class():
         read_sequence_design_file(path)
     assert "class" in str(excinfo.value)
     os.remove(path)
+
+
+def test_chromosome_map_columns():
+    df = chromosome_map()
+    expected_columns = ["ucsc", "assembly", "genbank", "refseq", "release"]
+    assert list(df.columns) == expected_columns
+
+
+def test_chromosome_map_release_values():
+    df = chromosome_map()
+    assert set(df["release"].unique()) == {"GRCh37", "GRCh38"}
+
+
+def test_chromosome_map_non_empty():
+    df = chromosome_map()
+    assert not df.empty
+    assert df.shape[0] > 0
+
+
+def test_chromosome_map_no_duplicate_rows():
+    df = chromosome_map()
+    assert df.duplicated().sum() == 0

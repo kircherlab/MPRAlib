@@ -237,8 +237,6 @@ def read_sequence_design_file(file_path: str) -> pd.DataFrame:
     df["class"] = pd.Categorical(df["class"])
     df["chr"] = pd.Categorical(df["chr"])
     df["strand"] = pd.Categorical(df["strand"])
-    # df["start"] = df["start"].astype("Int64")  # Nullable integer type
-    # df["end"] = df["end"].astype("Int64")  # Nullable integer type
     df["name"] = pd.Categorical(df["name"].str.replace(r"[\s\[\]]", "_", regex=True))
 
     # oligo name as index
