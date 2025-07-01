@@ -11,15 +11,14 @@ def chromosome_map() -> pd.DataFrame:
 
     with files("mpralib.data").joinpath("hg19.chromAlias.txt").open() as chromAlias_hg19:
         df = pd.read_csv(chromAlias_hg19, sep="\t", header=None, comment="#", dtype="category")
+    df["release"] = "GRCh37"
+
     with files("mpralib.data").joinpath("hg38.chromAlias.txt").open() as chromAlias_hg38:
-        df = pd.concat(
-            [
-                df,
-                pd.read_csv(chromAlias_hg38, sep="\t", header=None, comment="#", dtype="category"),
-            ],
-            ignore_index=True,
-        )
-    df.columns = ["ucsc", "assembly", "genbank", "refseq"]
+        df_38 = pd.read_csv(chromAlias_hg38, sep="\t", header=None, comment="#", dtype="category")
+    df_38["release"] = "GRCh38"
+
+    df = pd.concat([df, df_38], ignore_index=True)
+    df.columns = ["ucsc", "assembly", "genbank", "refseq", "release"]
     return df
 
 
@@ -208,6 +207,23 @@ def read_sequence_design_file(file_path: str) -> pd.DataFrame:
             "allele",
             "info",
         ],
+        dtype={
+            "name": "category",
+            "sequence": str,
+            "category": "category",
+            "class": "category",
+            "source": str,
+            "ref": str,
+            "chr": "category",
+            "start": "Int64",
+            "end": "Int64",
+            "strand": "category",
+            "variant_class": str,
+            "variant_pos": str,
+            "SPDI": str,
+            "allele": str,
+            "info": str,
+        },
     ).drop_duplicates()
 
     # Set specific columns as arrays
@@ -221,8 +237,6 @@ def read_sequence_design_file(file_path: str) -> pd.DataFrame:
     df["class"] = pd.Categorical(df["class"])
     df["chr"] = pd.Categorical(df["chr"])
     df["strand"] = pd.Categorical(df["strand"])
-    df["start"] = df["start"].astype("Int64")  # Nullable integer type
-    df["end"] = df["end"].astype("Int64")  # Nullable integer type
     df["name"] = pd.Categorical(df["name"].str.replace(r"[\s\[\]]", "_", regex=True))
 
     # oligo name as index

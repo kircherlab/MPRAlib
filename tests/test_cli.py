@@ -2,8 +2,10 @@ import unittest
 import os
 import tempfile
 from click.testing import CliRunner
-from mpralib.cli import cli
+from mpralib.cli import cli, _get_chr
 import gzip
+import pandas as pd
+from logging import Logger
 
 
 class TestMPRlibCLI(unittest.TestCase):
@@ -158,3 +160,62 @@ class TestMPRlibCLI(unittest.TestCase):
 
         # Clean up
         os.remove(output_file)
+
+
+class DummyLogger(Logger):
+
+    def __init__(self):
+        self.messages = []
+
+    def warning(self, msg, *args, **kwargs):
+        self.messages.append(msg)
+
+
+def test_get_chr_found():
+    # Prepare a chromosome map DataFrame
+    map_df = pd.DataFrame({
+        "refseq": ["NC_000001.11", "NC_000002.12"],
+        "ucsc": ["chr1", "chr2"],
+        "release": ["GRCh38", "GRCh38"]
+    })
+    variant_id = "NC_000001.11:12345:A:T"
+    logger = DummyLogger()
+    result = _get_chr(map_df, variant_id, logger)
+    assert result == "chr1"
+    assert logger.messages == []
+
+
+def test_get_chr_not_found():
+    map_df = pd.DataFrame({
+        "refseq": ["NC_000001.11", "NC_000002.12"],
+        "ucsc": ["chr1", "chr2"],
+        "release": ["GRCh38", "GRCh38"]
+    })
+    variant_id = "NC_000003.13:54321:G:C"
+    logger = DummyLogger()
+    result = _get_chr(map_df, variant_id, logger)
+    assert result is None
+    assert any("Contig NC_000003.13 of SPDI NC_000003.13:54321:G:C not found" in msg for msg in logger.messages)
+
+
+def test_get_chr_handles_empty_map():
+    map_df = pd.DataFrame(columns=["refseq", "ucsc", "release"])
+    variant_id = "NC_000004.14:11111:T:A"
+    logger = DummyLogger()
+    result = _get_chr(map_df, variant_id, logger)
+    assert result is None
+    assert any("Contig NC_000004.14 of SPDI NC_000004.14:11111:T:A not found" in msg for msg in logger.messages)
+
+
+def test_get_chr_with_multiple_matches():
+    # Should return the first match if multiple rows match
+    map_df = pd.DataFrame({
+        "refseq": ["NC_000005.15", "NC_000005.15"],
+        "ucsc": ["chr5a", "chr5b"],
+        "release": ["GRCh38", "GRCh37"]
+    })
+    variant_id = "NC_000005.15:22222:C:G"
+    logger = DummyLogger()
+    result = _get_chr(map_df, variant_id, logger)
+    assert result in ["chr5a", "chr5b"]
+    assert logger.messages == []
