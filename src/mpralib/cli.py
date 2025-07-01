@@ -1,4 +1,6 @@
 import click
+from typing import Optional
+import logging
 import pandas as pd
 import numpy as np
 import math
@@ -993,7 +995,7 @@ def get_reporter_genomic_variants(
     df["end"] = df["start"] + df["refAllele"].apply(lambda x: len(x)).astype(int)
 
     map = chromosome_map()
-    df["chr"] = df["variant_id"].apply(lambda x: map[map["refseq"] == x.split(":")[0]].loc[:, "ucsc"].values[0])
+    df["chr"] = df["variant_id"].apply(lambda x: _get_chr(map, x, mpradata.LOGGER))
 
     df.dropna(inplace=True)
 
@@ -1026,6 +1028,15 @@ def get_reporter_genomic_variants(
 
     with pysam.BGZFile(output_reporter_genomic_variants_file, "ab", None) as f:
         f.write(df.to_csv(sep="\t", index=False, header=False, float_format="%.4f").encode())
+
+
+def _get_chr(map: pd.DataFrame, variant_id: str, logger: logging.Logger) -> Optional[str]:
+    variant_contig = variant_id.split(":")[0]
+    if variant_contig in map["refseq"].values:
+        return map[map["refseq"] == variant_contig].loc[:, "ucsc"].values[0]
+    else:
+        logger.warning(f"Contig {variant_contig} of SPDI {variant_id} not found in chromosome map. Returning None.")
+        return None
 
 
 @cli.group(help="Plotting functions.")
