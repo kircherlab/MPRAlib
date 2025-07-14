@@ -57,6 +57,6 @@ MIT License
 
 ## Links
 
-- [Documentation](https://github.com/mschubach/MPRAlib)
-- [Issues](https://github.com/mschubach/MPRAlib/issues)
+- [Documentation](https://mpralib.readthedocs.io)
+- [Issues](https://github.com/kircherlab/MPRAlib/issues)
 
