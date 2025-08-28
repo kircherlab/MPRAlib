@@ -63,7 +63,7 @@ class CountSampling(Enum):
 class BarcodeFilter(Enum):
     """Enumeration of available barcode filtering methods."""
 
-    GLOBAL = "RNA_ZSCORE"
+    GLOBAL = "GLOBAL"
     """str: Filter barcodes based on RNA z-score."""
     OLIGO_SPECIFIC = "OLIGO_SPECIFIC"
     """str: Filter barcodes based on standard deviation per oligo"""
@@ -719,7 +719,7 @@ class MPRABarcodeData(MPRAData):
 
         return grouped.apply(lambda x: x.sum()).T
 
-    def _barcode_filter_oligo_specific_outliers(self, times_zscore=3):
+    def _barcode_filter_global_outliers(self, times_zscore=3):
 
         barcode_mask = pd.DataFrame(
             self.raw_dna_counts + self.raw_rna_counts,
@@ -728,13 +728,13 @@ class MPRABarcodeData(MPRAData):
         ).T.apply(lambda x: (x != 0))
 
         df_rna = pd.DataFrame(self.raw_rna_counts, index=self.obs_names, columns=self.var_names).T
-        grouped = df_rna.where(barcode_mask).groupby(self.oligos, observed=True)
+        df_rna_masked = df_rna.where(barcode_mask)
 
-        mask = ((df_rna - grouped.transform("mean")) / grouped.transform("std")).abs() > times_zscore
+        mask = ((df_rna - df_rna_masked.transform("mean")) / df_rna_masked.transform("std")).abs() > times_zscore
 
         return mask
 
-    def _barcode_filter_global_outliers(self, times_stdev=3):
+    def _barcode_filter_oligo_specific_outliers(self, times_stdev=3):
 
         barcode_mask = pd.DataFrame(
             self.raw_dna_counts + self.raw_rna_counts,
