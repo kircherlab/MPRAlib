@@ -63,9 +63,11 @@ class CountSampling(Enum):
 class BarcodeFilter(Enum):
     """Enumeration of available barcode filtering methods."""
 
-    RNA_ZSCORE = "RNA_ZSCORE"
+    GLOBAL = "RNA_ZSCORE"
     """str: Filter barcodes based on RNA z-score."""
-    MAD = "MAD"
+    OLIGO_SPECIFIC = "OLIGO_SPECIFIC"
+    """str: Filter barcodes based on standard deviation per oligo"""
+    LARGE_EXPRESSION = "LARGE_EXPRESSION"
     """str: Filter barcodes based on Median Absolute Deviation (MAD)."""
     RANDOM = "RANDOM"
     """str: Randomly filter barcodes."""
@@ -73,6 +75,29 @@ class BarcodeFilter(Enum):
     """str: Filter barcodes with counts below a specified minimum."""
     MAX_COUNT = "MAX_COUNT"
     """str: Filter barcodes with counts above a specified maximum."""
+
+    def __new__(cls, value):
+        obj = object.__new__(cls)
+        obj._value_ = str(value).lower()
+        return obj
+
+    @classmethod
+    def from_string(cls, value: str) -> "BarcodeFilter":
+        """Creates a BarcodeFilter enum member from a string value.
+
+        Args:
+            value (str): The string representation of the enum member.
+
+        Returns:
+            The corresponding BarcodeFilter enum member.
+
+        Raises:
+            ValueError: If the provided string does not match any BarcodeFilter member.
+        """
+        for member in cls:
+            if member.value == value.lower():
+                return member
+        raise ValueError(f"{value} is not a valid {cls.__name__}")
 
 
 class MPRAData(ABC):
@@ -694,7 +719,7 @@ class MPRABarcodeData(MPRAData):
 
         return grouped.apply(lambda x: x.sum()).T
 
-    def _barcode_filter_rna_zscore(self, times_zscore=3):
+    def _barcode_filter_oligo_specific_outliers(self, times_zscore=3):
 
         barcode_mask = pd.DataFrame(
             self.raw_dna_counts + self.raw_rna_counts,
@@ -709,7 +734,22 @@ class MPRABarcodeData(MPRAData):
 
         return mask
 
-    def _barcode_filter_mad(self, times_mad=3, n_bins=20):
+    def _barcode_filter_global_outliers(self, times_stdev=3):
+
+        barcode_mask = pd.DataFrame(
+            self.raw_dna_counts + self.raw_rna_counts,
+            index=self.obs_names,
+            columns=self.var_names,
+        ).T.apply(lambda x: (x != 0))
+
+        df_rna = pd.DataFrame(self.raw_rna_counts, index=self.obs_names, columns=self.var_names).T
+        grouped = df_rna.where(barcode_mask).groupby(self.oligos, observed=True)
+
+        mask = ((df_rna - grouped.transform("mean")) / grouped.transform("std")).abs() > times_stdev
+
+        return mask
+
+    def _barcode_filter_large_expression_outliers(self, times_mad=3, n_bins=20):
 
         # sum up DNA and RNA counts across replicates
         DNA_sum = pd.DataFrame(self.raw_dna_counts, index=self.obs_names, columns=self.var_names).T.sum(axis=1)
@@ -820,8 +860,9 @@ class MPRABarcodeData(MPRAData):
         """  # noqa: E501
 
         filter_switch = {
-            BarcodeFilter.RNA_ZSCORE: self._barcode_filter_rna_zscore,
-            BarcodeFilter.MAD: self._barcode_filter_mad,
+            BarcodeFilter.GLOBAL: self._barcode_filter_global_outliers,
+            BarcodeFilter.LARGE_EXPRESSION: self._barcode_filter_large_expression_outliers,
+            BarcodeFilter.OLIGO_SPECIFIC: self._barcode_filter_oligo_specific_outliers,
             BarcodeFilter.RANDOM: self._barcode_filter_random,
             BarcodeFilter.MIN_COUNT: self._barcode_filter_min_count,
             BarcodeFilter.MAX_COUNT: self._barcode_filter_max_count,

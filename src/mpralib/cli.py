@@ -16,6 +16,8 @@ from mpralib.utils.io import (
 )
 import mpralib.utils.plot as plt
 from mpralib.utils.file_validation import validate_tsv_with_schema, ValidationSchema
+import ast
+import json
 
 pd.options.mode.copy_on_write = True
 
@@ -231,9 +233,7 @@ def compute_correlation(input_file: str, bc_threshold: int, correlation_on: str,
             click.echo(f"{method} correlation on {mode}: {mpradata.correlation(method, mode).flatten()[[1, 2, 5]]}")
 
 
-functional.command(help="Filter out outliers based on RNA z-score and copute correlations before and afterwards.")
-
-
+@functional.command(help="Filter out outliers based on RNA z-score and compute correlations before and afterwards.")
 @click.option(
     "--input",
     "input_file",
@@ -242,11 +242,18 @@ functional.command(help="Filter out outliers based on RNA z-score and copute cor
     help="Input file path of MPRA results.",
 )
 @click.option(
-    "--outlier-rna-zscore-times",
-    "rna_zscore_times",
-    default=3,
-    type=float,
-    help="Absolute rna z_score is not allowed to be larger than this value.",
+    "--method",
+    "method",
+    required=True,
+    type=click.Choice([f.name.lower() for f in BarcodeFilter]),
+    help="Outlier filtering method. Choices: " + ", ".join([f.name.lower() for f in BarcodeFilter]),
+)
+@click.option(
+    "--method-values",
+    "method_values",
+    required=False,
+    type=str,
+    help="JSON string or Python dict of parameters for the outlier detection method, e.g. '{\"times_zscore\": 3.0}'.",
 )
 @click.option(
     "--bc-threshold",
@@ -263,38 +270,49 @@ functional.command(help="Filter out outliers based on RNA z-score and copute cor
     type=click.Path(writable=True),
     help="Output file of results.",
 )
-def filter_outliers(input_file, rna_zscore_times, bc_threshold, output_file):
-    """Filters outliers from MPRA barcode data based on RNA z-score and barcode count threshold.
+def filter_outliers(input_file, method, method_values, bc_threshold, output_file) -> None:
+    """
+    Filters outliers from MPRA barcode data using different methods.
 
     Reads an input file to create an MPRAdata object, applies a barcode filter to remove outliers
-    using the specified RNA z-score threshold, and optionally exports the filtered activity data
+    using the specified method and parameters, and optionally exports the filtered activity data
     to an output file. Prints Pearson correlation of log2FoldChange before and after outlier removal.
 
     Args:
         input_file (str): Path to the input file containing barcode data.
-        rna_zscore_times (float): Number of standard deviations for RNA z-score outlier filtering.
+        method (BarcodeFilter): The method to use for outlier filtering.
+        method_values (dict): Parameters for the outlier detection method.
         bc_threshold (int): Minimum barcode count threshold for filtering.
         output_file (str): Path to the output file to export filtered activity data. If None, no file is written.
     """
-    mpradata = MPRABarcodeData.from_file(input_file)
 
+    mpradata = MPRABarcodeData.from_file(input_file)
     mpradata.barcode_threshold = bc_threshold
 
     oligo_data = mpradata.oligo_data
 
     click.echo(
-        f"""Pearson correlation log2FoldChange BEFORE outlier removal: {
-            oligo_data.correlation('pearson', Modality.ACTIVITY).flatten()[[1, 2, 5]]
-        }"""
+        f"Pearson correlation log2FoldChange BEFORE outlier removal: "
+        f"{oligo_data.correlation('pearson', Modality.ACTIVITY).flatten()[[1, 2, 5]]}"
     )
 
-    mpradata.apply_barcode_filter(BarcodeFilter.RNA_ZSCORE, {"times_zscore": rna_zscore_times})
+    # Parse method_values as dict if provided
+    params = {}
+    if method_values:
+        try:
+            params = json.loads(method_values)
+        except Exception:
+            try:
+                params = ast.literal_eval(method_values)
+            except Exception:
+                raise click.ClickException("Could not parse --method-values as dict or JSON.")
+
+    mpradata.apply_barcode_filter(BarcodeFilter.from_string(method), params)
 
     oligo_data = mpradata.oligo_data
     click.echo(
-        f"""Pearson correlation log2FoldChange AFTER outlier removal: {
-            oligo_data.correlation('pearson', Modality.ACTIVITY).flatten()[[1, 2, 5]]
-        }"""
+        f"Pearson correlation log2FoldChange AFTER outlier removal: "
+        f"{oligo_data.correlation('pearson', Modality.ACTIVITY).flatten()[[1, 2, 5]]}"
     )
     if output_file:
         export_activity_file(oligo_data, output_file)
