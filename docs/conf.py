@@ -8,12 +8,13 @@
 
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../src'))
+
+sys.path.insert(0, os.path.abspath("../src"))
 import mpralib  # noqa: E402
 
-project = 'MPRAlib'
-copyright = '2025, Max Schubach'
-author = 'Max Schubach'
+project = "MPRAlib"
+copyright = "2025, Max Schubach"
+author = "Max Schubach"
 version = mpralib.__version__
 release = mpralib.__version__
 
@@ -23,15 +24,15 @@ release = mpralib.__version__
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx_autodoc_typehints",
-    'sphinx.ext.viewcode',
-    'sphinx.ext.todo',
+    "sphinx.ext.viewcode",
+    "sphinx.ext.todo",
     "sphinx.ext.napoleon",  # for Google/Numpy style docstrings
 ]
 
-templates_path = ['_templates']
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+templates_path = ["_templates"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
-language = 'en'
+language = "en"
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

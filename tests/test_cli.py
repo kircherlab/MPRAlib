@@ -182,11 +182,9 @@ def logger():
 
 def test_get_chr_found(logger):
     # Prepare a chromosome map DataFrame
-    map_df = pd.DataFrame({
-        "refseq": ["NC_000001.11", "NC_000002.12"],
-        "ucsc": ["chr1", "chr2"],
-        "release": ["GRCh38", "GRCh38"]
-    })
+    map_df = pd.DataFrame(
+        {"refseq": ["NC_000001.11", "NC_000002.12"], "ucsc": ["chr1", "chr2"], "release": ["GRCh38", "GRCh38"]}
+    )
     variant_id = "NC_000001.11:12345:A:T"
     result = _get_chr(map_df, variant_id, logger)
     assert result == "chr1"
@@ -194,11 +192,9 @@ def test_get_chr_found(logger):
 
 
 def test_get_chr_not_found(logger):
-    map_df = pd.DataFrame({
-        "refseq": ["NC_000001.11", "NC_000002.12"],
-        "ucsc": ["chr1", "chr2"],
-        "release": ["GRCh38", "GRCh38"]
-    })
+    map_df = pd.DataFrame(
+        {"refseq": ["NC_000001.11", "NC_000002.12"], "ucsc": ["chr1", "chr2"], "release": ["GRCh38", "GRCh38"]}
+    )
     variant_id = "NC_000003.13:54321:G:C"
     result = _get_chr(map_df, variant_id, logger)
     assert result is None
@@ -215,11 +211,9 @@ def test_get_chr_handles_empty_map(logger):
 
 def test_get_chr_with_multiple_matches(logger):
     # Should return the first match if multiple rows match
-    map_df = pd.DataFrame({
-        "refseq": ["NC_000005.15", "NC_000005.15"],
-        "ucsc": ["chr5a", "chr5b"],
-        "release": ["GRCh38", "GRCh37"]
-    })
+    map_df = pd.DataFrame(
+        {"refseq": ["NC_000005.15", "NC_000005.15"], "ucsc": ["chr5a", "chr5b"], "release": ["GRCh38", "GRCh37"]}
+    )
     variant_id = "NC_000005.15:22222:C:G"
     result = _get_chr(map_df, variant_id, logger)
     assert result in ["chr5a", "chr5b"]
