@@ -22,7 +22,7 @@ def test_functional_filter_outliers_help(runner):
     result = runner.invoke(cli, ["functional", "filter", "--help"])
     assert result.exit_code == 0
     print(result.output)
-    assert "Usage: cli functional filter-outliers [OPTIONS]" in result.output
+    assert "Usage: cli functional filter [OPTIONS]" in result.output
 
 
 @pytest.fixture
