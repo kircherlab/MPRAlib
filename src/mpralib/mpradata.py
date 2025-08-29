@@ -719,7 +719,7 @@ class MPRABarcodeData(MPRAData):
 
         return grouped.apply(lambda x: x.sum()).T
 
-    def _barcode_filter_global_outliers(self, times_zscore=3) -> NDArray[np.bool_]:
+    def _barcode_filter_global_outliers(self, times_zscore: float = 3.0) -> NDArray[np.bool_]:
 
         barcode_mask = ((self.raw_dna_counts + self.raw_rna_counts) != 0).T
 
@@ -740,7 +740,7 @@ class MPRABarcodeData(MPRAData):
 
         return mask.values.astype(bool)
 
-    def _barcode_filter_large_expression_outliers(self, times_activity=5) -> NDArray[np.bool_]:
+    def _barcode_filter_large_expression_outliers(self, times_activity: float = 5.0) -> NDArray[np.bool_]:
 
         ratio = np.divide(
             self.normalized_rna_counts.sum(axis=0),

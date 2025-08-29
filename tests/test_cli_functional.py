@@ -19,7 +19,7 @@ def test_functional_group_help(runner):
 
 
 def test_functional_filter_outliers_help(runner):
-    result = runner.invoke(cli, ["functional", "filter-outliers", "--help"])
+    result = runner.invoke(cli, ["functional", "filter", "--help"])
     assert result.exit_code == 0
     print(result.output)
     assert "Usage: cli functional filter-outliers [OPTIONS]" in result.output
@@ -47,24 +47,33 @@ def test_functional_filter_outliers_global(runner, files):
             files["input"],
             "--method",
             "global",
+            "--method-values",
+            "{\"times_zscore\": 1000}",
             "--output-activity",
-            files["output"],
+            files["output_activity"],
+            "--output-barcode",
+            files["output_barcode"],
         ],
     )
 
     # Check the result
     assert result.exit_code == 0
-    assert os.path.exists(files["output"])
+    assert os.path.exists(files["output_activity"])
+    assert os.path.exists(files["output_barcode"])
 
-    # with open(files["output"], "r") as f:
-    #     output_content = f.read()
+    with open(files["output_barcode"], "r") as f:
+        output_content = f.read()
+    expected_output_file = os.path.join(os.path.dirname(__file__), "data", "reporter_experiment_barcode.input.tsv.gz")
+    with gzip.open(expected_output_file, "rt") as f:
+        expected_content = f.read()
+    assert output_content == expected_content
 
-    # expected_output_file = os.path.join(os.path.dirname(__file__), "data", "reporter_experiment_barcode.input.tsv.gz")
-
-    # with gzip.open(expected_output_file, "rt") as f:
-    #     expected_content = f.read()
-
-    # assert output_content == expected_content
+    with open(files["output_activity"], "r") as f:
+        output_content = f.read()
+    expected_output_file = os.path.join(os.path.dirname(__file__), "data", "reporter_activity.bc1.output.tsv.gz")
+    with gzip.open(expected_output_file, "rt") as f:
+        expected_content = f.read()
+    assert output_content == expected_content
 
 
 def test_functional_filter_outliers_large_expression(runner, files):
