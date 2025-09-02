@@ -172,6 +172,23 @@ def test_apply_barcode_filter_min_count(mpra_data_barcode):
     np.testing.assert_array_equal(mpra_data_barcode.var_filter, expected_filter)
 
 
+def test_barcode_filter_other_to_min_max_counts(mpra_data_barcode):
+
+    result = mpra_data_barcode._barcode_filter_min_max_counts(
+        BarcodeFilter.LARGE_EXPRESSION, counts=mpra_data_barcode.raw_dna_counts, count_threshold=1
+    )
+    expected_filter = np.array(
+        [
+            [False, False, False],
+            [False, False, False],
+            [False, False, False],
+            [False, False, False],
+            [False, False, False],
+        ]
+    )
+    np.testing.assert_array_equal(result, expected_filter)
+
+
 def test_apply_barcode_filter_max_count(mpra_data_barcode):
     mpra_data_barcode.apply_barcode_filter(BarcodeFilter.MAX_COUNT, params={"rna_max_count": 9, "dna_max_count": 100})
     expected_filter = np.array(
@@ -395,3 +412,24 @@ def test_read_and_write_with_modifications(tmp_path, mpra_data):
     assert isinstance(data, MPRABarcodeData)
     assert data.scaling == 10.0
     assert data.pseudo_count == 0
+
+
+def test_modality_from_string():
+    assert Modality.from_string("DNA") == Modality.DNA
+    assert Modality.from_string("dna") == Modality.DNA
+    assert Modality.from_string("RNA") == Modality.RNA
+    assert Modality.from_string("rna_normalized") == Modality.RNA_NORMALIZED
+    assert Modality.from_string("ACTIVITY") == Modality.ACTIVITY
+    with pytest.raises(ValueError):
+        Modality.from_string("invalid_modality")
+
+
+def test_barcodefilter_from_string():
+    assert BarcodeFilter.from_string("GLOBAL") == BarcodeFilter.GLOBAL
+    assert BarcodeFilter.from_string("global") == BarcodeFilter.GLOBAL
+    assert BarcodeFilter.from_string("OLIGO_SPECIFIC") == BarcodeFilter.OLIGO_SPECIFIC
+    assert BarcodeFilter.from_string("random") == BarcodeFilter.RANDOM
+    assert BarcodeFilter.from_string("MIN_COUNT") == BarcodeFilter.MIN_COUNT
+    assert BarcodeFilter.from_string("max_count") == BarcodeFilter.MAX_COUNT
+    with pytest.raises(ValueError):
+        BarcodeFilter.from_string("not_a_filter")

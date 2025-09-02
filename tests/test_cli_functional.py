@@ -35,6 +35,137 @@ def files():
     os.remove(output_file_barcode)
 
 
+def test_filter_min_count_method(runner, files):
+    # Should run without error and produce output files
+    result = runner.invoke(
+        cli,
+        [
+            "functional",
+            "filter",
+            "--input",
+            files["input"],
+            "--method",
+            "min_count",
+            "--method-values",
+            '{"rna_min_count": 1}',
+            "--bc-threshold",
+            "1",
+            "--output-activity",
+            files["output_activity"],
+            "--output-barcode",
+            files["output_barcode"],
+        ],
+    )
+    assert result.exit_code == 0
+    assert os.path.exists(files["output_activity"])
+    assert os.path.exists(files["output_barcode"])
+
+
+def test_filter_max_count_method(runner, files):
+    result = runner.invoke(
+        cli,
+        [
+            "functional",
+            "filter",
+            "--input",
+            files["input"],
+            "--method",
+            "max_count",
+            "--method-values",
+            '{"dna_max_count": 10000}',
+            "--output-activity",
+            files["output_activity"],
+            "--output-barcode",
+            files["output_barcode"],
+        ],
+    )
+    assert result.exit_code == 0
+    assert os.path.exists(files["output_activity"])
+    assert os.path.exists(files["output_barcode"])
+
+
+def test_filter_random_method(runner, files):
+    result = runner.invoke(
+        cli,
+        [
+            "functional",
+            "filter",
+            "--input",
+            files["input"],
+            "--method",
+            "random",
+            "--method-values",
+            '{"proportion": 0.5}',
+            "--output-activity",
+            files["output_activity"],
+            "--output-barcode",
+            files["output_barcode"],
+        ],
+    )
+    assert result.exit_code == 0
+    assert os.path.exists(files["output_barcode"])
+    assert os.path.exists(files["output_activity"])
+
+
+def test_filter_random_method_with_dict(runner, files):
+    result = runner.invoke(
+        cli,
+        [
+            "functional",
+            "filter",
+            "--input",
+            files["input"],
+            "--method",
+            "random",
+            "--method-values",
+            "{'proportion': 0.5}",
+            "--output-activity",
+            files["output_activity"],
+            "--output-barcode",
+            files["output_barcode"],
+        ],
+    )
+    assert result.exit_code == 0
+    assert os.path.exists(files["output_barcode"])
+    assert os.path.exists(files["output_activity"])
+
+
+def test_filter_random_method_with_invalid_json(runner, files):
+    result = runner.invoke(
+        cli,
+        [
+            "functional",
+            "filter",
+            "--input",
+            files["input"],
+            "--method",
+            "random",
+            "--method-values",
+            "not_a_dict",
+        ],
+    )
+    assert result.exit_code != 0
+    assert "Could not parse --method-values as dict or JSON." in result.output
+
+
+def test_filter_without_method_values(runner, files):
+    result = runner.invoke(
+        cli,
+        [
+            "functional",
+            "filter",
+            "--input",
+            files["input"],
+            "--method",
+            "min_count",
+            "--output-activity",
+            files["output_activity"],
+        ],
+    )
+    assert result.exit_code == 0
+    assert os.path.exists(files["output_activity"])
+
+
 def test_functional_filter_outliers_global(runner, files):
 
     # Run the command
@@ -48,7 +179,7 @@ def test_functional_filter_outliers_global(runner, files):
             "--method",
             "global",
             "--method-values",
-            "{\"times_zscore\": 1000}",
+            '{"times_zscore": 1000}',
             "--output-activity",
             files["output_activity"],
             "--output-barcode",
