@@ -433,3 +433,93 @@ def test_barcodefilter_from_string():
     assert BarcodeFilter.from_string("max_count") == BarcodeFilter.MAX_COUNT
     with pytest.raises(ValueError):
         BarcodeFilter.from_string("not_a_filter")
+
+
+def test_barcode_filter_global_outliers_basic(mpra_data):
+    # Should flag barcodes with RNA counts that are global outliers (z-score > 3)
+    # In the test data, no barcode is a global outlier, so all should be False
+    mask = mpra_data._barcode_filter_global_outliers(times_zscore=3.0)
+    expected = np.zeros_like(mask, dtype=bool)
+    np.testing.assert_array_equal(mask, expected)
+
+
+def test_barcode_filter_global_outliers_basic_with_outlier(mpra_data):
+    # Should flag barcodes with RNA counts that are global outliers (z-score > 3)
+    # In the test data, no barcode is a global outlier, so all should be False
+    mask = mpra_data._barcode_filter_global_outliers(times_zscore=1.7)
+    expected = np.zeros_like(mask, dtype=bool)
+    expected[4, 2] = True
+    np.testing.assert_array_equal(mask, expected)
+
+
+def test_barcode_filter_global_outliers_with_outliers(mpra_data):
+    # Introduce a global outlier in RNA counts for a barcode
+    mpra_data.data.layers["rna"][1, 0] = 100  # Make barcode2 in rep1 a strong outlier
+    mask = mpra_data._barcode_filter_global_outliers(times_zscore=1.7)
+    # Only barcode2 in rep1 should be flagged as True
+    expected = np.zeros_like(mask, dtype=bool)
+    expected[0, 1] = True
+    expected[4, 2] = True
+    np.testing.assert_array_equal(mask, expected)
+
+
+def test_barcode_filter_global_outliers_all_rna_zero(mpra_data):
+    # Set all RNA counts to zero, should not raise error and all should be False
+    mpra_data.data.layers["rna"][:] = 0
+    mask = mpra_data._barcode_filter_global_outliers(times_zscore=1.0)
+    expected = np.zeros_like(mask, dtype=bool)
+    np.testing.assert_array_equal(mask, expected)
+
+
+def test_barcode_filter_global_outliers_all_zero_true(mpra_data):
+    # Set all RNA counts to zero, should not raise error and all should be False
+    mpra_data.data.layers["rna"][:] = 0
+    mpra_data.data.layers["dna"][:] = 0
+    mask = mpra_data._barcode_filter_global_outliers()
+    expected = np.zeros_like(mask, dtype=bool)
+    np.testing.assert_array_equal(mask, expected)
+
+
+def test_barcode_filter_oligo_specific_outliers_basic(mpra_data):
+    # No barcode should be flagged as outlier with high z-score threshold
+    mask = mpra_data._barcode_filter_oligo_specific_outliers(times_zscore=3.0)
+    expected = np.zeros_like(mask, dtype=bool)
+    np.testing.assert_array_equal(mask, expected)
+
+
+def test_barcode_filter_oligo_specific_outliers_with_outlier(mpra_data):
+    # change to only 2 oligos becasue we want to have different zscores (at least 3 barcodes needed)
+    mpra_data.data.var["oligo"] = ["oligo1", "oligo1", "oligo3", "oligo3", "oligo3"]
+    mask = mpra_data._barcode_filter_oligo_specific_outliers(times_zscore=1.15)
+    expected = np.zeros_like(mask, dtype=bool)
+    expected[4, 2] = True  # barcode5, rep3
+    np.testing.assert_array_equal(mask, expected)
+
+
+def test_barcode_filter_oligo_specific_outliers_with_outliers(mpra_data):
+    # change to only 2 oligos becasue we want to have different zscores (at least 3 barcodes needed)
+    mpra_data.data.var["oligo"] = ["oligo1", "oligo1", "oligo3", "oligo3", "oligo3"]
+    mask = mpra_data._barcode_filter_oligo_specific_outliers(times_zscore=1.0)
+    expected = np.zeros_like(mask, dtype=bool)
+    expected[4, 2] = True  # barcode5, rep3
+    expected[2, 0] = True  # barcode3, rep1
+    np.testing.assert_array_equal(mask, expected)
+
+
+def test_barcode_filter_oligo_specific_outliers_all_zero(mpra_data):
+    # All RNA counts zero, should not raise error and all should be False
+    mpra_data.data.var["oligo"] = ["oligo1", "oligo1", "oligo3", "oligo3", "oligo3"]
+    mpra_data.data.layers["rna"][:] = 0
+    mask = mpra_data._barcode_filter_oligo_specific_outliers(times_zscore=1.0)
+    expected = np.zeros_like(mask, dtype=bool)
+    np.testing.assert_array_equal(mask, expected)
+
+
+def test_barcode_filter_oligo_specific_outliers_all_zero_true(mpra_data):
+    # All RNA counts zero, should not raise error and all should be False
+    mpra_data.data.var["oligo"] = ["oligo1", "oligo1", "oligo3", "oligo3", "oligo3"]
+    mpra_data.data.layers["rna"][:] = 0
+    mpra_data.data.layers["dna"][:] = 0
+    mask = mpra_data._barcode_filter_oligo_specific_outliers(times_zscore=1.0)
+    expected = np.zeros_like(mask, dtype=bool)
+    np.testing.assert_array_equal(mask, expected)

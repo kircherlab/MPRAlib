@@ -735,8 +735,7 @@ class MPRABarcodeData(MPRAData):
 
         df_rna = pd.DataFrame(self.raw_rna_counts, index=self.obs_names, columns=self.var_names).T
         grouped = df_rna.where(barcode_mask).groupby(self.oligos, observed=True)
-
-        mask = ((df_rna - grouped.transform("mean")) / grouped.transform("std")).abs() > times_zscore
+        mask = ((df_rna - grouped.transform("mean")) / grouped.transform("std").fillna(0).replace(0, 1)).abs() > times_zscore
 
         return mask.values.astype(bool)
 
