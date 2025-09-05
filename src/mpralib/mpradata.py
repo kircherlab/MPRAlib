@@ -282,7 +282,7 @@ class MPRAData(ABC):
 
     @property
     def observed(self) -> NDArray[np.bool_]:
-        """:class:`NDArray[np.bool_]`: Returns a boolean NumPy array indicating which barcodes (observations) have non-zero counts in either DNA or RNA."""  # noqa: E501
+        """:class:`NDArray[np.bool_]`: Returns a boolean NumPy array indicating which barcodes (observations) have non-zero counts in either DNA or RNA and is not filtered."""  # noqa: E501
 
         return (self.dna_counts + self.rna_counts) > 0
 
@@ -544,7 +544,7 @@ class MPRABarcodeData(MPRAData):
     def _barcode_counts(self) -> NDArray[np.int32]:
         return (
             pd.DataFrame(
-                self.observed * ~self.var_filter.T,
+                self.observed,
                 index=self.obs_names,
                 columns=self.var_names,
             )
@@ -637,10 +637,10 @@ class MPRABarcodeData(MPRAData):
         self.LOGGER.info("Normalizing data")
 
         self.data.layers["dna_normalized"] = self._normalize_layer(
-            self.dna_counts, self.observed, ~self.var_filter.T, self.scaling, self.pseudo_count
+            self.dna_counts, self.observed, self.scaling, self.pseudo_count
         )
         self.data.layers["rna_normalized"] = self._normalize_layer(
-            self.rna_counts, self.observed, ~self.var_filter.T, self.scaling, self.pseudo_count
+            self.rna_counts, self.observed, self.scaling, self.pseudo_count
         )
         self._add_metadata("normalized", True)
 
@@ -648,18 +648,17 @@ class MPRABarcodeData(MPRAData):
         self,
         counts: NDArray[np.int32],
         observed: NDArray[np.bool_],
-        not_var_filter: NDArray[np.bool_],
         scaling: float,
         pseudocount: int,
     ) -> NDArray[np.float32]:
 
         # I do a pseudo count when normalizing to avoid division by zero when computing logfold ratios.
-        # barcode filter has to be used again because we want to have a zero on filtered values.
-        total_counts = np.sum((counts + (pseudocount * observed)) * not_var_filter, axis=1)
+        # barcode filter is already in the observed matrix
+        total_counts = np.sum((counts + (pseudocount * observed)), axis=1)
 
         # Avoid division by zero when pseudocount is set to 0
         total_counts[total_counts == 0] = 1
-        return ((counts + (pseudocount * observed)) / total_counts[:, np.newaxis] * scaling) * not_var_filter
+        return ((counts + (pseudocount * observed)) / total_counts[:, np.newaxis] * scaling) * observed
 
     def _oligo_data(self) -> "MPRAOligoData":
 
