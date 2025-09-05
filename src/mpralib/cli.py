@@ -295,15 +295,15 @@ def filter(input_file, method, method_values, bc_threshold, output_activity_file
     """
 
     mpradata = MPRABarcodeData.from_file(input_file)
-    mpradata.barcode_threshold = bc_threshold
 
+    mpradata.barcode_threshold = bc_threshold
     oligo_data = mpradata.oligo_data
 
     click.echo(
         f"Pearson correlation log2FoldChange BEFORE filter: "
         f"{oligo_data.correlation('pearson', Modality.ACTIVITY).flatten()[[1, 2, 5]]}"
     )
-
+    mpradata.var_filter = None
     # Parse method_values as dict if provided
     params = {}
     if method_values:
@@ -318,6 +318,7 @@ def filter(input_file, method, method_values, bc_threshold, output_activity_file
     mpradata.apply_barcode_filter(BarcodeFilter.from_string(method), params)
 
     oligo_data = mpradata.oligo_data
+
     click.echo(
         f"Pearson correlation log2FoldChange AFTER filter: "
         f"{oligo_data.correlation('pearson', Modality.ACTIVITY).flatten()[[1, 2, 5]]}"

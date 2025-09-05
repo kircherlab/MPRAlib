@@ -116,8 +116,6 @@ def export_barcode_file(mpradata: MPRABarcodeData, output_file_path: str) -> Non
 
     output = pd.DataFrame({"barcode": mpradata.var_names, "oligo_name": mpradata.oligos})
 
-    mpradata.normalized_rna_counts
-
     dna_counts = mpradata.dna_counts
     rna_counts = mpradata.rna_counts
     for i, replicate in enumerate(mpradata.obs_names):
