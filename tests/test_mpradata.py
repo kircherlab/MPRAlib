@@ -463,6 +463,44 @@ def test_barcode_filter_global_outliers_basic(mpra_data):
     np.testing.assert_array_equal(mask, expected)
 
 
+def test_barcode_filter_global_outliers_basic_with_bc_threshold(mpra_data):
+    # Should flag barcodes with RNA counts that are global outliers (z-score > 3)
+    # In the test data, no barcode is a global outlier, so all should be False
+    mpra_data.barcode_threshold = 2
+    mask = mpra_data._barcode_filter_global_outliers(apply_bc_threshold=True)
+    expected = np.zeros_like(mask, dtype=bool)
+    np.testing.assert_array_equal(mask, expected)
+
+
+def test_barcode_filter_global_outliers_basic_with_bc_threshold_aggregated(mpra_data):
+    # Should flag barcodes with RNA counts that are global outliers (z-score > 3)
+    # In the test data, no barcode is a global outlier, so all should be False
+    mpra_data.data.layers["rna"][0, 0] = 0
+    mpra_data.data.layers["dna"][0, 0] = 0
+    mpra_data.barcode_threshold = 2
+    mask = mpra_data._barcode_filter_global_outliers(times_zscore=0.1, apply_bc_threshold=True)
+    expected = np.ones_like(mask, dtype=bool)
+    expected[[0, 1], 0] = False  # not applied to oligo1 of rep1 (less than 2 barcodes observed)
+    expected[2, :] = False  # not applied to oligo2 (1 barcode)
+    mask = mpra_data._barcode_filter_global_outliers(times_zscore=0.1, apply_bc_threshold=True, aggregated_bc_threshold=True)
+    expected = np.ones_like(mask, dtype=bool)
+    expected[0, 0] = False  # not applied to bcarcode1 of rep1 because not observed
+    expected[2, :] = False  # not applied to oligo2 (1 barcode)
+    np.testing.assert_array_equal(mask, expected)
+
+
+def test_barcode_filter_global_outliers_basic_with_bc_threshold_with_outlier(mpra_data):
+    # Should flag barcodes with RNA counts that are global outliers (z-score > 3)
+    # In the test data, no barcode is a global outlier, so all should be False
+    mpra_data.barcode_threshold = 2
+    mask = mpra_data._barcode_filter_global_outliers(times_zscore=1.7, apply_bc_threshold=True)
+    expected = np.zeros_like(mask, dtype=bool)
+    np.testing.assert_array_equal(mask, expected)
+    mask = mpra_data._barcode_filter_global_outliers(times_zscore=1.4, apply_bc_threshold=True)
+    expected[4, 2] = True
+    np.testing.assert_array_equal(mask, expected)
+
+
 def test_barcode_filter_global_outliers_basic_with_outlier(mpra_data):
     # Should flag barcodes with RNA counts that are global outliers (z-score > 3)
     # In the test data, no barcode is a global outlier, so all should be False

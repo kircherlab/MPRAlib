@@ -719,27 +719,63 @@ class MPRABarcodeData(MPRAData):
 
         return mask
 
-    def _barcode_filter_global_outliers(self, times_zscore: float = 3.0) -> NDArray[np.bool_]:
+    def _get_barcode_mask_for_outlier_filtering(
+        self, apply_bc_threshold: bool, aggregated_bc_threshold: bool
+    ) -> NDArray[np.bool_]:
+        """Generates a boolean mask for barcode filtering based on outlier criteria.
+
+        This method reads data from a specified file (reporter experiment barcode or reporter experiment file format), processes it, and returns an instance of the class containing the data in an AnnData object.
+
+        Args:
+            apply_bc_threshold (bool): Whether not only observed barcodes (dna + rna >0, and not filtered), but also a sufficient number of barcodes per oligo should be present.
+            aggregated_bc_threshold (bool): If True, barcode threshold is used for total observed barcodes per oligo across replicates; if False, applies threshold to observed barcodes per oligo per replicate.
+
+        Returns:
+            Boolean mask indicating which barcodes pass the filtering criteria.
+        """  # noqa: E501
 
         barcode_mask = self.observed.T
 
-        df_rna = pd.DataFrame(self.rna_counts, index=self.obs_names, columns=self.var_names).T
-        df_rna_masked = df_rna.where(barcode_mask)
-        mask = ((df_rna - df_rna_masked.mean(axis=0)) / df_rna_masked.std(axis=0)).abs() > times_zscore
+        if apply_bc_threshold:
+            if aggregated_bc_threshold:
+                aggregated_barcode_counts = (
+                    pd.DataFrame(self.observed.any(axis=0).reshape(-1, 1), index=self.var_names)
+                    .groupby(self.oligos, observed=True)
+                    .transform("sum")
+                    .values
+                )
+                barcode_mask = barcode_mask * np.tile(aggregated_barcode_counts, (1, self.n_obs)) >= self.barcode_threshold
+            else:
+                barcode_mask = barcode_mask * (self.barcode_counts.T >= self.barcode_threshold)
+
+        return barcode_mask
+
+    def _barcode_filter_global_outliers(
+        self, times_zscore: float = 3.0, apply_bc_threshold: bool = False, aggregated_bc_threshold: bool = False
+    ) -> NDArray[np.bool_]:
+
+        barcode_mask = self._get_barcode_mask_for_outlier_filtering(apply_bc_threshold, aggregated_bc_threshold)
+
+        df_rna = pd.DataFrame(self.rna_counts, index=self.obs_names, columns=self.var_names).T.where(barcode_mask)
+        mask = ((df_rna - df_rna.mean(axis=0)) / df_rna.std(axis=0)).abs() > times_zscore
 
         return mask.values.astype(bool)
 
-    def _barcode_filter_oligo_specific_outliers(self, times_zscore: float = 3.0) -> NDArray[np.bool_]:
+    def _barcode_filter_oligo_specific_outliers(
+        self, times_zscore: float = 3.0, apply_bc_threshold: bool = False, aggregated_bc_threshold: bool = False
+    ) -> NDArray[np.bool_]:
 
-        barcode_mask = self.observed.T
+        barcode_mask = self._get_barcode_mask_for_outlier_filtering(apply_bc_threshold, aggregated_bc_threshold)
 
-        df_rna = pd.DataFrame(self.rna_counts, index=self.obs_names, columns=self.var_names).T
-        grouped = df_rna.where(barcode_mask).groupby(self.oligos, observed=True)
+        df_rna = pd.DataFrame(self.rna_counts, index=self.obs_names, columns=self.var_names).T.where(barcode_mask)
+        grouped = df_rna.groupby(self.oligos, observed=True)
         mask = ((df_rna - grouped.transform("mean")) / grouped.transform("std").fillna(0).replace(0, 1)).abs() > times_zscore
 
         return mask.values.astype(bool)
 
-    def _barcode_filter_large_expression_outliers(self, times_activity: float = 5.0) -> NDArray[np.bool_]:
+    def _barcode_filter_large_expression_outliers(
+        self, times_activity: float = 5.0, apply_bc_threshold: bool = False, aggregated_bc_threshold: bool = False
+    ) -> NDArray[np.bool_]:
 
         ratio = np.divide(
             self.normalized_rna_counts.sum(axis=0),
@@ -750,12 +786,14 @@ class MPRABarcodeData(MPRAData):
             log2ratio = np.log2(ratio)
             log2ratio[np.isneginf(log2ratio)] = np.nan
 
-        barcode_mask = self.observed.T.any(axis=1).reshape(-1, 1)
-
-        log2ratio = pd.DataFrame({"ratio": log2ratio}, index=self.var_names)
-        log2ratio["oligo_median"] = (
-            log2ratio.where(barcode_mask).groupby(self.oligos, observed=True)["ratio"].transform("median")
+        barcode_mask = (
+            self._get_barcode_mask_for_outlier_filtering(apply_bc_threshold, aggregated_bc_threshold)
+            .any(axis=1)
+            .reshape(-1, 1)
         )
+
+        log2ratio = pd.DataFrame({"ratio": log2ratio}, index=self.var_names).where(barcode_mask)
+        log2ratio["oligo_median"] = log2ratio.groupby(self.oligos, observed=True)["ratio"].transform("median")
 
         expr_diff = log2ratio["ratio"] - log2ratio["oligo_median"]  # calculate difference from oligo median
         mask = (expr_diff > times_activity).values.astype(bool)  # numpy boolean array
