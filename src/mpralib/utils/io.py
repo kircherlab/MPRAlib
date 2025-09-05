@@ -82,6 +82,7 @@ def export_activity_file(mpradata: MPRAOligoData, output_file_path: str) -> None
 
     output = pd.DataFrame()
 
+    # has to be run to calculate activities
     mpradata.activity
 
     for replicate in mpradata.obs_names:
@@ -115,8 +116,6 @@ def export_barcode_file(mpradata: MPRABarcodeData, output_file_path: str) -> Non
     """  # noqa: E501
 
     output = pd.DataFrame({"barcode": mpradata.var_names, "oligo_name": mpradata.oligos})
-
-    mpradata.normalized_rna_counts
 
     dna_counts = mpradata.dna_counts
     rna_counts = mpradata.rna_counts
