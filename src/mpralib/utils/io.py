@@ -82,6 +82,7 @@ def export_activity_file(mpradata: MPRAOligoData, output_file_path: str) -> None
 
     output = pd.DataFrame()
 
+    # has to be run to calculate activities
     mpradata.activity
 
     for replicate in mpradata.obs_names:
