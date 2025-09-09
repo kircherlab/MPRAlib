@@ -7,7 +7,62 @@ from mpralib.utils.file_validation import ValidationSchema
 
 @pytest.fixture(scope="module")
 def runner():
+
     return CliRunner()
+
+
+def test_validate_file_group_exists(runner):
+    result = runner.invoke(cli, ["validate-file", "--help"])
+    assert result.exit_code == 0
+    assert "Validate standardized MPRA reporter formats." in result.output
+
+
+def test_validate_file_reporter_sequence_design_option_required(runner):
+    result = runner.invoke(cli, ["validate-file", "reporter-sequence-design"])
+    assert result.exit_code != 0
+    assert "Missing option '--input'" in result.output
+
+
+def test_validate_file_reporter_barcode_to_element_mapping_option_required(runner):
+    result = runner.invoke(cli, ["validate-file", "reporter-barcode-to-element-mapping"])
+    assert result.exit_code != 0
+    assert "Missing option '--input'" in result.output
+
+
+def test_validate_file_reporter_experiment_barcode_option_required(runner):
+    result = runner.invoke(cli, ["validate-file", "reporter-experiment-barcode"])
+    assert result.exit_code != 0
+    assert "Missing option '--input'" in result.output
+
+
+def test_validate_file_reporter_experiment_option_required(runner):
+    result = runner.invoke(cli, ["validate-file", "reporter-experiment"])
+    assert result.exit_code != 0
+    assert "Missing option '--input'" in result.output
+
+
+def test_validate_file_reporter_element_option_required(runner):
+    result = runner.invoke(cli, ["validate-file", "reporter-element"])
+    assert result.exit_code != 0
+    assert "Missing option '--input'" in result.output
+
+
+def test_validate_file_reporter_variant_option_required(runner):
+    result = runner.invoke(cli, ["validate-file", "reporter-variant"])
+    assert result.exit_code != 0
+    assert "Missing option '--input'" in result.output
+
+
+def test_validate_file_reporter_genomic_element_option_required(runner):
+    result = runner.invoke(cli, ["validate-file", "reporter-genomic-element"])
+    assert result.exit_code != 0
+    assert "Missing option '--input'" in result.output
+
+
+def test_validate_file_reporter_genomic_variant_option_required(runner):
+    result = runner.invoke(cli, ["validate-file", "reporter-genomic-variant"])
+    assert result.exit_code != 0
+    assert "Missing option '--input'" in result.output
 
 
 @pytest.fixture(scope="module")

@@ -7,7 +7,7 @@ from enum import Enum
 import logging
 import os
 from mpralib.exception import MPRAlibException
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 from numpy.typing import NDArray
 
 
@@ -63,9 +63,13 @@ class CountSampling(Enum):
 class BarcodeFilter(Enum):
     """Enumeration of available barcode filtering methods."""
 
-    RNA_ZSCORE = "RNA_ZSCORE"
+    MIN_BCS_PER_OLIGO = "MIN_BCS_PER_OLIGO"
+    """str: Filter barcodes based on a minimum number of barcodes per oligo."""
+    GLOBAL = "GLOBAL"
     """str: Filter barcodes based on RNA z-score."""
-    MAD = "MAD"
+    OLIGO_SPECIFIC = "OLIGO_SPECIFIC"
+    """str: Filter barcodes based on standard deviation per oligo"""
+    LARGE_EXPRESSION = "LARGE_EXPRESSION"
     """str: Filter barcodes based on Median Absolute Deviation (MAD)."""
     RANDOM = "RANDOM"
     """str: Randomly filter barcodes."""
@@ -73,6 +77,29 @@ class BarcodeFilter(Enum):
     """str: Filter barcodes with counts below a specified minimum."""
     MAX_COUNT = "MAX_COUNT"
     """str: Filter barcodes with counts above a specified maximum."""
+
+    def __new__(cls, value):
+        obj = object.__new__(cls)
+        obj._value_ = str(value).lower()
+        return obj
+
+    @classmethod
+    def from_string(cls, value: str) -> "BarcodeFilter":
+        """Creates a BarcodeFilter enum member from a string value.
+
+        Args:
+            value (str): The string representation of the enum member.
+
+        Returns:
+            The corresponding BarcodeFilter enum member.
+
+        Raises:
+            ValueError: If the provided string does not match any BarcodeFilter member.
+        """
+        for member in cls:
+            if member.value == value.lower():
+                return member
+        raise ValueError(f"{value} is not a valid {cls.__name__}")
 
 
 class MPRAData(ABC):
@@ -255,7 +282,7 @@ class MPRAData(ABC):
 
     @property
     def observed(self) -> NDArray[np.bool_]:
-        """:class:`NDArray[np.bool_]`: Returns a boolean NumPy array indicating which barcodes (observations) have non-zero counts in either DNA or RNA."""  # noqa: E501
+        """:class:`NDArray[np.bool_]`: Returns a boolean NumPy array indicating which barcodes (observations) have non-zero counts in either DNA or RNA and is not filtered."""  # noqa: E501
 
         return (self.dna_counts + self.rna_counts) > 0
 
@@ -517,7 +544,7 @@ class MPRABarcodeData(MPRAData):
     def _barcode_counts(self) -> NDArray[np.int32]:
         return (
             pd.DataFrame(
-                self.observed * ~self.var_filter.T,
+                self.observed,
                 index=self.obs_names,
                 columns=self.var_names,
             )
@@ -610,10 +637,10 @@ class MPRABarcodeData(MPRAData):
         self.LOGGER.info("Normalizing data")
 
         self.data.layers["dna_normalized"] = self._normalize_layer(
-            self.dna_counts, self.observed, ~self.var_filter.T, self.scaling, self.pseudo_count
+            self.dna_counts, self.observed, self.scaling, self.pseudo_count
         )
         self.data.layers["rna_normalized"] = self._normalize_layer(
-            self.rna_counts, self.observed, ~self.var_filter.T, self.scaling, self.pseudo_count
+            self.rna_counts, self.observed, self.scaling, self.pseudo_count
         )
         self._add_metadata("normalized", True)
 
@@ -621,18 +648,17 @@ class MPRABarcodeData(MPRAData):
         self,
         counts: NDArray[np.int32],
         observed: NDArray[np.bool_],
-        not_var_filter: NDArray[np.bool_],
         scaling: float,
         pseudocount: int,
     ) -> NDArray[np.float32]:
 
         # I do a pseudo count when normalizing to avoid division by zero when computing logfold ratios.
-        # barcode filter has to be used again because we want to have a zero on filtered values.
-        total_counts = np.sum((counts + (pseudocount * observed)) * not_var_filter, axis=1)
+        # barcode filter is already in the observed matrix
+        total_counts = np.sum((counts + (pseudocount * observed)), axis=1)
 
         # Avoid division by zero when pseudocount is set to 0
         total_counts[total_counts == 0] = 1
-        return ((counts + (pseudocount * observed)) / total_counts[:, np.newaxis] * scaling) * not_var_filter
+        return ((counts + (pseudocount * observed)) / total_counts[:, np.newaxis] * scaling) * observed
 
     def _oligo_data(self) -> "MPRAOligoData":
 
@@ -653,7 +679,7 @@ class MPRABarcodeData(MPRAData):
             .T
         )
 
-        oligo_data.obs_names = self.obs_names
+        oligo_data.obs_names = self.obs_names.tolist()
         oligo_data.var_names = self.data.var["oligo"].unique().tolist()
 
         # Subset of vars using the firs occurence of oligo name
@@ -684,38 +710,103 @@ class MPRABarcodeData(MPRAData):
         # Perform an operation on each group, e.g., mean
         return grouped.sum().T
 
-    def _supporting_barcodes_per_oligo(self) -> pd.DataFrame:
+    def _barcode_filter_min_bcs_per_oligo(self, threshold: int = 0) -> NDArray[np.bool_]:
 
-        grouped = pd.DataFrame(
-            self.observed * ~self.var_filter.T,
-            index=self.obs_names,
-            columns=self.var_names,
-        ).T.groupby(self.oligos, observed=True)
+        if threshold <= 0:
+            return np.full((self.n_vars, self.n_obs), False, dtype=bool)
 
-        return grouped.apply(lambda x: x.sum()).T
-
-    def _barcode_filter_rna_zscore(self, times_zscore=3):
-
-        barcode_mask = pd.DataFrame(
-            self.raw_dna_counts + self.raw_rna_counts,
-            index=self.obs_names,
-            columns=self.var_names,
-        ).T.apply(lambda x: (x != 0))
-
-        df_rna = pd.DataFrame(self.raw_rna_counts, index=self.obs_names, columns=self.var_names).T
-        grouped = df_rna.where(barcode_mask).groupby(self.oligos, observed=True)
-
-        mask = ((df_rna - grouped.transform("mean")) / grouped.transform("std")).abs() > times_zscore
+        mask = (self.barcode_counts < threshold).T
 
         return mask
 
-    def _barcode_filter_mad(self, times_mad=3, n_bins=20):
+    def _get_barcode_mask_for_outlier_filtering(
+        self, apply_bc_threshold: bool, aggregated_bc_threshold: bool
+    ) -> NDArray[np.bool_]:
+        """Generates a boolean mask for barcode filtering based on outlier criteria.
 
+        This method reads data from a specified file (reporter experiment barcode or reporter experiment file format), processes it, and returns an instance of the class containing the data in an AnnData object.
+
+        Args:
+            apply_bc_threshold (bool): Whether not only observed barcodes (dna + rna >0, and not filtered), but also a sufficient number of barcodes per oligo should be present.
+            aggregated_bc_threshold (bool): If True, barcode threshold is used for total observed barcodes per oligo across replicates; if False, applies threshold to observed barcodes per oligo per replicate.
+
+        Returns:
+            Boolean mask indicating which barcodes pass the filtering criteria.
+        """  # noqa: E501
+
+        barcode_mask = self.observed.T
+
+        if apply_bc_threshold:
+            if aggregated_bc_threshold:
+                aggregated_barcode_counts = (
+                    pd.DataFrame(self.observed.any(axis=0).reshape(-1, 1), index=self.var_names)
+                    .groupby(self.oligos, observed=True)
+                    .transform("sum")
+                    .values
+                )
+                barcode_mask = barcode_mask * np.tile(aggregated_barcode_counts, (1, self.n_obs)) >= self.barcode_threshold
+            else:
+                barcode_mask = barcode_mask * (self.barcode_counts.T >= self.barcode_threshold)
+
+        return barcode_mask
+
+    def _barcode_filter_global_outliers(
+        self, times_zscore: float = 3.0, apply_bc_threshold: bool = False, aggregated_bc_threshold: bool = False
+    ) -> NDArray[np.bool_]:
+
+        barcode_mask = self._get_barcode_mask_for_outlier_filtering(apply_bc_threshold, aggregated_bc_threshold)
+
+        df_rna = pd.DataFrame(self.rna_counts, index=self.obs_names, columns=self.var_names).T.where(barcode_mask)
+        mask = ((df_rna - df_rna.mean(axis=0)) / df_rna.std(axis=0)).abs() > times_zscore
+
+        return mask.values.astype(bool)
+
+    def _barcode_filter_oligo_specific_outliers(
+        self, times_zscore: float = 3.0, apply_bc_threshold: bool = False, aggregated_bc_threshold: bool = False
+    ) -> NDArray[np.bool_]:
+
+        barcode_mask = self._get_barcode_mask_for_outlier_filtering(apply_bc_threshold, aggregated_bc_threshold)
+
+        df_rna = pd.DataFrame(self.rna_counts, index=self.obs_names, columns=self.var_names).T.where(barcode_mask)
+        grouped = df_rna.groupby(self.oligos, observed=True)
+        mask = ((df_rna - grouped.transform("mean")) / grouped.transform("std").fillna(0).replace(0, 1)).abs() > times_zscore
+
+        return mask.values.astype(bool)
+
+    def _barcode_filter_large_expression_outliers(
+        self, times_activity: float = 5.0, apply_bc_threshold: bool = False, aggregated_bc_threshold: bool = False
+    ) -> NDArray[np.bool_]:
+
+        ratio = np.divide(
+            self.normalized_rna_counts.sum(axis=0),
+            self.normalized_dna_counts.sum(axis=0),
+            where=self.normalized_dna_counts.sum(axis=0) != 0,
+        )
+        with np.errstate(divide="ignore"):
+            log2ratio = np.log2(ratio)
+            log2ratio[np.isneginf(log2ratio)] = np.nan
+
+        barcode_mask = (
+            self._get_barcode_mask_for_outlier_filtering(apply_bc_threshold, aggregated_bc_threshold)
+            .any(axis=1)
+            .reshape(-1, 1)
+        )
+
+        log2ratio = pd.DataFrame({"ratio": log2ratio}, index=self.var_names).where(barcode_mask)
+        log2ratio["oligo_median"] = log2ratio.groupby(self.oligos, observed=True)["ratio"].transform("median")
+
+        expr_diff = log2ratio["ratio"] - log2ratio["oligo_median"]  # calculate difference from oligo median
+        mask = (expr_diff > times_activity).values.astype(bool)  # numpy boolean array
+
+        mask_array = np.tile(mask[:, np.newaxis], (1, self.n_obs))
+        return mask_array
+
+    def _barcode_filter_mad(self, times_mad=3, n_bins=20) -> NDArray[np.bool_]:
         # sum up DNA and RNA counts across replicates
         DNA_sum = pd.DataFrame(self.raw_dna_counts, index=self.obs_names, columns=self.var_names).T.sum(axis=1)
         RNA_sum = pd.DataFrame(self.raw_rna_counts, index=self.obs_names, columns=self.var_names).T.sum(axis=1)
         df_sums = pd.DataFrame({"DNA_sum": DNA_sum, "RNA_sum": RNA_sum}).fillna(0)
-        # removing all barcodes with 0 counts in RNA an more DNA count than number of replicates/observations
+        # removing all barcodes with 0 counts in RNA and more DNA count than number of replicates/observations
         df_sums = df_sums[(df_sums["DNA_sum"] > self.data.n_obs) & (df_sums["RNA_sum"] > 0)]
 
         # remove all barcodes where oligo has less barcodes as the number of replicates/observations
@@ -749,7 +840,7 @@ class MPRABarcodeData(MPRAData):
 
     def _barcode_filter_random(
         self, proportion: float = 1.0, total: Optional[int] = None, aggegate_over_replicates: bool = True
-    ):
+    ) -> NDArray[np.bool_]:
 
         if aggegate_over_replicates and total is None:
             total = self.var_filter.shape[0]
@@ -759,46 +850,45 @@ class MPRABarcodeData(MPRAData):
         num_true_cells = int(total * (1.0 - proportion))  # type: ignore
         true_indices = np.random.choice(total, num_true_cells, replace=False)
 
-        mask = pd.DataFrame(
-            np.full((self.data.n_vars, self.data.n_obs), False),
-            index=self.var_names,
-            columns=self.obs_names,
-        )
+        mask = np.full((self.data.n_vars, self.data.n_obs), False)
 
         if aggegate_over_replicates:
-            mask.iloc[true_indices, :] = True
+            mask[true_indices, :] = True
         else:
-            flat_df = mask.values.flatten()
+            flat_df = mask.flatten()
 
             flat_df[true_indices] = True
 
-            mask = pd.DataFrame(
-                flat_df.reshape(self.var_filter.shape),
-                index=self.var_names,
-                columns=self.obs_names,
-            )
+            mask = flat_df.reshape(self.var_filter.shape)
+
         return mask
 
-    def _barcode_filter_min_count(self, rna_min_count=None, dna_min_count=None):
+    def _barcode_filter_min_count(
+        self, rna_min_count: Optional[int] = None, dna_min_count: Optional[int] = None
+    ) -> NDArray[np.bool_]:
 
         return self._barcode_filter_min_max_count(BarcodeFilter.MIN_COUNT, rna_min_count, dna_min_count)
 
-    def _barcode_filter_max_count(self, rna_max_count=None, dna_max_count=None):
+    def _barcode_filter_max_count(
+        self, rna_max_count: Optional[int] = None, dna_max_count: Optional[int] = None
+    ) -> NDArray[np.bool_]:
 
         return self._barcode_filter_min_max_count(BarcodeFilter.MAX_COUNT, rna_max_count, dna_max_count)
 
-    def _barcode_filter_min_max_counts(self, barcode_filter, counts, count_threshold):
+    def _barcode_filter_min_max_counts(
+        self, barcode_filter: BarcodeFilter, counts: NDArray[np.int32], count_threshold: int
+    ) -> NDArray[np.bool_]:
         if barcode_filter == BarcodeFilter.MIN_COUNT:
             return (counts < count_threshold).T
         elif barcode_filter == BarcodeFilter.MAX_COUNT:
             return (counts > count_threshold).T
+        else:
+            return np.full((self.n_vars, self.n_obs), False)
 
-    def _barcode_filter_min_max_count(self, barcode_filter, rna_count=None, dna_count=None):
-        mask = pd.DataFrame(
-            np.full((self.n_vars, self.n_obs), False),
-            index=self.var_names,
-            columns=self.obs_names,
-        )
+    def _barcode_filter_min_max_count(
+        self, barcode_filter: BarcodeFilter, rna_count: Optional[int] = None, dna_count: Optional[int] = None
+    ) -> NDArray[np.bool_]:
+        mask = np.full((self.n_vars, self.n_obs), False)
         if rna_count is not None:
             mask = mask | self._barcode_filter_min_max_counts(barcode_filter, self.raw_rna_counts, rna_count)
         if dna_count is not None:
@@ -819,9 +909,11 @@ class MPRABarcodeData(MPRAData):
             ValueError: If an unsupported barcode filter is provided.
         """  # noqa: E501
 
-        filter_switch = {
-            BarcodeFilter.RNA_ZSCORE: self._barcode_filter_rna_zscore,
-            BarcodeFilter.MAD: self._barcode_filter_mad,
+        filter_switch: dict[BarcodeFilter, Callable[..., NDArray[np.bool_]]] = {
+            BarcodeFilter.MIN_BCS_PER_OLIGO: self._barcode_filter_min_bcs_per_oligo,
+            BarcodeFilter.GLOBAL: self._barcode_filter_global_outliers,
+            BarcodeFilter.LARGE_EXPRESSION: self._barcode_filter_large_expression_outliers,
+            BarcodeFilter.OLIGO_SPECIFIC: self._barcode_filter_oligo_specific_outliers,
             BarcodeFilter.RANDOM: self._barcode_filter_random,
             BarcodeFilter.MIN_COUNT: self._barcode_filter_min_count,
             BarcodeFilter.MAX_COUNT: self._barcode_filter_max_count,
