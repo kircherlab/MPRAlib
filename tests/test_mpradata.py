@@ -267,10 +267,36 @@ def test_normalize_without_pseudocount(mpra_data_norm):
 
 def test_normalize_counts_with_bc_filter(mpra_data_norm_with_bc_filter):
     mpra_data_norm_with_bc_filter._normalize()
+
     dna_normalized = np.asarray(mpra_data_norm_with_bc_filter.data.layers["dna_normalized"])
-    expected_normalized = np.array([[2.0, 3.0, 0.0, 2.0, 3.0], [0.0, 2.5, 2.917, 2.083, 2.5], [2.963, 3.333, 3.704, 0.0, 0.0]])
+    expected_normalized = np.array(
+        [
+            [1.428, 2.142, 2.857, 1.428, 2.142],
+            [1.724, 2.068, 2.413, 1.724, 2.068],
+            [0.575, 0.647, 0.719, 0.791, 7.266],
+        ]
+    )
     np.testing.assert_almost_equal(dna_normalized, expected_normalized, decimal=3)
+
+    dna_normalized = mpra_data_norm_with_bc_filter.normalized_dna_counts
+    expected_normalized = np.array(
+        [
+            [1.428, 2.142, 0.0, 1.428, 2.142],
+            [0.0, 2.068, 2.413, 1.724, 2.068],
+            [0.575, 0.647, 0.719, 0.0, 0.0],
+        ]
+    )
+    np.testing.assert_almost_equal(dna_normalized, expected_normalized, decimal=3)
+
     rna_normalized = np.asarray(mpra_data_norm_with_bc_filter.data.layers["rna_normalized"])
+    expected_normalized = np.array(
+        [[1.333, 2.0, 3.333, 1.333, 2.0], [1.724, 2.069, 2.414, 1.724, 2.069], [0.576, 0.647, 0.719, 0.791, 7.266]]
+    )
+    np.testing.assert_almost_equal(rna_normalized, expected_normalized, decimal=3)
+    rna_normalized = mpra_data_norm_with_bc_filter.normalized_rna_counts
+    expected_normalized = np.array(
+        [[1.333, 2.0, 0.0, 1.333, 2.0], [0.0, 2.069, 2.414, 1.724, 2.069], [0.576, 0.647, 0.719, 0.0, 0.0]]
+    )
     np.testing.assert_almost_equal(rna_normalized, expected_normalized, decimal=3)
 
 
