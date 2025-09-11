@@ -69,7 +69,7 @@ def files():
             "barcode_counts": os.path.join(base, "data", "reporter_experiment_barcode_IGVFDS2165KBMD.input.head20000.tsv.gz"),
             "sequence_design": os.path.join(base, "data", "reporter_sequence_design.example.tsv.gz"),
         },
-        "output": output_file
+        "output": output_file,
     }
     os.remove(output_file)
 
@@ -85,7 +85,7 @@ def test_combine_get_counts_oligos(runner, files):
             "--sequence-design",
             files["input"]["sequence_design"],
             "--output",
-            files["output"]
+            files["output"],
         ],
     )
     assert result.exit_code == 0
@@ -114,7 +114,7 @@ def test_combine_get_counts_barcodes(runner, files):
             "--sequence-design",
             files["input"]["sequence_design"],
             "--output",
-            files["output"]
+            files["output"],
         ],
     )
     assert result.exit_code == 0

@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 from mpralib.mpradata import MPRAData, Modality, MPRAOligoData, MPRABarcodeData
 
 custom_params = {"axes.spines.right": False, "axes.spines.top": False}
@@ -110,7 +111,7 @@ def barcodes_per_oligo(data: MPRAOligoData, replicates=None) -> sns.FacetGrid:
     return g
 
 
-def barcodes_outlier(data: MPRABarcodeData) -> None:
+def barcodes_outlier(data: MPRABarcodeData) -> Figure:
 
     # counts_dna = data.normalized_dna_counts.copy()
     # counts_rna = data.normalized_rna_counts.copy()
@@ -181,4 +182,5 @@ def barcodes_outlier(data: MPRABarcodeData) -> None:
     plt.xlabel("Bin")
     plt.ylabel("Ratio Difference")
     plt.title("Ratio Difference by Bin")
-    plt.show()
+    fig = plt.gcf()
+    return fig

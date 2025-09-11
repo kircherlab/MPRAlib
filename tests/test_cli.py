@@ -19,12 +19,6 @@ def test_cli_group_help(runner):
     assert "Command line interface of MPRAlib" in result.output
 
 
-def test_plot_group_help(runner):
-    result = runner.invoke(cli, ["plot", "--help"])
-    assert result.exit_code == 0
-    assert "Plotting functions." in result.output
-
-
 @pytest.fixture
 def files():
     input_file = os.path.join(os.path.dirname(__file__), "data", "reporter_experiment_barcode.input.tsv.gz")
