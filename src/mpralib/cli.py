@@ -1141,7 +1141,7 @@ def plot() -> None:
     required=False,
     multiple=True,
     type=str,
-    help="Copare only these two replicates. Ottheriwse all.",
+    help="Compare only these two replicates. Otherwise all.",
 )
 @click.option(
     "--output",
@@ -1200,7 +1200,7 @@ def correlation(
     required=False,
     multiple=True,
     type=str,
-    help="Copare only these two replicates. Ottheriwse all.",
+    help="Compare only these two replicates. Otherwise all.",
 )
 @click.option(
     "--output",

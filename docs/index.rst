@@ -107,7 +107,7 @@ Generate plots of your data.
 
 .. code-block:: bash
 
-    mpralib plot correlation --input data/reporter_experiment_barcode.example.tsv.gz --method max_count --method-values '{"rna_max_count": 500, "dna_max_count": 300}' --output-barcode data/reporter_experiment_barcode.filtered.tsv.gz
+    mpralib plot correlation --input data/reporter_experiment_barcode.example.tsv.gz --oligos --bc-threshold 10 --modality activity --output data/test.png
 
 
 Combine counts with other outputs
