@@ -28,7 +28,7 @@ class DummyMPRAData(MPRAData):
         obs = pd.DataFrame(index=replicates)
         var = pd.DataFrame({"oligo": oligos}, index=barcodes)
         super().__init__(ad.AnnData(X=rna_counts, obs=obs, var=var, layers=layers), barcode_threshold)
-        if barcode_counts:
+        if barcode_counts is not None:
             self.barcode_counts = barcode_counts
 
 
