@@ -15,7 +15,7 @@ def runner():
 def test_combine_group_exists(runner):
     result = runner.invoke(cli, ["combine", "--help"])
     assert result.exit_code == 0
-    assert "Combine counts with other outputss." in result.output
+    assert "Combine counts with other outputs." in result.output
 
 
 def test_combine_get_counts_option_required(runner):
