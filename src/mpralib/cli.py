@@ -18,6 +18,7 @@ import mpralib.utils.plot as plt
 from mpralib.utils.file_validation import validate_tsv_with_schema, ValidationSchema
 import ast
 import json
+from builtins import filter as buildins_filter
 
 pd.options.mode.copy_on_write = True
 
@@ -277,7 +278,14 @@ def compute_correlation(input_file: str, bc_threshold: int, correlation_on: str,
     type=click.Path(writable=True),
     help="Output the barcode file of results.",
 )
-def filter(input_file, method, method_values, bc_threshold, output_activity_file, output_barcode_file) -> None:
+def filter(
+    input_file: str,
+    method: str,
+    method_values: str,
+    bc_threshold: int,
+    output_activity_file: Optional[str],
+    output_barcode_file: Optional[str],
+) -> None:
     """
     Filters barcodes from MPRA barcode data using different methods.
 
@@ -393,7 +401,7 @@ def get_variant_map(input_file: str, sequence_design_file: str, output_file: str
             variant_map["allele"] == "alt", variant_map["oligo"], np.full(len(variant_map["allele"]), None, dtype=object)
         )
         variant_map = variant_map.groupby("ID").agg(
-            {"REF": lambda x: list(filter(None, x)), "ALT": lambda x: list(filter(None, x))}
+            {"REF": lambda x: list(buildins_filter(None, x)), "ALT": lambda x: list(buildins_filter(None, x))}
         )
 
     print("Prepair output file...")

@@ -128,3 +128,28 @@ def test_combine_get_counts_barcodes(runner, files):
         expected_content = f.read()
     expected_content = "ID" + expected_content[7:]
     assert output_content == expected_content
+
+
+def test_combine_get_variant_map(runner, files):
+    result = runner.invoke(
+        cli,
+        [
+            "combine",
+            "get-variant-map",
+            "--sequence-design",
+            files["input"]["sequence_design"],
+            "--output",
+            files["output"],
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert os.path.exists(files["output"])
+
+    with open(files["output"], "r") as f:
+        output_content = f.read()
+    expected_output_file = os.path.join(os.path.dirname(__file__), "data", "combine", "get_variant_map.output.tsv.gz")
+
+    with gzip.open(expected_output_file, "rt") as f:
+        expected_content = f.read()
+    assert output_content == expected_content
