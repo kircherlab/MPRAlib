@@ -329,12 +329,12 @@ def filter(input_file, method, method_values, bc_threshold, output_activity_file
         export_barcode_file(mpradata, output_barcode_file)
 
 
-@cli.group(help="MPRA sequence design file functionality.")
-def sequence_design():
+@cli.group(help="Combine counts with other outputs.")
+def combine():
     pass
 
 
-@sequence_design.command(help="Using a metadata file to generate a oligo to variant mapping.")
+@combine.command(help="Using a metadata file to generate a oligo to variant mapping.")
 @click.option(
     "--input",
     "input_file",
@@ -407,7 +407,7 @@ def get_variant_map(input_file: str, sequence_design_file: str, output_file: str
     variant_map.to_csv(output_file, sep="\t", index=True)
 
 
-@sequence_design.command(help="Return DNA and RNA counts for all oligos or only thosed tagges as elements/ref snvs.")
+@combine.command(help="Return DNA and RNA counts for all oligos or only thosed tagges as elements/ref snvs.")
 @click.option(
     "--input",
     "input_file",
@@ -490,7 +490,7 @@ def get_counts(
     export_counts_file(mpradata, output_file, normalized=normalized_counts, filter=element_mask)
 
 
-@sequence_design.command(help="Write out DNA and RNA counts for REF and ALT oligos.")
+@combine.command(help="Write out DNA and RNA counts for REF and ALT oligos.")
 @click.option(
     "--input",
     "input_file",
@@ -635,7 +635,7 @@ def get_variant_counts(
         )
 
 
-@sequence_design.command()
+@combine.command()
 @click.option(
     "--input",
     "input_file",
@@ -712,7 +712,7 @@ def get_reporter_elements(
     ].to_csv(output_reporter_elements_file, sep="\t", index=False, float_format="%.4f")
 
 
-@sequence_design.command()
+@combine.command()
 @click.option(
     "--input",
     "input_file",
@@ -825,7 +825,7 @@ def get_reporter_variants(
     ].to_csv(output_reporter_variants_file, sep="\t", index=False, float_format="%.4f")
 
 
-@sequence_design.command()
+@combine.command()
 @click.option(
     "--input",
     "input_file",
@@ -942,7 +942,7 @@ def get_reporter_genomic_elements(
         f.write(out_df.to_csv(sep="\t", index=False, header=False, float_format="%.4f").encode())
 
 
-@sequence_design.command()
+@combine.command()
 @click.option(
     "--input",
     "input_file",
