@@ -70,7 +70,7 @@ MPRAlib provides a CLI tool for validating MPRA data files against supported sch
 
 
 Functional analysis
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 Filter barcodes using multiple filters, like setting min/max counts or detect barcode outliers
 
