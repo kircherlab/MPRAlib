@@ -97,13 +97,12 @@ def validate_tsv_with_schema(tsv_file_path: str, schema_type: ValidationSchema) 
     schema = _load_schema(schema_type)
     header = _get_header_for_schema(schema_type)
     open_func = gzip.open if is_compressed_file(tsv_file_path) else open
-    mode = "rt" if is_compressed_file(tsv_file_path) else "r"
 
     correct_file = True
 
-    with open_func(tsv_file_path, mode, encoding="utf-8") as tsvfile:
-        reader = csv.DictReader(tsvfile, delimiter="\t", fieldnames=header)  # type: ignore
-
+    with open_func(tsv_file_path, "rt", encoding="utf-8") as tsvfile:
+        reader = csv.DictReader(tsvfile, delimiter="\t", fieldnames=header)
+        i = 0
         for i, row in enumerate(tqdm.tqdm(reader, desc="Validating rows", unit="row"), start=1):
             _convert_row_types(row, schema)
             try:
@@ -115,7 +114,9 @@ def validate_tsv_with_schema(tsv_file_path: str, schema_type: ValidationSchema) 
                 LOGGER.error(f"Row {i} error: {e}")
                 correct_file = False
                 raise e
-
+        if i == 0:
+            LOGGER.warning("The file is empty.")
+            correct_file = False
     if correct_file:
         LOGGER.info(f"File {tsv_file_path} is valid according to schema {schema_type.value}.")
     else:

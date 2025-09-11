@@ -206,3 +206,16 @@ def test_get_chr_with_multiple_matches(logger):
     result = _get_chr(map_df, variant_id, logger)
     assert result in ["chr5a", "chr5b"]
     assert logger.messages == []
+    def test_reporter_sequence_design_valid(runner, tmp_path):
+        # Create a valid TSV file for reporter sequence design
+        valid_file = tmp_path / "valid.tsv"
+        valid_file.write_text("oligo\tSPDI\tallele\tcategory\noligo1\tNC_000001.11:12345:A:T\tref\telement\n")
+        # Patch validate_tsv_with_schema to return True
+        import mpralib.utils.file_validation
+        orig_validate = mpralib.utils.file_validation.validate_tsv_with_schema
+        mpralib.utils.file_validation.validate_tsv_with_schema = lambda f, s: True
+        try:
+            result = runner.invoke(reporter_sequence_design, ["--input", str(valid_file)])
+            assert result.exit_code == 0
+        finally:
+            mpralib.utils.file_validation.validate_tsv_with_schema = orig_validate
