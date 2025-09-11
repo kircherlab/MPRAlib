@@ -1103,7 +1103,7 @@ def plot() -> None:
     pass
 
 
-@plot.command()
+@plot.command(help="Scatter plot to see correlations between replicates (activity, DNA or RNA).")
 @click.option(
     "--input",
     "input_file",
@@ -1151,8 +1151,21 @@ def plot() -> None:
     help="Output plot file.",
 )
 def correlation(
-    input_file: str, use_oligos: bool, bc_threshold: int, modality: str, replicates: Optional[list], output_file
+    input_file: str, use_oligos: bool, bc_threshold: int, modality: str, replicates: Optional[list], output_file: str
 ) -> None:
+    """
+    Scatter plot to see correlations between replicates (activity, DNA or RNA).
+
+    Reads a MPRA reporter experiment barcode file and generates a scatter plot to visualize the correlation between replicates. Can be done on barcode or oligo level as well as with a barcode count threshold (to get more confident correlation).
+
+    Args:
+        input_file (str): Path to the input file containing barcode data.
+        use_oligos (bool): Whether to plot individual barcodes or aggregate over oligos.
+        bc_threshold (int): Minimum barcode count threshold per oligo to plot.
+        modality (str): The modality to use for the plot (e.g., "activity", "dna_normalized", "rna_normalized").
+        replicates (list): List of replicate names to include in the plot. If None, all replicates are included.
+        output_file (str): Path to the output file where the plot will be saved.
+    """  # noqa: E501
     mpradata = MPRABarcodeData.from_file(input_file)
 
     mpradata.barcode_threshold = bc_threshold
@@ -1209,7 +1222,19 @@ def correlation(
     type=click.Path(writable=True),
     help="Output plot file.",
 )
-def dna_vs_rna(input_file, use_oligos, bc_threshold, replicates, output_file):
+def dna_vs_rna(input_file: str, use_oligos: bool, bc_threshold: int, replicates: Optional[list], output_file: str) -> None:
+    """
+    Plotting the DNA vs RNA counts (log10, median on multiple replicates).
+
+    Reads a MPRA reporter experiment barcode file and generates a scatter plot to visualize the DNA to RNA counts. This is usefull to see if you can actually see any activity in your data. Can be done on barcode or oligo level.
+
+    Args:
+        input_file (str): Path to the input file containing barcode data.
+        use_oligos (bool): Whether to plot individual barcodes or aggregate over oligos.
+        bc_threshold (int): Minimum barcode count threshold per oligo to plot.
+        replicates (list): List of replicate names to compute the median on for the plot. If None, all replicates are included.
+        output_file (str): Path to the output file where the plot will be saved.
+    """  # noqa: E501
     mpradata = MPRABarcodeData.from_file(input_file)
 
     mpradata.barcode_threshold = bc_threshold
@@ -1249,6 +1274,16 @@ def dna_vs_rna(input_file, use_oligos, bc_threshold, replicates, output_file):
     help="Output plot file.",
 )
 def barcodes_per_oligo(input_file: str, replicates: Optional[list], output_file: str) -> None:
+    """
+    Histogramm of barcodes per oligo
+
+    Generates a histogram of barcodes per oligo per replicate.
+
+    Args:
+        input_file (str): Path to the input file containing barcode data.
+        replicates (list): List of replicate names to plot the histogram. If None, all replicates are included.
+        output_file (str): Path to the output file where the plot will be saved.
+    """  # noqa: E501
     mpradata = MPRABarcodeData.from_file(input_file).oligo_data
 
     if replicates:
@@ -1275,14 +1310,21 @@ def barcodes_per_oligo(input_file: str, replicates: Optional[list], output_file:
     type=int,
     help="Using a barcode threshold for output.",
 )
-def outlier(input_file: str, bc_threshold: int) -> None:
+@click.option(
+    "--output",
+    "output_file",
+    required=True,
+    type=click.Path(writable=True),
+    help="Output plot file.",
+)
+def outlier(input_file: str, bc_threshold: int, output_file: str) -> None:
     mpradata = MPRABarcodeData.from_file(input_file)
 
     mpradata.barcode_threshold = bc_threshold
 
-    plt.barcodes_outlier(mpradata)
+    fig = plt.barcodes_outlier(mpradata)
 
-    # fig.savefig(output_file)
+    fig.savefig(output_file)
 
 
 if __name__ == "__main__":
