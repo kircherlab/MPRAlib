@@ -1,4 +1,5 @@
 import os
+import tempfile
 import pytest
 from click.testing import CliRunner
 from mpralib.cli import cli
@@ -68,7 +69,10 @@ def test_validate_file_reporter_genomic_variant_option_required(runner):
 @pytest.fixture(scope="module")
 def files():
     base = os.path.dirname(__file__)
-    return {
+    invalid_file = tempfile.NamedTemporaryFile(delete=False).name
+    with open(invalid_file, "w") as f:
+        f.write("badcontent\tverybad\t12\n")
+    yield {
         ValidationSchema.REPORTER_SEQUENCE_DESIGN: os.path.join(base, "data", "reporter_sequence_design.example.tsv.gz"),
         ValidationSchema.REPORTER_BARCODE_TO_ELEMENT_MAPPING: os.path.join(
             base, "data", "reporter_barcode_to_element_mapping.example.tsv.gz"
@@ -83,7 +87,9 @@ def files():
         ValidationSchema.REPORTER_GENOMIC_VARIANT: os.path.join(base, "data", "reporter_genomic_variant.example.bed.gz"),
         "REPORTER_GENOMIC_VARIANT_EMPTY_ALLELE": os.path.join(base, "data", "reporter_genomic_variant.example2.bed.gz"),
         "REPORTER_GENOMIC_VARIANT_FALSE": os.path.join(base, "data", "reporter_genomic_variant.example3.bed.gz"),
+        "invalid_file": invalid_file,
     }
+    os.remove(invalid_file)
 
 
 def test_reporter_genomic_variant(runner, files):
@@ -97,6 +103,20 @@ def test_reporter_genomic_variant(runner, files):
         ],
     )
     assert result.exit_code == 0
+
+
+def test_reporter_genomic_variant_invalid(runner, files):
+    result = runner.invoke(
+        cli,
+        [
+            "validate-file",
+            "reporter-genomic-variant",
+            "--input",
+            files["invalid_file"],
+        ],
+    )
+    assert result.exit_code != 0
+    assert isinstance(result.exception, TypeError)
 
 
 def test_reporter_genomic_variant_example2(runner, files):
@@ -138,6 +158,20 @@ def test_reporter_genomic_element(runner, files):
     assert result.exit_code == 0
 
 
+def test_reporter_genomic_element_invalid(runner, files):
+    result = runner.invoke(
+        cli,
+        [
+            "validate-file",
+            "reporter-genomic-element",
+            "--input",
+            files["invalid_file"],
+        ],
+    )
+    assert result.exit_code != 0
+    assert isinstance(result.exception, TypeError)
+
+
 def test_reporter_variant(runner, files):
     result = runner.invoke(
         cli,
@@ -151,6 +185,20 @@ def test_reporter_variant(runner, files):
     assert result.exit_code == 0
 
 
+def test_reporter_variant_invalid(runner, files):
+    result = runner.invoke(
+        cli,
+        [
+            "validate-file",
+            "reporter-variant",
+            "--input",
+            files["invalid_file"],
+        ],
+    )
+    assert result.exit_code != 0
+    assert isinstance(result.exception, SystemExit)
+
+
 def test_reporter_element(runner, files):
     result = runner.invoke(
         cli,
@@ -162,6 +210,20 @@ def test_reporter_element(runner, files):
         ],
     )
     assert result.exit_code == 0
+
+
+def test_reporter_element_invalid(runner, files):
+    result = runner.invoke(
+        cli,
+        [
+            "validate-file",
+            "reporter-element",
+            "--input",
+            files["invalid_file"],
+        ],
+    )
+    assert result.exit_code != 0
+    assert isinstance(result.exception, SystemExit)
 
 
 def test_reporter_experiment(runner, files):
@@ -190,6 +252,20 @@ def test_reporter_experiment_barcode(runner, files):
     assert result.exit_code == 0
 
 
+def test_reporter_experiment_barcode_invalid(runner, files):
+    result = runner.invoke(
+        cli,
+        [
+            "validate-file",
+            "reporter-experiment-barcode",
+            "--input",
+            files["invalid_file"],
+        ],
+    )
+    assert result.exit_code != 0
+    assert isinstance(result.exception, SystemExit)
+
+
 def test_reporter_barcode_to_element_mapping(runner, files):
     result = runner.invoke(
         cli,
@@ -203,6 +279,20 @@ def test_reporter_barcode_to_element_mapping(runner, files):
     assert result.exit_code == 0
 
 
+def test_reporter_barcode_to_element_mapping_invalid(runner, files):
+    result = runner.invoke(
+        cli,
+        [
+            "validate-file",
+            "reporter-barcode-to-element-mapping",
+            "--input",
+            files["invalid_file"],
+        ],
+    )
+    assert result.exit_code != 0
+    assert isinstance(result.exception, SystemExit)
+
+
 def test_reporter_sequence_design(runner, files):
     result = runner.invoke(
         cli,
@@ -214,3 +304,17 @@ def test_reporter_sequence_design(runner, files):
         ],
     )
     assert result.exit_code == 0
+
+
+def test_reporter_sequence_design_invalid(runner, files):
+    result = runner.invoke(
+        cli,
+        [
+            "validate-file",
+            "reporter-sequence-design",
+            "--input",
+            files["invalid_file"],
+        ],
+    )
+    assert result.exit_code != 0
+    assert isinstance(result.exception, SystemExit)
