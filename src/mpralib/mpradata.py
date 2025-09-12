@@ -708,11 +708,16 @@ class MPRABarcodeData(MPRAData):
         oligo_data.layers["rna"] = np.array(oligo_data.X)
         oligo_data.layers["dna"] = self._sum_counts_by_oligo(self.dna_counts)
 
-        oligo_data.layers["barcode_counts"] = pd.DataFrame(
-                    self.observed * ~self.var_filter.T,  # FIXME make sure var_filter is applied correctly
-                    index=self.obs_names,
-                    columns=self.var_names,
-                ).T.groupby(self.oligos, observed=True).sum().T.values
+        oligo_data.layers["barcode_counts"] = (
+            pd.DataFrame(
+                self.observed * ~self.var_filter.T,  # FIXME make sure var_filter is applied correctly
+                index=self.obs_names,
+                columns=self.var_names,
+            )
+            .T.groupby(self.oligos, observed=True)
+            .sum()
+            .T.values
+        )
 
         oligo_data.obs_names = self.obs_names.tolist()
         oligo_data.var_names = self.data.var["oligo"].unique().tolist()
