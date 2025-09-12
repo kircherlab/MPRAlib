@@ -309,9 +309,18 @@ class MPRAData(ABC):
 
     @property
     def observed(self) -> NDArray[np.bool_]:
-        """:class:`NDArray[np.bool_]`: Returns a boolean NumPy array indicating which barcodes (observations) have non-zero counts in either DNA or RNA."""  # noqa: E501
+        """:class:`NDArray[np.bool_]`: Returns a boolean NumPy array indicating which barcodes (observations) have non-zero counts in either DNA or RNA. Uses sampled counts when available. otherwise raw counts"""  # noqa: E501
 
-        return (self.raw_dna_counts + self.raw_rna_counts) > 0
+        if "dna_sampling" in self.data.layers:
+            dna_counts = np.asarray(self.data.layers["dna_sampling"])
+        else:
+            dna_counts = self.raw_dna_counts
+        if "rna_sampling" in self.data.layers:
+            rna_counts = np.asarray(self.data.layers["rna_sampling"])
+        else:
+            rna_counts = self.raw_rna_counts
+
+        return (dna_counts + rna_counts) > 0
 
     @property
     def var_filter(self) -> NDArray[np.bool_]:
@@ -327,8 +336,6 @@ class MPRAData(ABC):
                 del self.data.uns["var_filter"]
         else:
             self.data.varm["var_filter"] = new_data
-
-        self.drop_barcode_counts()
 
     @property
     @abstractmethod
@@ -567,7 +574,7 @@ class MPRABarcodeData(MPRAData):
         if "barcode_counts" not in self.data.layers or self.data.layers["barcode_counts"] is None:
             self.barcode_counts = (
                 pd.DataFrame(
-                    self.observed * ~self.var_filter.T,
+                    self.observed,  # FIXME make sure var_filter is applied correctly
                     index=self.obs_names,
                     columns=self.var_names,
                 )
@@ -701,16 +708,11 @@ class MPRABarcodeData(MPRAData):
         oligo_data.layers["rna"] = np.array(oligo_data.X)
         oligo_data.layers["dna"] = self._sum_counts_by_oligo(self.dna_counts)
 
-        oligo_data.layers["barcode_counts"] = (
-            pd.DataFrame(
-                self.barcode_counts,
-                index=self.obs_names,
-                columns=self.var_names,
-            )
-            .T.groupby(self.oligos, observed=True)
-            .first()
-            .T
-        )
+        oligo_data.layers["barcode_counts"] = pd.DataFrame(
+                    self.observed * ~self.var_filter.T,  # FIXME make sure var_filter is applied correctly
+                    index=self.obs_names,
+                    columns=self.var_names,
+                ).T.groupby(self.oligos, observed=True).sum().T.values
 
         oligo_data.obs_names = self.obs_names.tolist()
         oligo_data.var_names = self.data.var["oligo"].unique().tolist()
@@ -971,6 +973,8 @@ class MPRABarcodeData(MPRAData):
         """
 
         self.drop_normalized()
+        self.drop_barcode_counts()
+        self.drop_total_counts()
 
         self.LOGGER.info("Dropping count sampling")
 

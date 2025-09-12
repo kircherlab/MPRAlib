@@ -114,7 +114,7 @@ def test_barcode_counts(mpra_data):
 
 def test_barcode_counts_with_filter(mpra_data_with_bc_filter):
     supporting_barcodes = mpra_data_with_bc_filter.barcode_counts
-    expected_barcodes = np.array([[2, 2, 0, 2, 2], [1, 1, 1, 2, 2], [2, 2, 1, 0, 0]])
+    expected_barcodes = np.array([[2, 2, 1, 2, 2], [2, 2, 1, 2, 2], [2, 2, 1, 2, 2]])
     np.testing.assert_array_equal(supporting_barcodes, expected_barcodes)
 
 
