@@ -4,6 +4,8 @@ import os
 import tempfile
 import pandas as pd
 import numpy as np
+from numpy.typing import NDArray
+from typing import Optional
 import pytest
 import anndata as ad
 from mpralib.utils.io import export_barcode_file, read_sequence_design_file, export_counts_file, chromosome_map
@@ -12,17 +14,22 @@ from mpralib.mpradata import MPRABarcodeData, MPRAOligoData, MPRAData
 
 
 class DummyMPRAData(MPRAData):
-    def __init__(self, replicates, oligos, barcodes, dna_counts, rna_counts, barcode_threshold, barcode_counts=None):
+    def __init__(
+        self,
+        replicates: list[str],
+        oligos: list[str],
+        barcodes: list[str],
+        dna_counts: NDArray[np.int32],
+        rna_counts: NDArray[np.int32],
+        barcode_threshold: int,
+        barcode_counts: Optional[NDArray[np.int32]] = None,
+    ):
         layers = {"rna": rna_counts, "dna": dna_counts}
         obs = pd.DataFrame(index=replicates)
         var = pd.DataFrame({"oligo": oligos}, index=barcodes)
         super().__init__(ad.AnnData(X=rna_counts, obs=obs, var=var, layers=layers), barcode_threshold)
-        if barcode_counts:
-            self.barcode_counts = pd.DataFrame(
-                barcode_counts,
-                index=self.obs_names,
-                columns=self.var_names,
-            )
+        if barcode_counts is not None:
+            self.barcode_counts = barcode_counts
 
 
 class DummyMPRABarcodeData(DummyMPRAData, MPRABarcodeData):
@@ -49,9 +56,9 @@ def oligo_data():
     replicates = ["rep1", "rep2"]
     barcodes = ["bc1", "bc2", "bc3"]
     oligos = ["ol1", "ol2", "ol3"]
-    dna_counts = np.array([[10, 0, 5], [20, 1, 0]])
-    rna_counts = np.array([[5, 0, 2], [10, 1, 0]])
-    barcode_counts = [[1, 0, 1], [1, 0, 1]]
+    dna_counts = np.array([[10, 0, 5], [20, 1, 0]], dtype=np.int32)
+    rna_counts = np.array([[5, 0, 2], [10, 1, 0]], dtype=np.int32)
+    barcode_counts = np.array([[1, 0, 1], [1, 0, 1]], dtype=np.int32)
     barcode_threshold = 1
     return DummyMPRAOligoData(replicates, oligos, barcodes, dna_counts, rna_counts, barcode_threshold, barcode_counts)
 
@@ -87,7 +94,7 @@ def test_export_counts_file_normalized(tmp_path, barcode_data):
     export_counts_file(barcode_data, str(out_path), normalized=True)
     df = pd.read_csv(out_path, sep="\t")
     # Check float formatting
-    assert np.all(df.filter(like="dna_count").applymap(lambda x: isinstance(x, float) or np.isnan(x)).values)  # type: ignore
+    assert all(df.filter(like="dna_count").apply(lambda x: isinstance(x, float) or pd.isna(x)))
 
 
 def test_export_counts_file_with_filter(tmp_path, barcode_data):

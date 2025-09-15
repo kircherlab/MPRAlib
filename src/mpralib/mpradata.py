@@ -229,14 +229,14 @@ class MPRAData(ABC):
 
     @property
     def normalized_dna_counts(self) -> NDArray[np.float32]:
-        """NDArray[np.float32]: Returns the normalized DNA counts from the dataset."""
+        """NDArray[np.float32]: Returns the normalized DNA counts from the dataset, applying the variable filter if present."""
         if "dna_normalized" not in self.data.layers:
             self._normalize()
-        return np.asarray(self.data.layers["dna_normalized"])
+        return np.asarray(self.data.layers["dna_normalized"]) * ~self.var_filter.T
 
     @property
     def rna_counts(self) -> NDArray[np.int32]:
-        """NDArray[np.int32]: Returns the RNA counts, applying the variable filter if present."""
+        """NDArray[np.int32]: Returns the raw RNA or, if present, sampled RNA counts, applying the variable filter if present."""  # noqa: E501
         if "rna_sampling" in self.data.layers:
             return np.asarray(self.data.layers["rna_sampling"]) * ~self.var_filter.T
         else:
@@ -249,7 +249,7 @@ class MPRAData(ABC):
 
     @property
     def dna_counts(self) -> NDArray[np.int32]:
-        """NDArray[np.int32]: Returns the DNA counts, applying the variable filter if present."""
+        """NDArray[np.int32]: Returns the raw DNA or, if present, sampled DNA counts, applying the variable filter if present."""  # noqa: E501
         if "dna_sampling" in self.data.layers:
             return np.asarray(self.data.layers["dna_sampling"]) * ~self.var_filter.T
         else:
@@ -257,17 +257,17 @@ class MPRAData(ABC):
 
     @property
     def normalized_rna_counts(self) -> NDArray[np.float32]:
-        """NDArray[np.float32]: Returns the normalized RNA counts from the dataset."""
+        """NDArray[np.float32]: Returns the normalized RNA counts from the dataset, applying the variable filter if present."""
         if "rna_normalized" not in self.data.layers:
             self._normalize()
-        return np.asarray(self.data.layers["rna_normalized"])
+        return np.asarray(self.data.layers["rna_normalized"]) * ~self.var_filter.T
 
     @property
     def activity(self) -> NDArray[np.float32]:
-        """NDArray[np.float32]: Returns the activity values calculated from normalized RNA and DNA counts."""
+        """NDArray[np.float32]: Returns the activity values calculated from normalized RNA and DNA counts, applying the variable filter if present."""  # noqa: E501
         if "activity" not in self.data.layers:
             self._compute_activities()
-        return np.asarray(self.data.layers["activity"])
+        return np.asarray(self.data.layers["activity"]) * ~self.var_filter.T
 
     def _compute_activities(self) -> None:
         ratio = np.divide(
@@ -278,13 +278,49 @@ class MPRAData(ABC):
         with np.errstate(divide="ignore"):
             log2ratio = np.log2(ratio)
             log2ratio[np.isneginf(log2ratio)] = np.nan
-        self.data.layers["activity"] = log2ratio * ~self.var_filter.T
+        self.data.layers["activity"] = log2ratio
+
+    @property
+    def total_dna_counts(self) -> NDArray[np.int32]:
+        """NDArray[np.int32]: Returns the total DNA counts for each replicate. Usually it are the total raw counts per replicate. Only when sampled data is availabe it returns the sampled counts."""  # noqa: E501
+        if "dna_counts" not in self.data.obs:
+            if "dna_sampling" in self.data.layers:
+                self.data.obs["dna_counts"] = np.sum(np.asarray(self.data.layers["dna_sampling"]), axis=1)
+            else:
+                self.data.obs["dna_counts"] = np.sum(self.raw_dna_counts, axis=1)
+        return np.asarray(self.data.obs["dna_counts"])
+
+    @property
+    def total_rna_counts(self) -> NDArray[np.int32]:
+        """NDArray[np.int32]: Returns the total RNA counts for each replicate. Usually it are the total raw counts per replicate. Only when sampled data is availabe it returns the sampled counts."""  # noqa: E501
+        if "rna_counts" not in self.data.obs:
+            if "rna_sampling" in self.data.layers:
+                self.data.obs["rna_counts"] = np.sum(np.asarray(self.data.layers["rna_sampling"]), axis=1)
+            else:
+                self.data.obs["rna_counts"] = np.sum(self.raw_rna_counts, axis=1)
+        return np.asarray(self.data.obs["rna_counts"])
+
+    def drop_total_counts(self) -> None:
+        """Removes total RNA and DNA counts from the dataset."""
+        if "rna_counts" in self.data.obs:
+            del self.data.obs["rna_counts"]
+        if "dna_counts" in self.data.obs:
+            del self.data.obs["dna_counts"]
 
     @property
     def observed(self) -> NDArray[np.bool_]:
-        """:class:`NDArray[np.bool_]`: Returns a boolean NumPy array indicating which barcodes (observations) have non-zero counts in either DNA or RNA and is not filtered."""  # noqa: E501
+        """:class:`NDArray[np.bool_]`: Returns a boolean NumPy array indicating which barcodes (observations) have non-zero counts in either DNA or RNA. Uses sampled counts when available. otherwise raw counts"""  # noqa: E501
 
-        return (self.dna_counts + self.rna_counts) > 0
+        if "dna_sampling" in self.data.layers:
+            dna_counts = np.asarray(self.data.layers["dna_sampling"])
+        else:
+            dna_counts = self.raw_dna_counts
+        if "rna_sampling" in self.data.layers:
+            rna_counts = np.asarray(self.data.layers["rna_sampling"])
+        else:
+            rna_counts = self.raw_rna_counts
+
+        return (dna_counts + rna_counts) > 0
 
     @property
     def var_filter(self) -> NDArray[np.bool_]:
@@ -301,23 +337,15 @@ class MPRAData(ABC):
         else:
             self.data.varm["var_filter"] = new_data
 
-        self.drop_barcode_counts()
-        self.drop_normalized()
-
     @property
+    @abstractmethod
     def barcode_counts(self) -> NDArray[np.int32]:
-        """NDArray[np.int32]: Returns the barcode counts matrix, which is a sum of counts across all barcodes for each oligo."""  # noqa: E501
-        if "barcode_counts" not in self.data.layers or self.data.layers["barcode_counts"] is None:
-            self.data.layers["barcode_counts"] = self._barcode_counts()
-        return np.asarray(self.data.layers["barcode_counts"], dtype=np.int32)
+        """NDArray[np.int32]: Returns the barcode counts matrix, which is the number of observed and not filtered barcodes for each oligo."""  # noqa: E501
+        pass
 
     @barcode_counts.setter
-    def barcode_counts(self, new_data: pd.DataFrame) -> None:
+    def barcode_counts(self, new_data: NDArray[np.int32]) -> None:
         self.data.layers["barcode_counts"] = new_data
-
-    @abstractmethod
-    def _barcode_counts(self) -> NDArray[np.int32]:
-        pass
 
     @abstractmethod
     def drop_barcode_counts(self) -> None:
@@ -369,8 +397,30 @@ class MPRAData(ABC):
 
         return df
 
-    @abstractmethod
     def _normalize(self) -> None:
+        self.drop_normalized()
+
+        self.LOGGER.info("Normalizing data")
+
+        if "dna_sampling" in self.data.layers:
+            dna_counts = np.asarray(self.data.layers["dna_sampling"])
+        else:
+            dna_counts = self.raw_dna_counts
+        if "rna_sampling" in self.data.layers:
+            rna_counts = np.asarray(self.data.layers["rna_sampling"])
+        else:
+            rna_counts = self.raw_rna_counts
+
+        self.data.layers["dna_normalized"] = self._normalize_layer(dna_counts, self.total_dna_counts)
+        self.data.layers["rna_normalized"] = self._normalize_layer(rna_counts, self.total_rna_counts)
+        self._add_metadata("normalized", True)
+
+    @abstractmethod
+    def _normalize_layer(
+        self,
+        counts: NDArray[np.int32],
+        total_counts: NDArray[np.int32],
+    ) -> NDArray[np.float32]:
         pass
 
     def drop_normalized(self) -> None:
@@ -541,16 +591,23 @@ class MPRABarcodeData(MPRAData):
         - Aggregation to oligo-level data is supported for downstream analysis.
     """  # noqa: E501
 
-    def _barcode_counts(self) -> NDArray[np.int32]:
-        return (
-            pd.DataFrame(
-                self.observed,
-                index=self.obs_names,
-                columns=self.var_names,
-            )
-            .T.groupby(self.oligos, observed=True)
-            .transform("sum")
-        ).T.values
+    @property
+    def barcode_counts(self) -> NDArray[np.int32]:
+        if "barcode_counts" not in self.data.layers or self.data.layers["barcode_counts"] is None:
+            self.barcode_counts = (
+                pd.DataFrame(
+                    self.observed,  # FIXME make sure var_filter is applied correctly
+                    index=self.obs_names,
+                    columns=self.var_names,
+                )
+                .T.groupby(self.oligos, observed=True)
+                .transform("sum")
+            ).T.values
+        return np.asarray(self.data.layers["barcode_counts"], dtype=np.int32)
+
+    @barcode_counts.setter
+    def barcode_counts(self, new_data: NDArray[np.int32]) -> None:
+        self.data.layers["barcode_counts"] = new_data
 
     def drop_barcode_counts(self) -> None:
 
@@ -630,35 +687,21 @@ class MPRABarcodeData(MPRAData):
 
         return results
 
-    def _normalize(self) -> None:
-
-        self.drop_normalized()
-
-        self.LOGGER.info("Normalizing data")
-
-        self.data.layers["dna_normalized"] = self._normalize_layer(
-            self.dna_counts, self.observed, self.scaling, self.pseudo_count
-        )
-        self.data.layers["rna_normalized"] = self._normalize_layer(
-            self.rna_counts, self.observed, self.scaling, self.pseudo_count
-        )
-        self._add_metadata("normalized", True)
-
     def _normalize_layer(
         self,
         counts: NDArray[np.int32],
-        observed: NDArray[np.bool_],
-        scaling: float,
-        pseudocount: int,
+        total_counts: NDArray[np.int32],
     ) -> NDArray[np.float32]:
 
         # I do a pseudo count when normalizing to avoid division by zero when computing logfold ratios.
         # barcode filter is already in the observed matrix
-        total_counts = np.sum((counts + (pseudocount * observed)), axis=1)
+        total_counts = total_counts + np.sum(self.pseudo_count * self.observed, axis=1)
 
         # Avoid division by zero when pseudocount is set to 0
         total_counts[total_counts == 0] = 1
-        return ((counts + (pseudocount * observed)) / total_counts[:, np.newaxis] * scaling) * observed
+        return (
+            ((counts + (self.pseudo_count * self.observed)) / total_counts[:, np.newaxis] * self.scaling) * self.observed
+        ).astype(np.float32)
 
     def _oligo_data(self) -> "MPRAOligoData":
 
@@ -668,16 +711,7 @@ class MPRABarcodeData(MPRAData):
         oligo_data.layers["rna"] = np.array(oligo_data.X)
         oligo_data.layers["dna"] = self._sum_counts_by_oligo(self.dna_counts)
 
-        oligo_data.layers["barcode_counts"] = (
-            pd.DataFrame(
-                self.barcode_counts,
-                index=self.obs_names,
-                columns=self.var_names,
-            )
-            .T.groupby(self.oligos, observed=True)
-            .first()
-            .T
-        )
+        oligo_data.layers["barcode_counts"] = self._sum_counts_by_oligo(self.observed * ~self.var_filter.T)
 
         oligo_data.obs_names = self.obs_names.tolist()
         oligo_data.var_names = self.data.var["oligo"].unique().tolist()
@@ -699,7 +733,7 @@ class MPRABarcodeData(MPRAData):
 
         return MPRAOligoData(oligo_data, self.barcode_threshold)
 
-    def _sum_counts_by_oligo(self, counts: NDArray[np.int32]) -> pd.DataFrame:
+    def _sum_counts_by_oligo(self, counts: NDArray) -> pd.DataFrame:
 
         grouped = pd.DataFrame(
             counts,
@@ -938,6 +972,8 @@ class MPRABarcodeData(MPRAData):
         """
 
         self.drop_normalized()
+        self.drop_barcode_counts()
+        self.drop_total_counts()
 
         self.LOGGER.info("Dropping count sampling")
 
@@ -1022,10 +1058,10 @@ class MPRABarcodeData(MPRAData):
         """
 
         if count_type == CountSampling.RNA or count_type == CountSampling.RNA_AND_DNA:
-            self._apply_sampling("rna_sampling", self.rna_counts, proportion, total, max_value, aggregate_over_replicates)
+            self._apply_sampling("rna_sampling", self.raw_rna_counts, proportion, total, max_value, aggregate_over_replicates)
 
         if count_type == CountSampling.DNA or count_type == CountSampling.RNA_AND_DNA:
-            self._apply_sampling("dna_sampling", self.dna_counts, proportion, total, max_value, aggregate_over_replicates)
+            self._apply_sampling("dna_sampling", self.raw_dna_counts, proportion, total, max_value, aggregate_over_replicates)
 
         self._add_metadata(
             "count_sampling",
@@ -1040,7 +1076,7 @@ class MPRABarcodeData(MPRAData):
                 }
             ],
         )
-
+        self.drop_total_counts()
         self.drop_normalized()
         self.drop_barcode_counts()
 
@@ -1054,10 +1090,17 @@ class MPRAOligoData(MPRAData):
         MPRAlibException: If barcode counts are not set when accessed.
     """  # noqa: E501
 
-    def _barcode_counts(self):
-        raise MPRAlibException(
-            "Barcode counts are not set in MPRAOligoData and cannot be computed. They have to be pre-set before accessing."
-        )
+    @property
+    def barcode_counts(self) -> NDArray[np.int32]:
+        if "barcode_counts" not in self.data.layers or self.data.layers["barcode_counts"] is None:
+            raise MPRAlibException(
+                "Barcode counts are not set in MPRAOligoData and cannot be computed. They have to be pre-set before accessing."
+            )
+        return np.asarray(self.data.layers["barcode_counts"], dtype=np.int32)
+
+    @barcode_counts.setter
+    def barcode_counts(self, new_data: NDArray[np.int32]) -> None:
+        self.data.layers["barcode_counts"] = new_data
 
     def drop_barcode_counts(self):
         pass
@@ -1067,38 +1110,18 @@ class MPRAOligoData(MPRAData):
 
         return MPRAOligoData(ad.read(file_path))
 
-    def _normalize(self) -> None:
-
-        self.drop_normalized()
-
-        self.LOGGER.info("Normalizing data")
-
-        self.data.layers["dna_normalized"] = self._normalize_layer(
-            self.dna_counts, ~self.var_filter.T, self.barcode_counts, self.scaling, self.pseudo_count
-        )
-        self.data.layers["rna_normalized"] = self._normalize_layer(
-            self.rna_counts, ~self.var_filter.T, self.barcode_counts, self.scaling, self.pseudo_count
-        )
-        self._add_metadata("normalized", True)
-
     def _normalize_layer(
         self,
         counts: NDArray[np.int32],
-        not_var_filter: NDArray[np.bool_],
-        barcode_counts: NDArray[np.int32],
-        scaling: float,
-        pseudocount: int,
+        total_counts: NDArray[np.int32],
     ) -> NDArray[np.float32]:
 
         # I do a pseudo count when normalizing to avoid division by zero when computing logfold ratios.
         # Pseudocount has also be done per barcode.
         # var filter has to be used again because we want to have a zero on filtered values.
-        total_counts = np.sum((counts + (pseudocount * barcode_counts)) * not_var_filter, axis=1)
+        total_counts = total_counts + np.sum((self.pseudo_count * self.barcode_counts) * self.observed, axis=1)
 
         # Avoid division by zero when pseudocount is set to 0
         total_counts[total_counts == 0] = 1
-        scaled_counts = (counts + (pseudocount * barcode_counts)) / total_counts[:, np.newaxis] * scaling
-        return (
-            np.divide(scaled_counts, barcode_counts, where=barcode_counts != 0, out=np.zeros_like(scaled_counts))
-            * not_var_filter
-        )
+        scaled_counts = (counts + (self.pseudo_count * self.barcode_counts)) / total_counts[:, np.newaxis] * self.scaling
+        return np.divide(scaled_counts, self.barcode_counts, where=self.barcode_counts != 0, out=np.zeros_like(scaled_counts))

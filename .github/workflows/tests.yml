@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: install micromamba
         uses: mamba-org/setup-micromamba@v2
@@ -38,14 +38,14 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           # super-linter needs the full git history to get the
           # list of files that changed across commits
           fetch-depth: 0
 
       - name: Super-linter
-        uses: super-linter/super-linter@v7
+        uses: super-linter/super-linter@v8
         env:
           # To report GitHub Actions status checks
           DEFAULT_BRANCH: master
@@ -70,10 +70,10 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'  # or your project's version
 
