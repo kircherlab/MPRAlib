@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.3](https://github.com/kircherlab/MPRAlib/compare/v0.8.2...v0.8.3) (2025-09-16)
+
+
+### Bug Fixes
+
+* validate empty files as invalid ([1fddaeb](https://github.com/kircherlab/MPRAlib/commit/1fddaeb7df8c50592ae873e67eb850aaeff154de))
+
 ## [0.8.2](https://github.com/kircherlab/MPRAlib/compare/v0.8.1...v0.8.2) (2025-07-01)
 
 
