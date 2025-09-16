@@ -5,20 +5,23 @@
 | Name                                  |    Stmts |     Miss |   Cover |   Missing |
 |-------------------------------------- | -------: | -------: | ------: | --------: |
 | src/mpralib/\_\_init\_\_.py           |        1 |        0 |    100% |           |
-| src/mpralib/cli.py                    |      421 |      256 |     39% |43, 56, 69, 82, 95, 108, 121, 215-231, 279-300, 305, 333-378, 444-461, 532-601, 649-674, 726-779, 852-913, 970-1060, 1074, 1127-1141, 1184-1196, 1223-1230, 1250-1254, 1260 |
+| src/mpralib/cli.py                    |      440 |      206 |     53% |109, 166, 284-300, 447-461, 579-582, 655-724, 782-807, 869-922, 1005-1066, 1133-1223, 1313, 1372-1384, 1424, 1475 |
 | src/mpralib/exception.py              |       12 |        0 |    100% |           |
-| src/mpralib/mpradata.py               |      494 |       85 |     83% |46-49, 120, 171, 214, 293, 302, 310, 326-343, 347, 379, 402, 438-443, 450, 468-482, 699-710, 715-748, 754-780, 834, 848-854, 966, 976 |
+| src/mpralib/mpradata.py               |      572 |       30 |     95% |344, 348, 357, 365, 384, 424, 482, 843-876, 884-885, 895-899, 963, 1109 |
 | src/mpralib/utils/\_\_init\_\_.py     |        0 |        0 |    100% |           |
-| src/mpralib/utils/file\_validation.py |      110 |        9 |     92% |32, 34, 41, 114-117, 129, 187 |
-| src/mpralib/utils/io.py               |       97 |        3 |     97% |     63-65 |
-| src/mpralib/utils/plot.py             |      108 |       34 |     69% |   117-184 |
+| src/mpralib/utils/file\_validation.py |      113 |        9 |     92% |32, 34, 41, 113-116, 130, 188 |
+| src/mpralib/utils/io.py               |       96 |        0 |    100% |           |
+| src/mpralib/utils/plot.py             |      110 |        2 |     98% |  168, 172 |
 | tests/\_\_init\_\_.py                 |        0 |        0 |    100% |           |
-| tests/test\_cli.py                    |       94 |        0 |    100% |           |
-| tests/test\_cli\_validate\_file.py    |       42 |        0 |    100% |           |
-| tests/test\_mpradata.py               |      259 |        0 |    100% |           |
-| tests/test\_utils\_io.py              |      125 |        0 |    100% |           |
+| tests/test\_cli.py                    |       93 |        0 |    100% |           |
+| tests/test\_cli\_combine.py           |       78 |        0 |    100% |           |
+| tests/test\_cli\_functional.py        |      123 |        0 |    100% |           |
+| tests/test\_cli\_plot.py              |       50 |        0 |    100% |           |
+| tests/test\_cli\_validate\_file.py    |      111 |        0 |    100% |           |
+| tests/test\_mpradata.py               |      755 |        0 |    100% |           |
+| tests/test\_utils\_io.py              |      169 |        0 |    100% |           |
 | tests/test\_utils\_plot.py            |       90 |        0 |    100% |           |
-|                             **TOTAL** | **1853** |  **387** | **79%** |           |
+|                             **TOTAL** | **2813** |  **247** | **91%** |           |
 
 
 ## Setup coverage badge
