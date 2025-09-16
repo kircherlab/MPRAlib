@@ -3,7 +3,7 @@ import pandas as pd
 import anndata as ad
 import copy
 import pytest
-from mpralib.mpradata import MPRABarcodeData, CountSampling, BarcodeFilter, Modality, MPRAOligoData
+from mpralib.mpradata import MPRABarcodeData, CountSampling, BarcodeFilter, MPRAData, Modality, MPRAOligoData
 
 
 OBS = pd.DataFrame(index=["rep1", "rep2", "rep3"])
@@ -667,3 +667,325 @@ def test_barcode_filter_combine(mpra_data):
     expected[4, 2] = True  # barcode5, rep3
     expected[2, 0] = True  # barcode3, rep1
     np.testing.assert_array_equal(mask, expected)
+
+
+def test_mpra_data_from_file():
+
+    assert MPRAData.from_file("test") is None
+
+    assert MPRAData.from_file("ffasfasdfas") is None
+
+
+def test_mprabarcode_from_file(tmp_path):
+    # Create a mock barcode-level MPRA TSV file
+    file_path = tmp_path / "test_bc.tsv"
+    df = pd.DataFrame({
+        "barcode": ["barcode1", "barcode2", "barcode3"],
+        "oligo_name": ["oligo1", "oligo1", "oligo2"],
+        "dna_count_rep1": [10, 20, 30],
+        "rna_count_rep1": [1, 2, 3],
+        "dna_count_rep2": [40, 50, 60],
+        "rna_count_rep2": [4, 5, 6],
+    })
+    df_out = df[["barcode", "oligo_name", "dna_count_rep1", "rna_count_rep1", "dna_count_rep2", "rna_count_rep2"]]
+    df_out.to_csv(file_path, sep="\t", index=False)
+
+    # Read using from_file
+    data = MPRABarcodeData.from_file(str(file_path))
+    assert isinstance(data, MPRABarcodeData)
+    assert data.data.shape == (2, 3)  # 2 replicates, 3 barcodes
+    assert "rna" in data.data.layers
+    assert "dna" in data.data.layers
+    assert all(data.data.var["oligo"].isin(["oligo1", "oligo2"]))
+    assert data.data.uns["file_path"] == str(file_path)
+    assert data.data.uns["normalized"] is False
+
+
+def test_mpraoligo_from_file(tmp_path):
+    # Create a mock AnnData file for oligo-level data
+    X = np.array([[1, 2], [3, 4]])
+    adata = ad.AnnData(X)
+    adata.layers["rna"] = X
+    adata.layers["dna"] = X + 10
+    adata.var_names = ["oligoA", "oligoB"]
+    adata.obs_names = ["rep1", "rep2"]
+    file_path = tmp_path / "test_oligo.h5ad"
+    adata.write(file_path)
+
+    data = MPRAOligoData.from_file(str(file_path))
+    assert isinstance(data, MPRAOligoData)
+    assert data.data.shape == (2, 2)
+    assert "rna" in data.data.layers
+    assert "dna" in data.data.layers
+    assert list(data.data.var_names) == ["oligoA", "oligoB"]
+    assert list(data.data.obs_names) == ["rep1", "rep2"]
+
+
+def test_drop_correlation_removes_correlation_layers(mpra_data_norm):
+    # Compute correlation to create correlation layers
+    mpra_data_norm._normalize()
+    mpra_data_norm._compute_correlation(mpra_data_norm.activity, "activity")
+    mpra_data_norm._compute_correlation(mpra_data_norm.normalized_rna_counts, "rna_normalized")
+    mpra_data_norm._compute_correlation(mpra_data_norm.normalized_dna_counts, "dna_normalized")
+
+    # Ensure correlation layers exist
+    for layer in ["activity", "rna_normalized", "dna_normalized"]:
+        for method in ["pearson", "spearman"]:
+            assert f"{method}_correlation_{layer}" in mpra_data_norm.data.obsp
+            assert f"{method}_correlation_{layer}_pvalue" in mpra_data_norm.data.obsp
+        assert mpra_data_norm._get_metadata(f"correlation_{layer}") is True
+
+    # Drop correlation
+    mpra_data_norm._drop_correlation()
+
+    # Ensure correlation layers are removed and metadata is updated
+    for layer in ["activity", "rna_normalized", "dna_normalized"]:
+        for method in ["pearson", "spearman"]:
+            assert f"{method}_correlation_{layer}" not in mpra_data_norm.data.obsp
+            assert f"{method}_correlation_{layer}_pvalue" not in mpra_data_norm.data.obsp
+        assert mpra_data_norm._get_metadata(f"correlation_{layer}") is False
+
+
+def test_drop_correlation_no_error_if_layers_missing(mpra_data_norm):
+    # Ensure no correlation layers exist
+    for layer in ["activity", "rna_normalized", "dna_normalized"]:
+        for method in ["pearson", "spearman"]:
+            mpra_data_norm.data.obsp.pop(f"{method}_correlation_{layer}", None)
+            mpra_data_norm.data.obsp.pop(f"{method}_correlation_{layer}_pvalue", None)
+        mpra_data_norm._add_metadata(f"correlation_{layer}", False)
+
+    # Should not raise error
+    mpra_data_norm._drop_correlation()
+    # Metadata should remain False
+    for layer in ["activity", "rna_normalized", "dna_normalized"]:
+        assert mpra_data_norm._get_metadata(f"correlation_{layer}") is False
+
+
+def test_data_property_getter(mpra_data):
+    # Should return the underlying AnnData object
+    assert isinstance(mpra_data.data, ad.AnnData)
+    # Should have expected shape and layers
+    assert mpra_data.data.shape == (3, 5)
+    assert "rna" in mpra_data.data.layers
+    assert "dna" in mpra_data.data.layers
+
+
+def test_data_property_setter(mpra_data):
+    # Create a new AnnData object and set it
+    new_counts = np.ones((3, 5), dtype=np.int32)
+    new_obs = pd.DataFrame(index=["repA", "repB", "repC"])
+    new_var = pd.DataFrame({"oligo": ["oligoA"] * 5}, index=[f"barcode{i}" for i in range(1, 6)])
+    new_layers = {"rna": new_counts.copy(), "dna": new_counts.copy()}
+    new_adata = ad.AnnData(X=new_counts.copy(), obs=new_obs.copy(), var=new_var.copy(), layers=new_layers)
+    mpra_data.data = new_adata
+    assert mpra_data.data is new_adata
+    assert mpra_data.data.shape == (3, 5)
+    assert np.all(mpra_data.data.layers["rna"] == 1)
+    assert np.all(mpra_data.data.layers["dna"] == 1)
+
+
+@pytest.mark.parametrize("has_sampling", [False, True],)
+@pytest.mark.parametrize("modality", ["rna", "dna"])
+def test_rna_counts_var_filter_and_sampling(mpra_data, has_sampling, modality):
+    # Set up a filter that masks some barcodes
+    filter_mask = np.zeros_like(mpra_data.var_filter, dtype=bool)
+    filter_mask[1, 0] = True  # mask barcode2, rep1
+    filter_mask[3, 2] = True  # mask barcode4, rep3
+    mpra_data.var_filter = filter_mask
+
+    if has_sampling:
+        # Simulate a sampling layer
+        if modality == "rna":
+            sampled = mpra_data.raw_rna_counts.copy()
+        else:
+            sampled = mpra_data.raw_dna_counts.copy()
+        sampled[0, 0] = 0
+        sampled[2, 1] = 0
+        mpra_data.data.layers[f"{modality}_sampling"] = sampled
+        expected = sampled * ~filter_mask.T
+    else:
+        if modality == "rna":
+            expected = mpra_data.raw_rna_counts * ~filter_mask.T
+        else:
+            expected = mpra_data.raw_dna_counts * ~filter_mask.T
+
+    if modality == "rna":
+        result = mpra_data.rna_counts
+    else:
+        result = mpra_data.dna_counts
+    np.testing.assert_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("modality", ["rna", "dna"])
+def test_rna_counts_no_var_filter(mpra_data, modality):
+    mpra_data.var_filter = None
+    if modality == "rna":
+        expected = mpra_data.raw_rna_counts
+        result = mpra_data.rna_counts
+    else:
+        expected = mpra_data.raw_dna_counts
+        result = mpra_data.dna_counts
+    np.testing.assert_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("modality", ["rna", "dna"])
+def test_rna_counts_all_filtered(mpra_data, modality):
+    mpra_data.var_filter = np.ones_like(mpra_data.var_filter, dtype=bool)
+    if modality == "rna":
+        expected = np.zeros_like(mpra_data.raw_rna_counts)
+        result = mpra_data.rna_counts
+    else:
+        expected = np.zeros_like(mpra_data.raw_dna_counts)
+        result = mpra_data.dna_counts
+    np.testing.assert_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("modality", ["rna", "dna"])
+def test_rna_counts_with_sampling_and_all_filtered(mpra_data, modality):
+    mpra_data.var_filter = np.ones_like(mpra_data.var_filter, dtype=bool)
+    if modality == "rna":
+        sampled = mpra_data.raw_rna_counts.copy()
+    else:
+        sampled = mpra_data.raw_dna_counts.copy()
+    sampled[0, 0] = 99
+    mpra_data.data.layers[f"{modality}_sampling"] = sampled
+    expected = np.zeros_like(sampled)
+    if modality == "rna":
+        result = mpra_data.rna_counts
+    else:
+        result = mpra_data.dna_counts
+    np.testing.assert_array_equal(result, expected)
+
+    def test_mpra_data_scaling_and_pseudocount(mpra_data):
+        # Default scaling and pseudocount
+        assert mpra_data.scaling == 1e6
+        assert mpra_data.pseudo_count == 1
+
+        # Change scaling and pseudocount
+        mpra_data.scaling = 12345
+        assert mpra_data.scaling == 12345
+        mpra_data.pseudo_count = 7
+        assert mpra_data.pseudo_count == 7
+
+    def test_mpra_data_metadata(mpra_data):
+        mpra_data._add_metadata("test_key", "test_value")
+        assert mpra_data._get_metadata("test_key") == "test_value"
+
+    def test_mpra_data_data_property(mpra_data):
+        assert isinstance(mpra_data.data, ad.AnnData)
+        new_data = copy.deepcopy(mpra_data.data)
+        mpra_data.data = new_data
+        assert mpra_data.data is new_data
+
+    def test_mpra_data_obs_var_names(mpra_data):
+        assert list(mpra_data.obs_names) == ["rep1", "rep2", "rep3"]
+        assert list(mpra_data.var_names) == ["barcode1", "barcode2", "barcode3", "barcode4", "barcode5"]
+        assert mpra_data.n_obs == 3
+        assert mpra_data.n_vars == 5
+
+    def test_mpra_data_oligos(mpra_data):
+        oligos = mpra_data.oligos
+        assert isinstance(oligos, pd.Series)
+        assert set(oligos) == {"oligo1", "oligo2", "oligo3"}
+
+    def test_mpra_data_raw_counts(mpra_data):
+        assert np.array_equal(mpra_data.raw_rna_counts, COUNTS_RNA)
+        assert np.array_equal(mpra_data.raw_dna_counts, COUNTS_DNA)
+
+    def test_mpra_data_total_counts(mpra_data):
+        # Should match sum over axis 1
+        assert np.array_equal(mpra_data.total_rna_counts, COUNTS_RNA.sum(axis=1))
+        assert np.array_equal(mpra_data.total_dna_counts, COUNTS_DNA.sum(axis=1))
+
+    def test_mpra_data_drop_total_counts(mpra_data):
+        mpra_data.total_rna_counts  # populate
+        mpra_data.total_dna_counts
+        mpra_data.drop_total_counts()
+        assert "rna_counts" not in mpra_data.data.obs
+        assert "dna_counts" not in mpra_data.data.obs
+
+    def test_mpra_data_var_filter_setter_and_getter(mpra_data):
+        mpra_data.var_filter = FILTER
+        assert np.array_equal(mpra_data.var_filter, FILTER)
+        mpra_data.var_filter = None
+        assert np.all(mpra_data.var_filter == False)
+
+    def test_mpra_data_write_and_read(tmp_path, mpra_data):
+        out_path = tmp_path / "test_data.h5ad"
+        mpra_data.write(out_path)
+        loaded = MPRABarcodeData.read(out_path)
+        assert isinstance(loaded, MPRABarcodeData)
+        assert loaded.data.shape == mpra_data.data.shape
+
+
+def test_mpra_data_add_sequence_design(mpra_data):
+    # Create a minimal sequence design DataFrame
+    df = pd.DataFrame({
+        "category": ["cat1", "cat2", "cat3"],
+        "class": ["class1", "class2", "class3"],
+        "ref": ["ref1", "ref2", "ref3"],
+        "chr": ["chr1", "chr2", "chr3"],
+        "start": [1, 2, 3],
+        "end": [10, 20, 30],
+        "strand": ["+", "-", "+"],
+        "variant_class": ["vc1", "vc2", "vc3"],
+        "variant_pos": [100, 200, 300],
+        "SPDI": [["spdi1"], ["spdi2"], ["spdi3"]],
+        "allele": [["ref"], ["alt"], ["ref"]],
+    }, index=["oligo1", "oligo2", "oligo3"])
+    mpra_data.data.var["oligo"] = ["oligo1", "oligo1", "oligo2", "oligo3", "oligo3"]
+    mpra_data.add_sequence_design(df, "dummy_path")
+    assert "category" in mpra_data.data.var
+    assert mpra_data._get_metadata("sequence_design_file") == "dummy_path"
+
+
+def test_mpra_data_variant_map(mpra_data):
+    # Setup sequence design
+    df = pd.DataFrame({
+        "category": ["cat1", "cat2", "cat3"],
+        "class": ["class1", "class2", "class3"],
+        "ref": ["ref1", "ref2", "ref3"],
+        "chr": ["chr1", "chr2", "chr3"],
+        "start": [1, 2, 3],
+        "end": [10, 20, 30],
+        "strand": ["+", "-", "+"],
+        "variant_class": ["vc1", "vc2", "vc3"],
+        "variant_pos": [100, 200, 300],
+        "SPDI": [["spdi1"], ["spdi2"], ["spdi3"]],
+        "allele": [["ref"], ["alt"], ["ref"]],
+    }, index=["oligo1", "oligo2", "oligo3"])
+    mpra_data.data.var["oligo"] = ["oligo1", "oligo1", "oligo2", "oligo3", "oligo3"]
+    mpra_data.add_sequence_design(df, "dummy_path")
+    variant_map = mpra_data.variant_map
+    assert isinstance(variant_map, pd.DataFrame)
+    assert "REF" in variant_map.columns
+    assert "ALT" in variant_map.columns
+
+
+@pytest.mark.parametrize("modality", ["rna", "dna"])
+def test_mpra_data_drop_normalized(mpra_data, modality):
+    mpra_data._normalize()
+    assert f"{modality}_normalized" in mpra_data.data.layers
+    mpra_data.drop_normalized()
+    assert f"{modality}_normalized" not in mpra_data.data.layers
+    assert mpra_data._get_metadata("normalized") is False
+
+
+@pytest.mark.parametrize("modality", ["rna", "dna"])
+def test_mpra_data_drop_correlation(mpra_data, modality):
+    mpra_data._normalize()
+    if modality == "rna":
+        mpra_data._compute_correlation(mpra_data.normalized_rna_counts, "rna_normalized")
+    else:
+        mpra_data._compute_correlation(mpra_data.normalized_dna_counts, "dna_normalized")
+    assert mpra_data._get_metadata(f"correlation_{modality}_normalized") is True
+    mpra_data._drop_correlation()
+    assert mpra_data._get_metadata(f"correlation_{modality}_normalized") is False
+
+
+def test_mpra_data_correlation_invalid_method(mpra_data):
+    mpra_data._normalize()
+    with pytest.raises(ValueError):
+        mpra_data.correlation(method="invalid", count_type=Modality.RNA_NORMALIZED)
+    with pytest.raises(ValueError):
+        mpra_data.correlation(method="pearson", count_type=Modality.RNA)

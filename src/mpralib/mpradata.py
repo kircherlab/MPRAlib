@@ -436,12 +436,15 @@ class MPRAData(ABC):
         self._drop_correlation()
         self._add_metadata("normalized", False)
 
-    def correlation(self, method: str = "pearson", count_type: "Modality" = Modality.ACTIVITY) -> NDArray[np.float32]:
+    def correlation(self, method: str = "pearson", count_type: Modality = Modality.ACTIVITY) -> NDArray[np.float32]:
         """Calculates and return the correlation for activity or normalized counts.
 
         Returns:
             The Pearson or Spearman correlation matrix.
         """
+
+        if method not in {"pearson", "spearman"}:
+            raise ValueError(f"Unsupported correlation method: {method}")
 
         if count_type == Modality.DNA_NORMALIZED:
             filtered = self.normalized_dna_counts.copy()
