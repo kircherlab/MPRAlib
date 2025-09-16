@@ -1,26 +1,35 @@
+import copy
+import gzip
 import os
 import tempfile
 import pandas as pd
 import numpy as np
+from numpy.typing import NDArray
+from typing import Optional
 import pytest
 import anndata as ad
-from mpralib.utils.io import read_sequence_design_file, export_counts_file, chromosome_map
+from mpralib.utils.io import export_barcode_file, read_sequence_design_file, export_counts_file, chromosome_map
 from mpralib.exception import SequenceDesignException, MPRAlibException
 from mpralib.mpradata import MPRABarcodeData, MPRAOligoData, MPRAData
 
 
 class DummyMPRAData(MPRAData):
-    def __init__(self, replicates, oligos, barcodes, dna_counts, rna_counts, barcode_threshold, barcode_counts=None):
+    def __init__(
+        self,
+        replicates: list[str],
+        oligos: list[str],
+        barcodes: list[str],
+        dna_counts: NDArray[np.int32],
+        rna_counts: NDArray[np.int32],
+        barcode_threshold: int,
+        barcode_counts: Optional[NDArray[np.int32]] = None,
+    ):
         layers = {"rna": rna_counts, "dna": dna_counts}
         obs = pd.DataFrame(index=replicates)
         var = pd.DataFrame({"oligo": oligos}, index=barcodes)
         super().__init__(ad.AnnData(X=rna_counts, obs=obs, var=var, layers=layers), barcode_threshold)
-        if barcode_counts:
-            self.barcode_counts = pd.DataFrame(
-                barcode_counts,
-                index=self.obs_names,
-                columns=self.var_names,
-            )
+        if barcode_counts is not None:
+            self.barcode_counts = barcode_counts
 
 
 class DummyMPRABarcodeData(DummyMPRAData, MPRABarcodeData):
@@ -47,9 +56,9 @@ def oligo_data():
     replicates = ["rep1", "rep2"]
     barcodes = ["bc1", "bc2", "bc3"]
     oligos = ["ol1", "ol2", "ol3"]
-    dna_counts = np.array([[10, 0, 5], [20, 1, 0]])
-    rna_counts = np.array([[5, 0, 2], [10, 1, 0]])
-    barcode_counts = [[1, 0, 1], [1, 0, 1]]
+    dna_counts = np.array([[10, 0, 5], [20, 1, 0]], dtype=np.int32)
+    rna_counts = np.array([[5, 0, 2], [10, 1, 0]], dtype=np.int32)
+    barcode_counts = np.array([[1, 0, 1], [1, 0, 1]], dtype=np.int32)
     barcode_threshold = 1
     return DummyMPRAOligoData(replicates, oligos, barcodes, dna_counts, rna_counts, barcode_threshold, barcode_counts)
 
@@ -85,7 +94,7 @@ def test_export_counts_file_normalized(tmp_path, barcode_data):
     export_counts_file(barcode_data, str(out_path), normalized=True)
     df = pd.read_csv(out_path, sep="\t")
     # Check float formatting
-    assert np.all(df.filter(like="dna_count").applymap(lambda x: isinstance(x, float) or np.isnan(x)).values)  # type: ignore
+    assert all(df.filter(like="dna_count").apply(lambda x: isinstance(x, float) or pd.isna(x)))
 
 
 def test_export_counts_file_with_filter(tmp_path, barcode_data):
@@ -191,3 +200,75 @@ def test_chromosome_map_non_empty():
 def test_chromosome_map_no_duplicate_rows():
     df = chromosome_map()
     assert df.duplicated().sum() == 0
+
+
+OBS = pd.DataFrame(index=["rep1", "rep2", "rep3"])
+VAR = pd.DataFrame(
+    {"oligo": ["oligo1", "oligo1", "oligo2", "oligo3", "oligo3"]},
+    index=["barcode1", "barcode2", "barcode3", "barcode4", "barcode5"],
+)
+COUNTS_DNA = np.array([[1, 2, 3, 1, 2], [4, 5, 6, 4, 5], [7, 8, 9, 10, 100]])
+COUNTS_RNA = np.array([[1, 2, 4, 1, 2], [4, 5, 6, 4, 5], [7, 8, 9, 10, 100]])
+
+FILTER = np.array(
+    [
+        [False, True, False],
+        [False, False, False],
+        [True, False, False],
+        [False, False, True],
+        [False, False, True],
+    ]
+)
+
+
+@pytest.fixture
+def mpra_data():
+    layers = {"rna": COUNTS_RNA.copy(), "dna": COUNTS_DNA.copy()}
+    return MPRABarcodeData(ad.AnnData(X=COUNTS_RNA.copy(), obs=OBS.copy(), var=VAR.copy(), layers=layers))
+
+
+@pytest.fixture
+def mpra_data_with_bc_filter(mpra_data):
+    data = copy.deepcopy(mpra_data)
+    data.var_filter = FILTER
+    return data
+
+
+@pytest.fixture
+def files():
+    input_file = os.path.join(os.path.dirname(__file__), "data", "reporter_experiment_barcode.input.tsv.gz")
+    output_file_activity = tempfile.NamedTemporaryFile(delete=False).name
+    output_file_barcode = tempfile.NamedTemporaryFile(delete=False).name
+    yield {"input": input_file, "output_activity": output_file_activity, "output_barcode": output_file_barcode}
+    os.remove(output_file_activity)
+    os.remove(output_file_barcode)
+
+
+def test_export_barcode_file(mpra_data, files):
+    export_barcode_file(mpra_data, files["output_barcode"])
+    assert os.path.exists(files["output_barcode"])
+
+    with open(files["output_barcode"], "r") as f:
+        output_content = f.read()
+    expected_output_file = os.path.join(
+        os.path.dirname(__file__), "data", "io", "reporter_experiment_barcode.simple.out.tsv.gz"
+    )
+
+    with gzip.open(expected_output_file, "rt") as f:
+        expected_content = f.read()
+    assert output_content == expected_content
+
+
+def test_export_barcode_file_var_filter(mpra_data_with_bc_filter, files):
+    export_barcode_file(mpra_data_with_bc_filter, files["output_barcode"])
+    assert os.path.exists(files["output_barcode"])
+
+    with open(files["output_barcode"], "r") as f:
+        output_content = f.read()
+    expected_output_file = os.path.join(
+        os.path.dirname(__file__), "data", "io", "reporter_experiment_barcode.simple_with_bc_filter.out.tsv.gz"
+    )
+
+    with gzip.open(expected_output_file, "rt") as f:
+        expected_content = f.read()
+    assert output_content == expected_content

@@ -22,7 +22,7 @@ def chromosome_map() -> pd.DataFrame:
     return df
 
 
-def is_compressed_file(filepath):
+def is_compressed_file(filepath: str) -> bool:
     """Check if a file is compressed (gzip or bgz).
 
     Args:
@@ -34,7 +34,7 @@ def is_compressed_file(filepath):
     return is_gzip_file(filepath) or is_bgzf(filepath)
 
 
-def is_gzip_file(filepath):
+def is_gzip_file(filepath: str) -> bool:
     """Check if a file is a gzip-compressed file based on its magic number.
 
     Args:
@@ -48,7 +48,7 @@ def is_gzip_file(filepath):
     return magic == b"\x1f\x8b"
 
 
-def is_bgzf(filepath):
+def is_bgzf(filepath: str) -> bool:
     """Check if a file is in BGZF (Blocked GNU Zip Format) format.
 
     BGZF is a variant of the standard gzip format with extra fields that allow for random access.
@@ -82,6 +82,7 @@ def export_activity_file(mpradata: MPRAOligoData, output_file_path: str) -> None
 
     output = pd.DataFrame()
 
+    # has to be run to calculate activities
     mpradata.activity
 
     for replicate in mpradata.obs_names:
@@ -115,8 +116,6 @@ def export_barcode_file(mpradata: MPRABarcodeData, output_file_path: str) -> Non
     """  # noqa: E501
 
     output = pd.DataFrame({"barcode": mpradata.var_names, "oligo_name": mpradata.oligos})
-
-    mpradata.normalized_rna_counts
 
     dna_counts = mpradata.dna_counts
     rna_counts = mpradata.rna_counts
