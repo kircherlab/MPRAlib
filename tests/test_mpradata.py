@@ -1092,10 +1092,10 @@ def test_mpra_data_metadata(mpra_data):
 
 def test_mpra_data_var_filter_setter(mpra_data):
     mpra_data.var_filter = None
-    assert np.all(mpra_data.var_filter == False)
+    assert np.all(mpra_data.var_filter == False)  # noqa: E712
     mask = np.ones_like(mpra_data.var_filter, dtype=bool)
     mpra_data.var_filter = mask
-    assert np.all(mpra_data.var_filter == True)
+    assert np.all(mpra_data.var_filter == True)  # noqa: E712
 
 
 def test_mpra_data_write_and_read(tmp_path, mpra_data):
