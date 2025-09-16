@@ -906,7 +906,7 @@ def test_mpra_data_var_filter_setter_and_getter(mpra_data):
     mpra_data.var_filter = FILTER
     assert np.array_equal(mpra_data.var_filter, FILTER)
     mpra_data.var_filter = None
-    assert np.all(mpra_data.var_filter == False)
+    assert np.all(mpra_data.var_filter == False)  # noqa: E712
 
 
 def test_mpra_data_add_sequence_design(mpra_data):
