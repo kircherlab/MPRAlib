@@ -680,14 +680,16 @@ def test_mpra_data_from_file():
 def test_mprabarcode_from_file(tmp_path):
     # Create a mock barcode-level MPRA TSV file
     file_path = tmp_path / "test_bc.tsv"
-    df = pd.DataFrame({
-        "barcode": ["barcode1", "barcode2", "barcode3"],
-        "oligo_name": ["oligo1", "oligo1", "oligo2"],
-        "dna_count_rep1": [10, 20, 30],
-        "rna_count_rep1": [1, 2, 3],
-        "dna_count_rep2": [40, 50, 60],
-        "rna_count_rep2": [4, 5, 6],
-    })
+    df = pd.DataFrame(
+        {
+            "barcode": ["barcode1", "barcode2", "barcode3"],
+            "oligo_name": ["oligo1", "oligo1", "oligo2"],
+            "dna_count_rep1": [10, 20, 30],
+            "rna_count_rep1": [1, 2, 3],
+            "dna_count_rep2": [40, 50, 60],
+            "rna_count_rep2": [4, 5, 6],
+        }
+    )
     df_out = df[["barcode", "oligo_name", "dna_count_rep1", "rna_count_rep1", "dna_count_rep2", "rna_count_rep2"]]
     df_out.to_csv(file_path, sep="\t", index=False)
 
@@ -785,7 +787,10 @@ def test_data_property_setter(mpra_data):
     assert np.all(mpra_data.data.layers["dna"] == 1)
 
 
-@pytest.mark.parametrize("has_sampling", [False, True],)
+@pytest.mark.parametrize(
+    "has_sampling",
+    [False, True],
+)
 @pytest.mark.parametrize("modality", ["rna", "dna"])
 def test_rna_counts_var_filter_and_sampling(mpra_data, has_sampling, modality):
     # Set up a filter that masks some barcodes
@@ -906,19 +911,22 @@ def test_mpra_data_var_filter_setter_and_getter(mpra_data):
 
 def test_mpra_data_add_sequence_design(mpra_data):
     # Create a minimal sequence design DataFrame
-    df = pd.DataFrame({
-        "category": ["cat1", "cat2", "cat3"],
-        "class": ["class1", "class2", "class3"],
-        "ref": ["ref1", "ref2", "ref3"],
-        "chr": ["chr1", "chr2", "chr3"],
-        "start": [1, 2, 3],
-        "end": [10, 20, 30],
-        "strand": ["+", "-", "+"],
-        "variant_class": ["vc1", "vc2", "vc3"],
-        "variant_pos": [100, 200, 300],
-        "SPDI": [["spdi1"], ["spdi2"], ["spdi3"]],
-        "allele": [["ref"], ["alt"], ["ref"]],
-    }, index=["oligo1", "oligo2", "oligo3"])
+    df = pd.DataFrame(
+        {
+            "category": ["cat1", "cat2", "cat3"],
+            "class": ["class1", "class2", "class3"],
+            "ref": ["ref1", "ref2", "ref3"],
+            "chr": ["chr1", "chr2", "chr3"],
+            "start": [1, 2, 3],
+            "end": [10, 20, 30],
+            "strand": ["+", "-", "+"],
+            "variant_class": ["vc1", "vc2", "vc3"],
+            "variant_pos": [100, 200, 300],
+            "SPDI": [["spdi1"], ["spdi2"], ["spdi3"]],
+            "allele": [["ref"], ["alt"], ["ref"]],
+        },
+        index=["oligo1", "oligo2", "oligo3"],
+    )
     mpra_data.data.var["oligo"] = ["oligo1", "oligo1", "oligo2", "oligo3", "oligo3"]
     mpra_data.add_sequence_design(df, "dummy_path")
     assert "category" in mpra_data.data.var
@@ -927,19 +935,22 @@ def test_mpra_data_add_sequence_design(mpra_data):
 
 def test_mpra_data_variant_map(mpra_data):
     # Setup sequence design
-    df = pd.DataFrame({
-        "category": ["cat1", "cat2", "cat3"],
-        "class": ["class1", "class2", "class3"],
-        "ref": ["ref1", "ref2", "ref3"],
-        "chr": ["chr1", "chr2", "chr3"],
-        "start": [1, 2, 3],
-        "end": [10, 20, 30],
-        "strand": ["+", "-", "+"],
-        "variant_class": ["vc1", "vc2", "vc3"],
-        "variant_pos": [100, 200, 300],
-        "SPDI": [["spdi1"], ["spdi2"], ["spdi3"]],
-        "allele": [["ref"], ["alt"], ["ref"]],
-    }, index=["oligo1", "oligo2", "oligo3"])
+    df = pd.DataFrame(
+        {
+            "category": ["cat1", "cat2", "cat3"],
+            "class": ["class1", "class2", "class3"],
+            "ref": ["ref1", "ref2", "ref3"],
+            "chr": ["chr1", "chr2", "chr3"],
+            "start": [1, 2, 3],
+            "end": [10, 20, 30],
+            "strand": ["+", "-", "+"],
+            "variant_class": ["vc1", "vc2", "vc3"],
+            "variant_pos": [100, 200, 300],
+            "SPDI": [["spdi1"], ["spdi2"], ["spdi3"]],
+            "allele": [["ref"], ["alt"], ["ref"]],
+        },
+        index=["oligo1", "oligo2", "oligo3"],
+    )
     mpra_data.data.var["oligo"] = ["oligo1", "oligo1", "oligo2", "oligo3", "oligo3"]
     mpra_data.add_sequence_design(df, "dummy_path")
     variant_map = mpra_data.variant_map
