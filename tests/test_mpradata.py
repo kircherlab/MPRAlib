@@ -4,6 +4,7 @@ import anndata as ad
 import copy
 import pytest
 from mpralib.mpradata import MPRABarcodeData, CountSampling, BarcodeFilter, MPRAData, Modality, MPRAOligoData
+from mpralib.mpradata import MPRAlibException
 
 
 OBS = pd.DataFrame(index=["rep1", "rep2", "rep3"])
@@ -856,66 +857,51 @@ def test_rna_counts_with_sampling_and_all_filtered(mpra_data, modality):
         result = mpra_data.dna_counts
     np.testing.assert_array_equal(result, expected)
 
-    def test_mpra_data_scaling_and_pseudocount(mpra_data):
-        # Default scaling and pseudocount
-        assert mpra_data.scaling == 1e6
-        assert mpra_data.pseudo_count == 1
 
-        # Change scaling and pseudocount
-        mpra_data.scaling = 12345
-        assert mpra_data.scaling == 12345
-        mpra_data.pseudo_count = 7
-        assert mpra_data.pseudo_count == 7
+def test_mpra_data_data_property(mpra_data):
+    assert isinstance(mpra_data.data, ad.AnnData)
+    new_data = copy.deepcopy(mpra_data.data)
+    mpra_data.data = new_data
+    assert mpra_data.data is new_data
 
-    def test_mpra_data_metadata(mpra_data):
-        mpra_data._add_metadata("test_key", "test_value")
-        assert mpra_data._get_metadata("test_key") == "test_value"
 
-    def test_mpra_data_data_property(mpra_data):
-        assert isinstance(mpra_data.data, ad.AnnData)
-        new_data = copy.deepcopy(mpra_data.data)
-        mpra_data.data = new_data
-        assert mpra_data.data is new_data
+def test_mpra_data_obs_var_names(mpra_data):
+    assert list(mpra_data.obs_names) == ["rep1", "rep2", "rep3"]
+    assert list(mpra_data.var_names) == ["barcode1", "barcode2", "barcode3", "barcode4", "barcode5"]
+    assert mpra_data.n_obs == 3
+    assert mpra_data.n_vars == 5
 
-    def test_mpra_data_obs_var_names(mpra_data):
-        assert list(mpra_data.obs_names) == ["rep1", "rep2", "rep3"]
-        assert list(mpra_data.var_names) == ["barcode1", "barcode2", "barcode3", "barcode4", "barcode5"]
-        assert mpra_data.n_obs == 3
-        assert mpra_data.n_vars == 5
 
-    def test_mpra_data_oligos(mpra_data):
-        oligos = mpra_data.oligos
-        assert isinstance(oligos, pd.Series)
-        assert set(oligos) == {"oligo1", "oligo2", "oligo3"}
+def test_mpra_data_oligos(mpra_data):
+    oligos = mpra_data.oligos
+    assert isinstance(oligos, pd.Series)
+    assert set(oligos) == {"oligo1", "oligo2", "oligo3"}
 
-    def test_mpra_data_raw_counts(mpra_data):
-        assert np.array_equal(mpra_data.raw_rna_counts, COUNTS_RNA)
-        assert np.array_equal(mpra_data.raw_dna_counts, COUNTS_DNA)
 
-    def test_mpra_data_total_counts(mpra_data):
-        # Should match sum over axis 1
-        assert np.array_equal(mpra_data.total_rna_counts, COUNTS_RNA.sum(axis=1))
-        assert np.array_equal(mpra_data.total_dna_counts, COUNTS_DNA.sum(axis=1))
+def test_mpra_data_raw_counts(mpra_data):
+    assert np.array_equal(mpra_data.raw_rna_counts, COUNTS_RNA)
+    assert np.array_equal(mpra_data.raw_dna_counts, COUNTS_DNA)
 
-    def test_mpra_data_drop_total_counts(mpra_data):
-        mpra_data.total_rna_counts  # populate
-        mpra_data.total_dna_counts
-        mpra_data.drop_total_counts()
-        assert "rna_counts" not in mpra_data.data.obs
-        assert "dna_counts" not in mpra_data.data.obs
 
-    def test_mpra_data_var_filter_setter_and_getter(mpra_data):
-        mpra_data.var_filter = FILTER
-        assert np.array_equal(mpra_data.var_filter, FILTER)
-        mpra_data.var_filter = None
-        assert np.all(mpra_data.var_filter == False)
+def test_mpra_data_total_counts(mpra_data):
+    # Should match sum over axis 1
+    assert np.array_equal(mpra_data.total_rna_counts, COUNTS_RNA.sum(axis=1))
+    assert np.array_equal(mpra_data.total_dna_counts, COUNTS_DNA.sum(axis=1))
 
-    def test_mpra_data_write_and_read(tmp_path, mpra_data):
-        out_path = tmp_path / "test_data.h5ad"
-        mpra_data.write(out_path)
-        loaded = MPRABarcodeData.read(out_path)
-        assert isinstance(loaded, MPRABarcodeData)
-        assert loaded.data.shape == mpra_data.data.shape
+
+def test_mpra_data_drop_total_counts(mpra_data):
+    mpra_data.total_rna_counts  # populate
+    mpra_data.total_dna_counts
+    mpra_data.drop_total_counts()
+    assert "rna_counts" not in mpra_data.data.obs
+    assert "dna_counts" not in mpra_data.data.obs
+
+
+def test_mpra_data_var_filter_setter_and_getter(mpra_data):
+    mpra_data.var_filter = FILTER
+    assert np.array_equal(mpra_data.var_filter, FILTER)
+    mpra_data.var_filter = None
+    assert np.all(mpra_data.var_filter == False)
 
 
 def test_mpra_data_add_sequence_design(mpra_data):
@@ -989,3 +975,199 @@ def test_mpra_data_correlation_invalid_method(mpra_data):
         mpra_data.correlation(method="invalid", count_type=Modality.RNA_NORMALIZED)
     with pytest.raises(ValueError):
         mpra_data.correlation(method="pearson", count_type=Modality.RNA)
+
+
+def test_drop_count_sampling_removes_sampling_layers_and_metadata(mpra_data):
+    # Apply count sampling to create sampling layers and metadata
+    np.random.seed(42)
+    mpra_data.apply_count_sampling(CountSampling.RNA_AND_DNA, proportion=0.5)
+    assert "rna_sampling" in mpra_data.data.layers
+    assert "dna_sampling" in mpra_data.data.layers
+    assert "count_sampling" in mpra_data.data.uns
+
+    # Drop count sampling
+    mpra_data.drop_count_sampling()
+
+    # Sampling layers and metadata should be removed
+    assert "rna_sampling" not in mpra_data.data.layers
+    assert "dna_sampling" not in mpra_data.data.layers
+    assert "count_sampling" not in mpra_data.data.uns
+
+
+def test_drop_count_sampling_also_drops_normalized_and_barcode_counts(mpra_data):
+    # Apply count sampling and normalization
+    np.random.seed(42)
+    mpra_data.apply_count_sampling(CountSampling.RNA_AND_DNA, proportion=0.5)
+    mpra_data._normalize()
+    mpra_data.barcode_counts = np.ones_like(mpra_data.raw_rna_counts)
+
+    # Confirm layers exist
+    assert "rna_normalized" in mpra_data.data.layers
+    assert "dna_normalized" in mpra_data.data.layers
+    assert "barcode_counts" in mpra_data.data.layers
+
+    # Drop count sampling
+    mpra_data.drop_count_sampling()
+
+    # Normalized and barcode counts layers should be removed
+    assert "rna_normalized" not in mpra_data.data.layers
+    assert "dna_normalized" not in mpra_data.data.layers
+    assert "barcode_counts" not in mpra_data.data.layers
+
+
+def test_drop_count_sampling_removes_total_counts(mpra_data):
+    # Apply count sampling to create total counts
+    np.random.seed(42)
+    mpra_data.apply_count_sampling(CountSampling.RNA_AND_DNA, proportion=0.5)
+    _ = mpra_data.total_rna_counts
+    _ = mpra_data.total_dna_counts
+    assert "rna_counts" in mpra_data.data.obs
+    assert "dna_counts" in mpra_data.data.obs
+
+    # Drop count sampling
+    mpra_data.drop_count_sampling()
+
+    # Total counts should be removed
+    assert "rna_counts" not in mpra_data.data.obs
+    assert "dna_counts" not in mpra_data.data.obs
+
+
+def test_modality_enum():
+    assert Modality.DNA.value == "dna"
+    assert Modality.RNA.value == "rna"
+    assert Modality.DNA_NORMALIZED.value == "dna_normalized"
+    assert Modality.RNA_NORMALIZED.value == "rna_normalized"
+    assert Modality.ACTIVITY.value == "activity"
+    assert Modality.from_string("DNA") == Modality.DNA
+    assert Modality.from_string("rna_normalized") == Modality.RNA_NORMALIZED
+    with pytest.raises(ValueError):
+        Modality.from_string("not_a_modality")
+
+
+def test_countsampling_enum():
+    assert CountSampling.RNA.value == "RNA"
+    assert CountSampling.DNA.value == "DNA"
+    assert CountSampling.RNA_AND_DNA.value == "RNA_AND_DNA"
+
+
+def test_barcodefilter_enum():
+    assert BarcodeFilter.MIN_BCS_PER_OLIGO.value == "min_bcs_per_oligo"
+    assert BarcodeFilter.GLOBAL.value == "global"
+    assert BarcodeFilter.OLIGO_SPECIFIC.value == "oligo_specific"
+    assert BarcodeFilter.LARGE_EXPRESSION.value == "large_expression"
+    assert BarcodeFilter.RANDOM.value == "random"
+    assert BarcodeFilter.MIN_COUNT.value == "min_count"
+    assert BarcodeFilter.MAX_COUNT.value == "max_count"
+    assert BarcodeFilter.from_string("MIN_COUNT") == BarcodeFilter.MIN_COUNT
+    with pytest.raises(ValueError):
+        BarcodeFilter.from_string("not_a_filter")
+
+
+def test_mpra_data_scaling_and_pseudocount(mpra_data):
+    old_scaling = mpra_data.scaling
+    mpra_data.scaling = 12345.0
+    assert mpra_data.scaling == 12345.0
+    mpra_data.scaling = old_scaling
+    old_pseudocount = mpra_data.pseudo_count
+    mpra_data.pseudo_count = 7
+    assert mpra_data.pseudo_count == 7
+    mpra_data.pseudo_count = old_pseudocount
+
+
+def test_mpra_data_metadata(mpra_data):
+    mpra_data._add_metadata("test_key", "test_value")
+    assert mpra_data._get_metadata("test_key") == "test_value"
+
+
+def test_mpra_data_var_filter_setter(mpra_data):
+    mpra_data.var_filter = None
+    assert np.all(mpra_data.var_filter == False)
+    mask = np.ones_like(mpra_data.var_filter, dtype=bool)
+    mpra_data.var_filter = mask
+    assert np.all(mpra_data.var_filter == True)
+
+
+def test_mpra_data_write_and_read(tmp_path, mpra_data):
+    out_path = tmp_path / "test_write.h5ad"
+    mpra_data.write(out_path)
+    loaded = MPRABarcodeData.read(out_path)
+    assert isinstance(loaded, MPRABarcodeData)
+    assert loaded.data.shape == mpra_data.data.shape
+
+
+def test_mpraoligodata_from_file(tmp_path, mpra_oligo_data):
+    out_path = tmp_path / "oligo_data_test.h5ad"
+    mpra_oligo_data.write(out_path)
+    loaded = MPRAOligoData.from_file(out_path)
+    assert isinstance(loaded, MPRAOligoData)
+    assert loaded.data.shape == mpra_oligo_data.data.shape
+
+
+def test_mpraoligodata_barcode_counts_exception(mpra_oligo_data):
+    mpra_oligo_data.data.layers.pop("barcode_counts", None)
+    with pytest.raises(MPRAlibException):
+        _ = mpra_oligo_data.barcode_counts
+
+
+def test_mpradata_normalize_layer(mpra_data):
+    norm = mpra_data._normalize_layer(mpra_data.dna_counts, mpra_data.total_dna_counts)
+    assert norm.shape == mpra_data.dna_counts.shape
+    assert np.all(norm >= 0)
+
+
+def test_mpradata_drop_normalized(mpra_data):
+    mpra_data._normalize()
+    assert "rna_normalized" in mpra_data.data.layers
+    mpra_data.drop_normalized()
+    assert "rna_normalized" not in mpra_data.data.layers
+    assert "dna_normalized" not in mpra_data.data.layers
+
+
+def test_mpradata_drop_total_counts(mpra_data):
+    mpra_data.total_rna_counts
+    mpra_data.total_dna_counts
+    mpra_data.drop_total_counts()
+    assert "rna_counts" not in mpra_data.data.obs
+    assert "dna_counts" not in mpra_data.data.obs
+
+
+def test_mprabarcode_complexity(mpra_data):
+    result = mpra_data.complexity()
+    assert result.shape[0] == mpra_data.n_obs
+    assert result.shape[1] == mpra_data.n_obs
+
+
+def test_mprabarcode_apply_count_sampling(mpra_data):
+    mpra_data.apply_count_sampling(CountSampling.RNA, proportion=0.5)
+    assert "rna_sampling" in mpra_data.data.layers
+    mpra_data.apply_count_sampling(CountSampling.DNA, proportion=0.5)
+    assert "dna_sampling" in mpra_data.data.layers
+
+
+def test_mprabarcode_apply_barcode_filter(mpra_data):
+    mpra_data.apply_barcode_filter(BarcodeFilter.RANDOM, params={"proportion": 0.5})
+    assert mpra_data.var_filter.shape == (mpra_data.n_vars, mpra_data.n_obs)
+    mpra_data.apply_barcode_filter(BarcodeFilter.MIN_COUNT, params={"rna_min_count": 1})
+    assert mpra_data.var_filter.shape == (mpra_data.n_vars, mpra_data.n_obs)
+
+
+def test_mprabarcode_drop_count_sampling(mpra_data):
+    mpra_data.apply_count_sampling(CountSampling.RNA, proportion=0.5)
+    mpra_data.drop_count_sampling()
+    assert "rna_sampling" not in mpra_data.data.layers
+    assert "dna_sampling" not in mpra_data.data.layers
+
+
+def test_mprabarcode_drop_barcode_counts(mpra_data):
+    mpra_data.barcode_counts = np.ones_like(mpra_data.raw_rna_counts)
+    mpra_data.drop_barcode_counts()
+    assert "barcode_counts" not in mpra_data.data.layers
+
+
+def test_mpraoligodata_normalize_layer(mpra_oligo_data):
+    counts = np.array([[1, 2, 3], [3, 4, 5], [3, 4, 5]], dtype=np.int32)
+    total_counts = np.array([3, 7, 7], dtype=np.int32)
+    mpra_oligo_data.barcode_counts = np.ones_like(counts)
+    norm = mpra_oligo_data._normalize_layer(counts, total_counts)
+    assert norm.shape == counts.shape
+    assert np.all(norm >= 0)
