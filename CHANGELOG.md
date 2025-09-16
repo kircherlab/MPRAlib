@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.9.0](https://github.com/kircherlab/MPRAlib/compare/v0.8.2...v0.9.0) (2025-09-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* Renames cli sequence_design to combine ([#79](https://github.com/kircherlab/MPRAlib/pull/79))
+* Some othere CLI commands changed ([#75](https://github.com/kircherlab/MPRAlib/pull/75))
+* Normalization only done on raw or sampled counts. Var filter (barcode filter) not used ([#78](https://github.com/kircherlab/MPRAlib/pull/78))
+
+### Bug Fixes
+
+* validate empty files as invalid ([1fddaeb](https://github.com/kircherlab/MPRAlib/commit/1fddaeb7df8c50592ae873e67eb850aaeff154de))
+
+### Features
+
+* Normalization only done on raw or sampled counts. Var filter (barcode filter) not used ([#78](https://github.com/kircherlab/MPRAlib/pull/78))
+* Outlier detection is now in line with the manuscript ([#75](https://github.com/kircherlab/MPRAlib/pull/75))
+
+
 ## [0.8.2](https://github.com/kircherlab/MPRAlib/compare/v0.8.1...v0.8.2) (2025-07-01)
 
 
