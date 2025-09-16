@@ -1111,7 +1111,7 @@ class MPRAOligoData(MPRAData):
     @classmethod
     def from_file(cls, file_path: str) -> "MPRAOligoData":
 
-        return MPRAOligoData(ad.read(file_path))
+        return MPRAOligoData(ad.read_h5ad(file_path))
 
     def _normalize_layer(
         self,
