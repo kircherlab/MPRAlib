@@ -8,6 +8,14 @@
 
 MPRAlib is a Python library and CLI for processing MPRA (Massively Parallel Reporter Assay) data.
 
+## Citation
+
+If you use MPRAlib in your work please cite out recent preprint:
+
+**Uniform processing and analysis of IGVF massively parallel reporter assay data with MPRAsnakeflow**  
+Jonathan D. Rosen, Arjun Devadas Vasanthakumari, Kilian Salomon, Nikola de Lange, Pyaree Mohan Dash, Pia Keukeleire, Ali Hassan, Alejandro Barrera, Martin Kircher, Michael I. Love, Max Schubach  
+*bioRxiv* (2025). [2025.09.25.678548](https://doi.org/10.1101/2025.09.25.678548)
+
 ## Installation
 
 ### PyPI
