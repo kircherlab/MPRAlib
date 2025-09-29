@@ -26,7 +26,7 @@ MPRAlib is a Python library and CLI for processing MPRA (Massively Parallel Repo
 Citation
 ---------
 
-If you use MPRAsnakeflow in your work, please cite our recent preprint:
+If you use MPRAli in your work, please cite our recent preprint:
 
 .. epigraph::
 
