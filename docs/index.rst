@@ -1,9 +1,30 @@
 MPRAlib documentation
 =========================
 
-.. image:: https://app.readthedocs.org/projects/mpralib/badge/?version=latest
-   :target: https://mpralib.readthedocs.io/latest/?badge=latest
-   :alt: Documentation Status
+.. image:: https://img.shields.io/badge/GitHub-repository-brightgreen?logo=github
+    :alt: GitHub Repository
+    :target: https://github.com/kircherlab/MPRAlib
+
+.. image:: https://img.shields.io/badge/DOI-10.5281%2Fzenodo.18173084-blue?logo=zenodo
+   :alt: DOI
+   :target: https://doi.org/10.5281/zenodo.18173084
+
+
+.. image:: https://img.shields.io/github/license/kircherlab/MPRAlib
+    :target: https://github.com/kircherlab/MPRAlib/blob/master/LICENSE
+    :alt: GitHub License
+
+.. image:: https://img.shields.io/github/v/release/kircherlab/MPRAlib
+    :target: https://github.com/kircherlab/MPRAlib/releases/latest
+    :alt: GitHub Release
+
+.. image:: https://badge.fury.io/py/mpralib.svg
+   :target: https://badge.fury.io/py/mpralib
+   :alt: PyPI version
+
+.. image:: https://img.shields.io/conda/vn/bioconda/mpralib?label=bioconda
+   :target: https://bioconda.github.io/recipes/mpralib/README.html
+   :alt: Bioconda Version
 
 .. image:: https://github.com/kircherlab/MPRAlib/actions/workflows/tests.yml/badge.svg?branch=master
    :target: https://github.com/kircherlab/MPRAlib/actions/workflows/tests.yml
@@ -13,13 +34,14 @@ MPRAlib documentation
    :target: https://htmlpreview.github.io/?https://github.com/kircherlab/MPRAlib/blob/python-coverage-comment-action-data/htmlcov/index.html
    :alt: Coverage badge
 
-.. image:: https://badge.fury.io/py/mpralib.svg
-   :target: https://badge.fury.io/py/mpralib
-   :alt: PyPI version
+.. image:: https://img.shields.io/github/issues/kircherlab/MPRAlib
+    :target: https://github.com/kircherlab/MPRAlib/issues
+    :alt: GitHub Issues
 
-.. image:: https://img.shields.io/conda/vn/bioconda/mpralib?label=bioconda
-   :target: https://bioconda.github.io/recipes/mpralib/README.html
-   :alt: Bioconda Version
+.. image:: https://img.shields.io/github/issues-pr/kircherlab/MPRAlib
+    :target: https://github.com/kircherlab/MPRAlib/pulls
+    :alt: GitHub Pull Requests
+
 
 MPRAlib is a Python library and CLI for processing MPRA (Massively Parallel Reporter Assay) data.
 
@@ -30,8 +52,8 @@ If you use MPRAlib in your work, please cite our recent preprint:
 
 .. epigraph::
 
-    **Uniform processing and analysis of IGVF massively parallel reporter assay data with MPRAsnakeflow**  
-    Jonathan D. Rosen, Arjun Devadas Vasanthakumari, Kilian Salomon, Nikola de Lange, Pyaree Mohan Dash, Pia Keukeleire, Ali Hassan, Alejandro Barrera, Martin Kircher, Michael I. Love, Max Schubach  
+    **Uniform processing and analysis of IGVF massively parallel reporter assay data with MPRAsnakeflow**
+    Jonathan D. Rosen, Arjun Devadas Vasanthakumari, Kilian Salomon, Nikola de Lange, Pyaree Mohan Dash, Pia Keukeleire, Ali Hassan, Alejandro Barrera, Martin Kircher, Michael I. Love, Max Schubach
     *bioRxiv* (2025). `2025.09.25.678548 <https://doi.org/10.1101/2025.09.25.678548>`_
 
 Installation
