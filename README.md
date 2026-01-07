@@ -6,7 +6,7 @@
 [![GitHub Release](https://img.shields.io/github/v/release/kircherlab/MPRAlib)](https://github.com/kircherlab/MPRAlib/releases/latest)
 [![PyPI version](https://badge.fury.io/py/mpralib.svg)](https://badge.fury.io/py/mpralib)
 [![Bioconda Version](https://img.shields.io/conda/vn/bioconda/mpralib?label=bioconda)](https://bioconda.github.io/recipes/mpralib/README.html)
-[![Tests](https://github.com/kircherlab/MPRAlib/actions/workflows/tests.yml/badge.svg?branch=master)](https://github.com/kircherlab/MPRAsnakeflow/actions/workflows/main.yml)
+[![Tests](https://github.com/kircherlab/MPRAlib/actions/workflows/tests.yml/badge.svg?branch=master)](https://github.com/kircherlab/MPRAlib/actions/workflows/tests.yml)
 [![Coverage badge](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/kircherlab/MPRAlib/python-coverage-comment-action-data/endpoint.json)](https://htmlpreview.github.io/?https://github.com/kircherlab/MPRAlib/blob/python-coverage-comment-action-data/htmlcov/index.html)
 [![GitHub Issues](https://img.shields.io/github/issues/kircherlab/MPRAlib)](https://github.com/kircherlab/MPRAlib/issues)
 [![GitHub Pull Requests](https://img.shields.io/github/issues-pr/kircherlab/MPRAlib)](https://github.com/kircherlab/MPRAlib/pulls)
