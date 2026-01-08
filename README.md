@@ -21,7 +21,7 @@
 | tests/test\_mpradata.py               |      755 |        0 |    100% |           |
 | tests/test\_utils\_io.py              |      169 |        0 |    100% |           |
 | tests/test\_utils\_plot.py            |       90 |        0 |    100% |           |
-|                             **TOTAL** | **2813** |  **247** | **91%** |           |
+| **TOTAL**                             | **2813** |  **247** | **91%** |           |
 
 
 ## Setup coverage badge
