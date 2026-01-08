@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.9.1](https://github.com/kircherlab/MPRAlib/compare/v0.9.0...v0.9.1) (2026-01-08)
+
+
+### Documentation
+
+* overview update ([83bb09e](https://github.com/kircherlab/MPRAlib/commit/83bb09ed06d97fbfdbf879283be9ba037071dc5f))
+* quickstart and other improvements ([66a2771](https://github.com/kircherlab/MPRAlib/commit/66a2771571af7ed9ad46bc9ddd41bd7480bf4885))
+* update quictstart and minor other updates ([36622f7](https://github.com/kircherlab/MPRAlib/commit/36622f75cea0818cbeec92bca24c24690a3b7ff4))
+* Zenodo link and documentation update ([5e4c62d](https://github.com/kircherlab/MPRAlib/commit/5e4c62dd8b672e37a7c39f768131492e92206889))
+
 ## [0.9.0](https://github.com/kircherlab/MPRAlib/compare/v0.8.2...v0.9.0) (2025-09-16)
 
 
