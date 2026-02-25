@@ -424,15 +424,16 @@ class MPRAData(ABC):
         pass
 
     def drop_normalized(self) -> None:
-        """Removes normalized RNA and DNA data layers from the dataset.
+        """Removes normalized RNA and DNA data layers as well as activity from the dataset.
 
-        This method deletes the "rna_normalized" and "dna_normalized" layers from the `self.data.layers` attribute, logs the operation, updates the metadata to indicate that normalization is no longer present, and drops any associated correlation data.
+        This method deletes the "rna_normalized", "dna_normalized" and "activity" layers from the `self.data.layers` attribute, logs the operation, updates the metadata to indicate that normalization is no longer present, and drops any associated correlation data.
         """  # noqa: E501
 
         self.LOGGER.info("Dropping normalized data")
 
         self.data.layers.pop("rna_normalized", None)
         self.data.layers.pop("dna_normalized", None)
+        self.data.layers.pop("activity", None)
         self._drop_correlation()
         self._add_metadata("normalized", False)
 
