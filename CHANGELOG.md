@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.9.1](https://github.com/kircherlab/MPRAlib/compare/v0.9.0...v0.9.1) (2026-01-08)
+
+
+### Documentation
+
+* overview update ([83bb09e](https://github.com/kircherlab/MPRAlib/commit/83bb09ed06d97fbfdbf879283be9ba037071dc5f))
+* quickstart and other improvements ([66a2771](https://github.com/kircherlab/MPRAlib/commit/66a2771571af7ed9ad46bc9ddd41bd7480bf4885))
+* update quictstart and minor other updates ([36622f7](https://github.com/kircherlab/MPRAlib/commit/36622f75cea0818cbeec92bca24c24690a3b7ff4))
+* Zenodo link and documentation update ([5e4c62d](https://github.com/kircherlab/MPRAlib/commit/5e4c62dd8b672e37a7c39f768131492e92206889))
+
+## [0.9.0](https://github.com/kircherlab/MPRAlib/compare/v0.8.2...v0.9.0) (2025-09-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* Renames cli sequence_design to combine ([#79](https://github.com/kircherlab/MPRAlib/pull/79))
+* Some othere CLI commands changed ([#75](https://github.com/kircherlab/MPRAlib/pull/75))
+* Normalization only done on raw or sampled counts. Var filter (barcode filter) not used ([#78](https://github.com/kircherlab/MPRAlib/pull/78))
+
+### Bug Fixes
+
+* validate empty files as invalid ([1fddaeb](https://github.com/kircherlab/MPRAlib/commit/1fddaeb7df8c50592ae873e67eb850aaeff154de))
+
+### Features
+
+* Normalization only done on raw or sampled counts. Var filter (barcode filter) not used ([#78](https://github.com/kircherlab/MPRAlib/pull/78))
+* Outlier detection is now in line with the manuscript ([#75](https://github.com/kircherlab/MPRAlib/pull/75))
+
+
 ## [0.8.2](https://github.com/kircherlab/MPRAlib/compare/v0.8.1...v0.8.2) (2025-07-01)
 
 

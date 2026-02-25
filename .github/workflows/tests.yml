@@ -13,13 +13,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
-      - name: install micromamba
-        uses: mamba-org/setup-micromamba@v2
+      - name: Install miniforge
+        uses: conda-incubator/setup-miniconda@v3
         with:
+          miniforge-version: latest
           environment-file: docs/environment.yml
-          environment-name: sphinx
+          activate-environment: sphinx
 
       - name: Run sphinx
         shell: bash -l {0}
@@ -38,7 +39,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           # super-linter needs the full git history to get the
           # list of files that changed across commits
@@ -70,7 +71,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v6

@@ -117,8 +117,8 @@ Use the following steps for installing Sphinx and the dependencies for building 
 .. code-block:: bash
 
     cd MPRAlib/docs
-    mamba env create -f environment.yml -n sphinx
-    mamba activate sphinx
+    conda env create -f environment.yml -n sphinx
+    conda activate sphinx
 
 Use the following commands for building the documentation.
 The first two lines are only required for loading the virtual environment.
@@ -128,8 +128,8 @@ Afterwards, you can always use ``make html`` for building.
 
     cd MPRAlib/docs
     conda activate sphinx
-    make html  # rebuild for changed files only
-    make clean && make html  # force rebuild
+    conda html  # rebuild for changed files only
+    conda clean && make html  # force rebuild
 
 ------------
 Get Started!
@@ -149,23 +149,13 @@ First, create your development setup.
 
    Now you can make your changes locally.
 
-4. When you're done making your changes, make sure that Snakemake runs properly by using a dry-run.
-   For Snakemake::
-
-    snakemake --sdm conda --configfile config.yml -p -n
-
-   For documentation::
-
-    cd docs
-    make clean && make html
-
-5. Commit your changes and push your branch to GitHub::
+4. Commit your changes and push your branch to GitHub::
 
     git add <your_new_file>  # or git stage <your_edited_file>
     git commit -m "Your detailed description of your changes."
     git push origin name-of-your-bugfix-or-feature
 
-6. Submit a pull request through the GitHub website.
+5. Submit a pull request through the GitHub website.
 
 -----------------------
 Pull Request Guidelines

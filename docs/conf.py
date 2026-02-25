@@ -27,6 +27,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.todo",
     "sphinx.ext.napoleon",  # for Google/Numpy style docstrings
+    "myst_parser",
 ]
 
 templates_path = ["_templates"]
