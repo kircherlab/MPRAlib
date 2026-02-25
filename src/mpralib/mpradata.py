@@ -1121,11 +1121,10 @@ class MPRAOligoData(MPRAData):
     ) -> NDArray[np.float32]:
 
         # I do a pseudo count when normalizing to avoid division by zero when computing logfold ratios.
-        # Pseudocount has also be done per barcode.
         # var filter has to be used again because we want to have a zero on filtered values.
-        total_counts = total_counts + np.sum((self.pseudo_count * self.barcode_counts) * self.observed, axis=1)
+        total_counts = total_counts + np.sum(self.pseudo_count * self.observed, axis=1)
 
         # Avoid division by zero when pseudocount is set to 0
         total_counts[total_counts == 0] = 1
-        scaled_counts = (counts + (self.pseudo_count * self.barcode_counts)) / total_counts[:, np.newaxis] * self.scaling
-        return np.divide(scaled_counts, self.barcode_counts, where=self.barcode_counts != 0, out=np.zeros_like(scaled_counts))
+        scaled_counts = (counts + self.pseudo_count) / total_counts[:, np.newaxis] * self.scaling
+        return scaled_counts
