@@ -154,13 +154,13 @@ class MPRAData(ABC):
         # Initialize scaling and pseudo count metadata
         scaling = self._get_metadata("SCALING")
         if scaling is not None:
-            self._SCALING = scaling
+            self.scaling = scaling
         else:
             self._add_metadata("SCALING", self._SCALING)
 
         pseudo_count = self._get_metadata("PSEUDOCOUNT")
         if pseudo_count is not None:
-            self._PSEUDOCOUNT = pseudo_count
+            self.pseudo_count = pseudo_count
         else:
             self._add_metadata("PSEUDOCOUNT", self._PSEUDOCOUNT)
 
