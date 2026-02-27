@@ -29,9 +29,7 @@ class DummyMPRAData(MPRAData):
         layers = {"rna": rna_counts, "dna": dna_counts}
         obs = pd.DataFrame(index=replicates)
         var = pd.DataFrame({"oligo": oligos}, index=barcodes)
-        super().__init__(
-            ad.AnnData(X=rna_counts, obs=obs, var=var, layers=layers), barcode_threshold
-        )
+        super().__init__(ad.AnnData(X=rna_counts, obs=obs, var=var, layers=layers), barcode_threshold)
         if barcode_counts is not None:
             self.barcode_counts = barcode_counts
 
@@ -52,9 +50,7 @@ def barcode_data():
     dna_counts = np.array([[10, 0, 5], [20, 1, 0]])
     rna_counts = np.array([[5, 0, 2], [10, 1, 0]])
     barcode_threshold = 1
-    return DummyMPRABarcodeData(
-        replicates, oligos, barcodes, dna_counts, rna_counts, barcode_threshold
-    )
+    return DummyMPRABarcodeData(replicates, oligos, barcodes, dna_counts, rna_counts, barcode_threshold)
 
 
 @pytest.fixture
@@ -108,18 +104,14 @@ def test_export_counts_file_normalized(tmp_path, barcode_data):
     export_counts_file(barcode_data, str(out_path), normalized=True)
     df = pd.read_csv(out_path, sep="\t")
     # Check float formatting
-    assert all(
-        df.filter(like="dna_count").apply(lambda x: isinstance(x, float) or pd.isna(x))
-    )
+    assert all(df.filter(like="dna_count").apply(lambda x: isinstance(x, float) or pd.isna(x)))
 
 
 def test_export_counts_file_with_filter(tmp_path, barcode_data):
     out_path = tmp_path / "counts_filt.tsv"
     # Mask out the first entry
     filter_mask = np.asarray([[True, False, False], [True, False, False]])
-    export_counts_file(
-        barcode_data, str(out_path), normalized=False, filter=filter_mask
-    )
+    export_counts_file(barcode_data, str(out_path), normalized=False, filter=filter_mask)
     df = pd.read_csv(out_path, sep="\t")
     # Only ol3 should remain (ol2 fails barcode_threshold, ol1 is masked)
     assert set(df["oligo_name"]) == {"ol2", "ol3"}
@@ -242,9 +234,7 @@ FILTER = np.array(
 @pytest.fixture
 def mpra_data():
     layers = {"rna": COUNTS_RNA.copy(), "dna": COUNTS_DNA.copy()}
-    return MPRABarcodeData(
-        ad.AnnData(X=COUNTS_RNA.copy(), obs=OBS.copy(), var=VAR.copy(), layers=layers)
-    )
+    return MPRABarcodeData(ad.AnnData(X=COUNTS_RNA.copy(), obs=OBS.copy(), var=VAR.copy(), layers=layers))
 
 
 @pytest.fixture
@@ -256,9 +246,7 @@ def mpra_data_with_bc_filter(mpra_data):
 
 @pytest.fixture
 def files():
-    input_file = os.path.join(
-        os.path.dirname(__file__), "data", "reporter_experiment_barcode.input.tsv.gz"
-    )
+    input_file = os.path.join(os.path.dirname(__file__), "data", "reporter_experiment_barcode.input.tsv.gz")
     output_file_activity = tempfile.NamedTemporaryFile(delete=False).name
     output_file_barcode = tempfile.NamedTemporaryFile(delete=False).name
     yield {
