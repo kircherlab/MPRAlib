@@ -1126,5 +1126,4 @@ class MPRAOligoData(MPRAData):
 
         # Avoid division by zero when pseudocount is set to 0
         total_counts[total_counts == 0] = 1
-        scaled_counts = (counts + self.pseudo_count) / total_counts[:, np.newaxis] * self.scaling
-        return scaled_counts
+        return ((counts + self.pseudo_count) / total_counts[:, np.newaxis] * self.scaling).astype(np.float32)
