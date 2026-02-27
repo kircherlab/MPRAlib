@@ -305,9 +305,11 @@ class MPRAData(ABC):
     def drop_total_counts(self) -> None:
         """Removes total RNA and DNA counts from the dataset."""
         if "rna_counts" in self.data.obs:
-            del self.data.obs["rna_counts"]
+            if isinstance(self.data.obs, pd.DataFrame):
+                del self.data.obs["rna_counts"]
         if "dna_counts" in self.data.obs:
-            del self.data.obs["dna_counts"]
+            if isinstance(self.data.obs, pd.DataFrame):
+                del self.data.obs["dna_counts"]
 
     @property
     def observed(self) -> NDArray[np.bool_]:
@@ -727,9 +729,13 @@ class MPRABarcodeData(MPRAData):
         oligo_data.obs_names = self.obs_names.tolist()
         oligo_data.var_names = self.data.var["oligo"].unique().tolist()
 
-        # Subset of vars using the firs occurence of oligo name
+        # Subset of vars using the first occurence of oligo name
         indices = self.data.var["oligo"].drop_duplicates(keep="first").index
-        oligo_data.var = self.data.var.loc[indices]
+        if isinstance(self.data.var, pd.DataFrame):
+            oligo_data.var = self.data.var.loc[indices]
+        else:
+            # Handle Dataset2D or other indexable types
+            oligo_data.var = self.data.var[indices]
 
         oligo_data.obs = self.data.obs
 
@@ -890,7 +896,8 @@ class MPRABarcodeData(MPRAData):
         m = df_sums.ratio_diff > times_mad * df_sums.mad
         df_sums = df_sums[~m]
 
-        return self.var_filter.apply(lambda col: col | ~self.var_filter.index.isin(df_sums.index))
+        var_filter_df = pd.DataFrame(self.var_filter, index=self.var_names, columns=self.obs_names)
+        return var_filter_df.apply(lambda col: col | ~var_filter_df.index.isin(df_sums.index)).values
 
     def _barcode_filter_random(
         self,
@@ -900,12 +907,14 @@ class MPRABarcodeData(MPRAData):
     ) -> NDArray[np.bool_]:
 
         if aggegate_over_replicates and total is None:
-            total = self.var_filter.shape[0]
+            total_max: int = self.var_filter.shape[0]
         elif total is None:
-            total = self.var_filter.size
+            total_max: int = self.var_filter.size
+        else:
+            total_max: int = total
 
-        num_true_cells = int(total * (1.0 - proportion))  # type: ignore
-        true_indices = np.random.choice(total, num_true_cells, replace=False)
+        num_true_cells = int(total_max * (1.0 - proportion))  # type: ignore
+        true_indices = np.random.choice(total_max, num_true_cells, replace=False)
 
         mask = np.full((self.data.n_vars, self.data.n_obs), False)
 
