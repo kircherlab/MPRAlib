@@ -1,8 +1,10 @@
+import gzip
 import os
 import tempfile
+
 import pytest
 from click.testing import CliRunner
-import gzip
+
 from mpralib.cli import cli
 
 
@@ -66,8 +68,14 @@ def files():
     output_file = tempfile.NamedTemporaryFile(delete=False).name
     yield {
         "input": {
-            "barcode_counts": os.path.join(base, "data", "reporter_experiment_barcode_IGVFDS2165KBMD.input.head20000.tsv.gz"),
-            "sequence_design": os.path.join(base, "data", "reporter_sequence_design.example.tsv.gz"),
+            "barcode_counts": os.path.join(
+                base,
+                "data",
+                "reporter_experiment_barcode_IGVFDS2165KBMD.input.head20000.tsv.gz",
+            ),
+            "sequence_design": os.path.join(
+                base, "data", "reporter_sequence_design.example.tsv.gz"
+            ),
         },
         "output": output_file,
     }
@@ -91,10 +99,13 @@ def test_combine_get_counts_oligos(runner, files):
     assert result.exit_code == 0
     assert os.path.exists(files["output"])
 
-    with open(files["output"], "r") as f:
+    with open(files["output"]) as f:
         output_content = f.read()
     expected_output_file = os.path.join(
-        os.path.dirname(__file__), "data", "combine", "oligo_counts.IGVFDS2165KBMD.head20000.output.tsv.gz"
+        os.path.dirname(__file__),
+        "data",
+        "combine",
+        "oligo_counts.IGVFDS2165KBMD.head20000.output.tsv.gz",
     )
 
     with gzip.open(expected_output_file, "rt") as f:
@@ -120,7 +131,7 @@ def test_combine_get_counts_barcodes(runner, files):
     assert result.exit_code == 0
     assert os.path.exists(files["output"])
 
-    with open(files["output"], "r") as f:
+    with open(files["output"]) as f:
         output_content = f.read()
     expected_output_file = files["input"]["barcode_counts"]
 
@@ -146,9 +157,11 @@ def test_combine_get_variant_map(runner, files):
     assert result.exit_code == 0
     assert os.path.exists(files["output"])
 
-    with open(files["output"], "r") as f:
+    with open(files["output"]) as f:
         output_content = f.read()
-    expected_output_file = os.path.join(os.path.dirname(__file__), "data", "combine", "get_variant_map.output.tsv.gz")
+    expected_output_file = os.path.join(
+        os.path.dirname(__file__), "data", "combine", "get_variant_map.output.tsv.gz"
+    )
 
     with gzip.open(expected_output_file, "rt") as f:
         expected_content = f.read()

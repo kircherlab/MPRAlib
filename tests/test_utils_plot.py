@@ -1,19 +1,32 @@
+import copy
+
+import anndata as ad
 import numpy as np
 import pandas as pd
 import pytest
-import anndata as ad
 import seaborn as sns
-import copy
-from mpralib.utils.plot import dna_vs_rna, correlation, barcodes_per_oligo
-from mpralib.mpradata import MPRAData, MPRABarcodeData, MPRAOligoData, Modality
+
+from mpralib.mpradata import Modality, MPRABarcodeData, MPRAData, MPRAOligoData
+from mpralib.utils.plot import barcodes_per_oligo, correlation, dna_vs_rna
 
 
 class DummyMPRAData(MPRAData):
-    def __init__(self, replicates, oligos, barcodes, dna_counts, rna_counts, barcode_threshold, barcode_counts=None):
+    def __init__(
+        self,
+        replicates,
+        oligos,
+        barcodes,
+        dna_counts,
+        rna_counts,
+        barcode_threshold,
+        barcode_counts=None,
+    ):
         layers = {"rna": rna_counts, "dna": dna_counts}
         obs = pd.DataFrame(index=replicates)
         var = pd.DataFrame({"oligo": oligos}, index=barcodes)
-        super().__init__(ad.AnnData(X=rna_counts, obs=obs, var=var, layers=layers), barcode_threshold)
+        super().__init__(
+            ad.AnnData(X=rna_counts, obs=obs, var=var, layers=layers), barcode_threshold
+        )
         if barcode_counts:
             self.barcode_counts = pd.DataFrame(
                 barcode_counts,
@@ -38,7 +51,11 @@ def barcode_data():
     dna_counts = np.array([[10, 0, 5], [20, 1, 0]])
     rna_counts = np.array([[5, 0, 2], [10, 1, 0]])
     barcode_threshold = 1
-    return copy.deepcopy(DummyMPRABarcodeData(replicates, oligos, barcodes, dna_counts, rna_counts, barcode_threshold))
+    return copy.deepcopy(
+        DummyMPRABarcodeData(
+            replicates, oligos, barcodes, dna_counts, rna_counts, barcode_threshold
+        )
+    )
 
 
 @pytest.fixture
@@ -51,7 +68,15 @@ def oligo_data():
     barcode_counts = [[1, 0, 1], [1, 0, 1]]
     barcode_threshold = 1
     return copy.deepcopy(
-        DummyMPRAOligoData(replicates, oligos, barcodes, dna_counts, rna_counts, barcode_threshold, barcode_counts)
+        DummyMPRAOligoData(
+            replicates,
+            oligos,
+            barcodes,
+            dna_counts,
+            rna_counts,
+            barcode_threshold,
+            barcode_counts,
+        )
     )
 
 

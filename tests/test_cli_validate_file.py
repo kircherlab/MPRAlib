@@ -1,7 +1,9 @@
 import os
 import tempfile
+
 import pytest
 from click.testing import CliRunner
+
 from mpralib.cli import cli
 from mpralib.utils.file_validation import ValidationSchema
 
@@ -25,7 +27,9 @@ def test_validate_file_reporter_sequence_design_option_required(runner):
 
 
 def test_validate_file_reporter_barcode_to_element_mapping_option_required(runner):
-    result = runner.invoke(cli, ["validate-file", "reporter-barcode-to-element-mapping"])
+    result = runner.invoke(
+        cli, ["validate-file", "reporter-barcode-to-element-mapping"]
+    )
     assert result.exit_code != 0
     assert "Missing option '--input'" in result.output
 
@@ -73,20 +77,36 @@ def files():
     with open(invalid_file, "w") as f:
         f.write("badcontent\tverybad\t12\n")
     yield {
-        ValidationSchema.REPORTER_SEQUENCE_DESIGN: os.path.join(base, "data", "reporter_sequence_design.example.tsv.gz"),
+        ValidationSchema.REPORTER_SEQUENCE_DESIGN: os.path.join(
+            base, "data", "reporter_sequence_design.example.tsv.gz"
+        ),
         ValidationSchema.REPORTER_BARCODE_TO_ELEMENT_MAPPING: os.path.join(
             base, "data", "reporter_barcode_to_element_mapping.example.tsv.gz"
         ),
         ValidationSchema.REPORTER_EXPERIMENT_BARCODE: os.path.join(
             base, "data", "reporter_experiment_barcode.input.head101.tsv.gz"
         ),
-        ValidationSchema.REPORTER_EXPERIMENT: os.path.join(base, "data", "reporter_activity.bc100.output.tsv.gz"),
-        ValidationSchema.REPORTER_ELEMENT: os.path.join(base, "data", "reporter_element.example.tsv.gz"),
-        ValidationSchema.REPORTER_VARIANT: os.path.join(base, "data", "reporter_variants.example.tsv.gz"),
-        ValidationSchema.REPORTER_GENOMIC_ELEMENT: os.path.join(base, "data", "reporter_genomic_element.example.bed.gz"),
-        ValidationSchema.REPORTER_GENOMIC_VARIANT: os.path.join(base, "data", "reporter_genomic_variant.example.bed.gz"),
-        "REPORTER_GENOMIC_VARIANT_EMPTY_ALLELE": os.path.join(base, "data", "reporter_genomic_variant.example2.bed.gz"),
-        "REPORTER_GENOMIC_VARIANT_FALSE": os.path.join(base, "data", "reporter_genomic_variant.example3.bed.gz"),
+        ValidationSchema.REPORTER_EXPERIMENT: os.path.join(
+            base, "data", "reporter_activity.bc100.output.tsv.gz"
+        ),
+        ValidationSchema.REPORTER_ELEMENT: os.path.join(
+            base, "data", "reporter_element.example.tsv.gz"
+        ),
+        ValidationSchema.REPORTER_VARIANT: os.path.join(
+            base, "data", "reporter_variants.example.tsv.gz"
+        ),
+        ValidationSchema.REPORTER_GENOMIC_ELEMENT: os.path.join(
+            base, "data", "reporter_genomic_element.example.bed.gz"
+        ),
+        ValidationSchema.REPORTER_GENOMIC_VARIANT: os.path.join(
+            base, "data", "reporter_genomic_variant.example.bed.gz"
+        ),
+        "REPORTER_GENOMIC_VARIANT_EMPTY_ALLELE": os.path.join(
+            base, "data", "reporter_genomic_variant.example2.bed.gz"
+        ),
+        "REPORTER_GENOMIC_VARIANT_FALSE": os.path.join(
+            base, "data", "reporter_genomic_variant.example3.bed.gz"
+        ),
         "invalid_file": invalid_file,
     }
     os.remove(invalid_file)

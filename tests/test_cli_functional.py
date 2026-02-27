@@ -1,8 +1,10 @@
+import gzip
 import os
 import tempfile
-import gzip
+
 import pytest
 from click.testing import CliRunner
+
 from mpralib.cli import cli
 
 
@@ -27,10 +29,16 @@ def test_functional_filter_outliers_help(runner):
 
 @pytest.fixture
 def files():
-    input_file = os.path.join(os.path.dirname(__file__), "data", "reporter_experiment_barcode.input.tsv.gz")
+    input_file = os.path.join(
+        os.path.dirname(__file__), "data", "reporter_experiment_barcode.input.tsv.gz"
+    )
     output_file_activity = tempfile.NamedTemporaryFile(delete=False).name
     output_file_barcode = tempfile.NamedTemporaryFile(delete=False).name
-    yield {"input": input_file, "output_activity": output_file_activity, "output_barcode": output_file_barcode}
+    yield {
+        "input": input_file,
+        "output_activity": output_file_activity,
+        "output_barcode": output_file_barcode,
+    }
     os.remove(output_file_activity)
     os.remove(output_file_barcode)
 
@@ -192,16 +200,20 @@ def test_functional_filter_outliers_global(runner, files):
     assert os.path.exists(files["output_activity"])
     assert os.path.exists(files["output_barcode"])
 
-    with open(files["output_barcode"], "r") as f:
+    with open(files["output_barcode"]) as f:
         output_content = f.read()
-    expected_output_file = os.path.join(os.path.dirname(__file__), "data", "reporter_experiment_barcode.input.tsv.gz")
+    expected_output_file = os.path.join(
+        os.path.dirname(__file__), "data", "reporter_experiment_barcode.input.tsv.gz"
+    )
     with gzip.open(expected_output_file, "rt") as f:
         expected_content = f.read()
     assert output_content == expected_content
 
-    with open(files["output_activity"], "r") as f:
+    with open(files["output_activity"]) as f:
         output_content = f.read()
-    expected_output_file = os.path.join(os.path.dirname(__file__), "data", "reporter_activity.bc1.output.tsv.gz")
+    expected_output_file = os.path.join(
+        os.path.dirname(__file__), "data", "reporter_activity.bc1.output.tsv.gz"
+    )
     with gzip.open(expected_output_file, "rt") as f:
         expected_content = f.read()
     assert output_content == expected_content
@@ -231,16 +243,20 @@ def test_functional_filter_outliers_large_expression(runner, files):
     assert os.path.exists(files["output_activity"])
     assert os.path.exists(files["output_barcode"])
 
-    with open(files["output_barcode"], "r") as f:
+    with open(files["output_barcode"]) as f:
         output_content = f.read()
-    expected_output_file = os.path.join(os.path.dirname(__file__), "data", "reporter_experiment_barcode.input.tsv.gz")
+    expected_output_file = os.path.join(
+        os.path.dirname(__file__), "data", "reporter_experiment_barcode.input.tsv.gz"
+    )
     with gzip.open(expected_output_file, "rt") as f:
         expected_content = f.read()
     assert output_content == expected_content
 
-    with open(files["output_activity"], "r") as f:
+    with open(files["output_activity"]) as f:
         output_content = f.read()
-    expected_output_file = os.path.join(os.path.dirname(__file__), "data", "reporter_activity.bc1.output.tsv.gz")
+    expected_output_file = os.path.join(
+        os.path.dirname(__file__), "data", "reporter_activity.bc1.output.tsv.gz"
+    )
     with gzip.open(expected_output_file, "rt") as f:
         expected_content = f.read()
     assert output_content == expected_content
@@ -272,19 +288,25 @@ def test_functional_filter_outliers_large_expression_2(runner, files):
     assert os.path.exists(files["output_activity"])
     assert os.path.exists(files["output_barcode"])
 
-    with open(files["output_barcode"], "r") as f:
+    with open(files["output_barcode"]) as f:
         output_content = f.read()
     expected_output_file = os.path.join(
-        os.path.dirname(__file__), "data", "functional", "reporter_experiment_barcode.filter.large_expression.output.tsv.gz"
+        os.path.dirname(__file__),
+        "data",
+        "functional",
+        "reporter_experiment_barcode.filter.large_expression.output.tsv.gz",
     )
     with gzip.open(expected_output_file, "rt") as f:
         expected_content = f.read()
     assert output_content == expected_content
 
-    with open(files["output_activity"], "r") as f:
+    with open(files["output_activity"]) as f:
         output_content = f.read()
     expected_output_file = os.path.join(
-        os.path.dirname(__file__), "data", "functional", "reporter_experiment.filter.large_expression.output.tsv.gz"
+        os.path.dirname(__file__),
+        "data",
+        "functional",
+        "reporter_experiment.filter.large_expression.output.tsv.gz",
     )
     with gzip.open(expected_output_file, "rt") as f:
         expected_content = f.read()
@@ -317,19 +339,25 @@ def test_functional_filter_dna_max_count_10(runner, files):
     assert os.path.exists(files["output_activity"])
     assert os.path.exists(files["output_barcode"])
 
-    with open(files["output_barcode"], "r") as f:
+    with open(files["output_barcode"]) as f:
         output_content = f.read()
     expected_output_file = os.path.join(
-        os.path.dirname(__file__), "data", "functional", "reporter_experiment_barcode.filter.max_count.output.tsv.gz"
+        os.path.dirname(__file__),
+        "data",
+        "functional",
+        "reporter_experiment_barcode.filter.max_count.output.tsv.gz",
     )
     with gzip.open(expected_output_file, "rt") as f:
         expected_content = f.read()
     assert output_content == expected_content
 
-    with open(files["output_activity"], "r") as f:
+    with open(files["output_activity"]) as f:
         output_content = f.read()
     expected_output_file = os.path.join(
-        os.path.dirname(__file__), "data", "functional", "reporter_experiment.filter.max_count.output.tsv.gz"
+        os.path.dirname(__file__),
+        "data",
+        "functional",
+        "reporter_experiment.filter.max_count.output.tsv.gz",
     )
     with gzip.open(expected_output_file, "rt") as f:
         expected_content = f.read()
