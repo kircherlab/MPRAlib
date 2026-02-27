@@ -111,6 +111,7 @@ def test_combine_get_counts_elements(runner, files):
         expected_content = f.read()
     assert output_content == expected_content
 
+
 def test_combine_get_counts_oligos(runner, files):
     result = runner.invoke(
         cli,
