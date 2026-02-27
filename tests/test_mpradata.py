@@ -442,18 +442,19 @@ def test_pearson_correlation(mpra_corr_data):
         x,
         np.array(
             [[1.0, np.nan, np.nan], [np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan]]
-        ), decimal=7
+        ),
+        decimal=7,
     )
     np.testing.assert_almost_equal(
         y,
-        np.array(
-            [[1.0, -1.0, -0.545], [-1.0, 1.0, 0.545], [-0.545, 0.545, 1.0]]
-        ),
+        np.array([[1.0, -1.0, -0.545], [-1.0, 1.0, 0.545], [-0.545, 0.545, 1.0]]),
         decimal=3,
     )
     np.testing.assert_almost_equal(
         z,
-        np.array([[np.nan, np.nan, np.nan], [np.nan, 1.0, 0.545], [np.nan, 0.545, 1.0]]),
+        np.array(
+            [[np.nan, np.nan, np.nan], [np.nan, 1.0, 0.545], [np.nan, 0.545, 1.0]]
+        ),
         decimal=3,
     )
 
@@ -473,10 +474,18 @@ def test_spearman_correlation(mpra_corr_data):
         ),
     )
     np.testing.assert_almost_equal(
-        y, np.array([[1.000, -1.000, -0.866], [-1.000,  1.000,  0.866], [-0.866,  0.866,  1.000]]), decimal=3
+        y,
+        np.array(
+            [[1.000, -1.000, -0.866], [-1.000, 1.000, 0.866], [-0.866, 0.866, 1.000]]
+        ),
+        decimal=3,
     )
     np.testing.assert_almost_equal(
-        z, np.array([[np.nan, np.nan, np.nan], [np.nan, 1.000, 0.866], [     np.nan, 0.866, 1.000]]), decimal=3
+        z,
+        np.array(
+            [[np.nan, np.nan, np.nan], [np.nan, 1.000, 0.866], [np.nan, 0.866, 1.000]]
+        ),
+        decimal=3,
     )
 
 
