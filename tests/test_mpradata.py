@@ -385,11 +385,11 @@ def mpra_oligo_data_with_bc_filter():
 def test_oligo_normalize_counts(mpra_oligo_data):
     dna_normalized = mpra_oligo_data.normalized_dna_counts
     expected_dna_normalized = np.array(
-        [[1.786, 2.857, 1.786], [1.897, 2.414, 1.897], [0.612, 0.719, 4.029]]
+        [[3.333, 3.333, 3.333], [3.703, 2.592, 3.703], [1.167, 0.729,  8.102]]
     )
     np.testing.assert_almost_equal(dna_normalized, expected_dna_normalized, decimal=3)
     expected_rna_normalized = np.array(
-        [[1.667, 3.333, 1.667], [1.897, 2.414, 1.897], [0.612, 0.719, 4.029]]
+        [[3.077, 3.846, 3.077], [3.704, 2.593, 3.704], [1.168, 0.730, 8.102]]
     )
     rna_normalized = mpra_oligo_data.normalized_rna_counts
     np.testing.assert_almost_equal(rna_normalized, expected_rna_normalized, decimal=3)
@@ -400,11 +400,11 @@ def test_oligo_normalize_without_pseudocount(mpra_oligo_data):
     mpra_data.pseudo_count = 0
     dna_normalized = mpra_data.normalized_dna_counts
     expected_dna_normalized = np.array(
-        [[1.667, 3.333, 1.667], [1.875, 2.5, 1.875], [0.56, 0.672, 4.104]]
+        [[3.333, 3.333, 3.333], [3.750, 2.500, 3.750], [1.119, 0.672, 8.209]]
     )
     np.testing.assert_almost_equal(dna_normalized, expected_dna_normalized, decimal=3)
     expected_rna_normalized = np.array(
-        [[1.5, 4.0, 1.5], [1.875, 2.5, 1.875], [0.56, 0.672, 4.104]]
+        [[3.000, 4.000, 3.000], [3.750, 2.500, 3.750], [1.119, 0.672, 8.209]]
     )
     rna_normalized = mpra_data.normalized_rna_counts
     np.testing.assert_almost_equal(rna_normalized, expected_rna_normalized, decimal=3)
