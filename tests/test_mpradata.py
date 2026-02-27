@@ -1240,3 +1240,25 @@ def test_mpraoligodata_normalize_layer(mpra_oligo_data):
     norm = mpra_oligo_data._normalize_layer(counts, total_counts)
     assert norm.shape == counts.shape
     assert np.all(norm >= 0)
+
+
+def test_barcode_counts_setter_comprehensive(mpra_oligo_data):
+    """Test barcode_counts setter with various data types and edge cases."""
+    print(mpra_oligo_data.barcode_counts)
+    # Test 1: Set valid int32 array
+    counts_int32 = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=np.int32)
+    mpra_oligo_data.barcode_counts = counts_int32
+    np.testing.assert_array_equal(mpra_oligo_data.barcode_counts, counts_int32)
+
+    # Test 2: Update with new values
+    new_counts = np.array([[10, 20, 30], [40, 50, 60], [70, 80, 90]], dtype=np.int32)
+    mpra_oligo_data.barcode_counts = new_counts
+    np.testing.assert_array_equal(mpra_oligo_data.barcode_counts, new_counts)
+
+    # Test 3: Verify layer is correctly named
+    assert "barcode_counts" in mpra_oligo_data.data.layers
+
+    # Test 4: Verify data type conversion
+    counts_int64 = np.array([[5, 6, 7], [8, 9, 10], [11, 12, 13]], dtype=np.int64)
+    mpra_oligo_data.barcode_counts = counts_int64
+    assert mpra_oligo_data.barcode_counts.dtype == np.int32
