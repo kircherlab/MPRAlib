@@ -80,6 +80,37 @@ def files():
     os.remove(output_file)
 
 
+def test_combine_get_counts_elements(runner, files):
+    result = runner.invoke(
+        cli,
+        [
+            "combine",
+            "get-counts",
+            "--elements-only",
+            "--input",
+            files["input"]["barcode_counts"],
+            "--sequence-design",
+            files["input"]["sequence_design"],
+            "--output",
+            files["output"],
+        ],
+    )
+    assert result.exit_code == 0
+    assert os.path.exists(files["output"])
+
+    with open(files["output"]) as f:
+        output_content = f.read()
+    expected_output_file = os.path.join(
+        os.path.dirname(__file__),
+        "data",
+        "combine",
+        "element_counts.IGVFDS2165KBMD.head20000.output.tsv.gz",
+    )
+
+    with gzip.open(expected_output_file, "rt") as f:
+        expected_content = f.read()
+    assert output_content == expected_content
+
 def test_combine_get_counts_oligos(runner, files):
     result = runner.invoke(
         cli,

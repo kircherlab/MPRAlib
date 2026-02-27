@@ -534,6 +534,14 @@ def get_variant_map(input_file: str, sequence_design_file: str, output_file: str
     help="Scaling factor for normalized counts.",
 )
 @click.option(
+    "--pseudo-count",
+    "pseudo_count",
+    required=False,
+    default=1,
+    type=int,
+    help="Pseudocount added during normalization to avoid division by zero.",
+)
+@click.option(
     "--oligos/--barcodes",
     "use_oligos",
     required=False,
@@ -570,6 +578,7 @@ def get_counts(
     bc_threshold: int,
     normalized_counts: bool,
     scaling_factor: float,
+    pseudo_count: int,
     use_oligos: bool,
     elements_only: bool,
     output_file: str,
@@ -583,12 +592,14 @@ def get_counts(
         bc_threshold (int): Using a barcode threshold for output.
         normalized_counts (bool): Getting counts or normalized counts.
         scaling_factor (float): Scaling factor for normalized counts.
+        pseudo_count (int): Pseudocount added during normalization to avoid division by zero.
         use_oligos (bool): Return counts per oligo or per barcode.
         elements_only (bool): Only return count data for elements and ref sequence of variants.
         output_file (str): Output file of all non zero counts.
     """
     mpradata = MPRABarcodeData.from_file(input_file)
     mpradata.scaling = scaling_factor
+    mpradata.pseudo_count = pseudo_count
 
     mpradata.barcode_threshold = bc_threshold
 
@@ -648,6 +659,14 @@ def get_counts(
     help="Scaling factor for normalized counts.",
 )
 @click.option(
+    "--pseudo-count",
+    "pseudo_count",
+    required=False,
+    default=1,
+    type=int,
+    help="Pseudocount added during normalization to avoid division by zero.",
+)
+@click.option(
     "--oligos/--barcodes",
     "use_oligos",
     required=False,
@@ -668,6 +687,7 @@ def get_variant_counts(
     bc_threshold: int,
     normalized_counts: bool,
     scaling_factor: float,
+    pseudo_count: int,
     use_oligos: bool,
     output_file: str,
 ) -> None:
@@ -679,6 +699,7 @@ def get_variant_counts(
         bc_threshold (int): Minimum barcode count threshold for filtering.
         normalized_counts (bool): If True, use normalized counts; otherwise, use raw counts.
         scaling_factor (float): Scaling factor for normalized counts.
+        pseudo_count (int): Pseudocount added during normalization to avoid division by zero.
         use_oligos (bool): If True, aggregate counts at the oligo level and map to variants; otherwise, export counts directly.
         output_file (str): Path to the output file where the variant count table will be saved.
 
@@ -693,6 +714,7 @@ def get_variant_counts(
     """
     mpradata = MPRABarcodeData.from_file(input_file)
     mpradata.scaling = scaling_factor
+    mpradata.pseudo_count = pseudo_count
 
     mpradata.add_sequence_design(read_sequence_design_file(sequence_design_file), sequence_design_file)
 
