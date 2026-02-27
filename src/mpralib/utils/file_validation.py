@@ -1,15 +1,17 @@
-from enum import Enum
-import json
-from importlib.resources import files
-import jsonschema
+import ast
 import csv
 import gzip
-import ast
-from mpralib.utils.io import is_compressed_file
-import tqdm
+import json
 import logging
 import re
+from enum import Enum
+from importlib.resources import files
 from typing import Optional
+
+import jsonschema
+import tqdm
+
+from mpralib.utils.io import is_compressed_file
 
 
 class ValidationSchema(Enum):
@@ -42,14 +44,25 @@ class SchemaToFileNameMap:
 
 
 schemaFilemap = SchemaToFileNameMap()
-schemaFilemap.set(ValidationSchema.REPORTER_SEQUENCE_DESIGN, "reporter_sequence_design.json")
-schemaFilemap.set(ValidationSchema.REPORTER_BARCODE_TO_ELEMENT_MAPPING, "reporter_barcode_to_element_mapping.json")
-schemaFilemap.set(ValidationSchema.REPORTER_EXPERIMENT_BARCODE, "reporter_experiment_barcode.json")
+schemaFilemap.set(
+    ValidationSchema.REPORTER_SEQUENCE_DESIGN, "reporter_sequence_design.json"
+)
+schemaFilemap.set(
+    ValidationSchema.REPORTER_BARCODE_TO_ELEMENT_MAPPING,
+    "reporter_barcode_to_element_mapping.json",
+)
+schemaFilemap.set(
+    ValidationSchema.REPORTER_EXPERIMENT_BARCODE, "reporter_experiment_barcode.json"
+)
 schemaFilemap.set(ValidationSchema.REPORTER_EXPERIMENT, "reporter_experiment.json")
 schemaFilemap.set(ValidationSchema.REPORTER_ELEMENT, "reporter_element.json")
 schemaFilemap.set(ValidationSchema.REPORTER_VARIANT, "reporter_variant.json")
-schemaFilemap.set(ValidationSchema.REPORTER_GENOMIC_ELEMENT, "reporter_genomic_element.json")
-schemaFilemap.set(ValidationSchema.REPORTER_GENOMIC_VARIANT, "reporter_genomic_variant.json")
+schemaFilemap.set(
+    ValidationSchema.REPORTER_GENOMIC_ELEMENT, "reporter_genomic_element.json"
+)
+schemaFilemap.set(
+    ValidationSchema.REPORTER_GENOMIC_VARIANT, "reporter_genomic_variant.json"
+)
 
 
 def _convert_row_value(value: str, prop_schema: dict):
@@ -103,7 +116,9 @@ def validate_tsv_with_schema(tsv_file_path: str, schema_type: ValidationSchema) 
     with open_func(tsv_file_path, "rt", encoding="utf-8") as tsvfile:
         reader = csv.DictReader(tsvfile, delimiter="\t", fieldnames=header)
         i = 0
-        for i, row in enumerate(tqdm.tqdm(reader, desc="Validating rows", unit="row"), start=1):
+        for i, row in enumerate(
+            tqdm.tqdm(reader, desc="Validating rows", unit="row"), start=1
+        ):
             _convert_row_types(row, schema)
             try:
                 jsonschema.validate(instance=row, schema=schema)
@@ -118,9 +133,13 @@ def validate_tsv_with_schema(tsv_file_path: str, schema_type: ValidationSchema) 
             LOGGER.warning("The file is empty.")
             correct_file = False
     if correct_file:
-        LOGGER.info(f"File {tsv_file_path} is valid according to schema {schema_type.value}.")
+        LOGGER.info(
+            f"File {tsv_file_path} is valid according to schema {schema_type.value}."
+        )
     else:
-        LOGGER.warning(f"File {tsv_file_path} is not valid according to schema {schema_type.value}.")
+        LOGGER.warning(
+            f"File {tsv_file_path} is not valid according to schema {schema_type.value}."
+        )
     return correct_file
 
 
