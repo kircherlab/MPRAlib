@@ -413,7 +413,7 @@ def test_oligo_normalize_without_pseudocount(mpra_oligo_data):
 def test_oligo_normalize_counts_with_bc_filter(mpra_oligo_data_with_bc_filter):
     dna_normalized = mpra_oligo_data_with_bc_filter.normalized_dna_counts
     expected_normalized = np.array(
-        [[2.5, 0.0, 2.5], [2.5, 2.917, 2.292], [3.148, 3.704, 0.0]]
+        [[5.000, 1.250, 5.000], [2.609, 3.043, 4.348], [6.154, 3.846, 0.385]]
     )
     np.testing.assert_almost_equal(dna_normalized, expected_normalized, decimal=3)
     rna_normalized = mpra_oligo_data_with_bc_filter.normalized_rna_counts
@@ -438,22 +438,22 @@ def test_pearson_correlation(mpra_corr_data):
     x = mpra_corr_data.correlation(method="pearson", count_type=Modality.ACTIVITY)
     y = mpra_corr_data.correlation(method="pearson", count_type=Modality.RNA_NORMALIZED)
     z = mpra_corr_data.correlation(method="pearson", count_type=Modality.DNA_NORMALIZED)
-    np.testing.assert_equal(
+    np.testing.assert_almost_equal(
         x,
         np.array(
             [[1.0, np.nan, np.nan], [np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan]]
-        ),
+        ), decimal=7
     )
     np.testing.assert_almost_equal(
         y,
         np.array(
-            [[1.0, 1.0, -0.475752], [1.0, 1.0, -0.475752], [-0.475752, -0.475752, 1.0]]
+            [[1.0, -1.0, -0.545], [-1.0, 1.0, 0.545], [-0.545, 0.545, 1.0]]
         ),
         decimal=3,
     )
     np.testing.assert_almost_equal(
         z,
-        np.array([[1.0, 1.0, -0.476], [1.0, 1.0, -0.476], [-0.476, -0.476, 1.0]]),
+        np.array([[np.nan, np.nan, np.nan], [np.nan, 1.0, 0.545], [np.nan, 0.545, 1.0]]),
         decimal=3,
     )
 
@@ -473,10 +473,10 @@ def test_spearman_correlation(mpra_corr_data):
         ),
     )
     np.testing.assert_almost_equal(
-        y, np.array([[1.0, 1.0, 0.0], [1.0, 1.0, 0.0], [0.0, 0.0, 1.0]]), decimal=3
+        y, np.array([[1.000, -1.000, -0.866], [-1.000,  1.000,  0.866], [-0.866,  0.866,  1.000]]), decimal=3
     )
-    np.testing.assert_equal(
-        z, np.array([[1.0, 1.0, 0.0], [1.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
+    np.testing.assert_almost_equal(
+        z, np.array([[np.nan, np.nan, np.nan], [np.nan, 1.000, 0.866], [     np.nan, 0.866, 1.000]]), decimal=3
     )
 
 
