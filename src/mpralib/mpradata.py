@@ -385,7 +385,7 @@ class MPRAData(ABC):
         ):
             raise ValueError("Sequence design file not loaded.")
 
-        oligos = self.data.var["oligo"].repeat(self.data.var["SPDI"].apply(lambda x: len(x)).tolist())
+        oligos = self.data.var["oligo"].repeat(self.data.var["SPDI"].apply(len).tolist())
 
         spdis = np.concatenate(self.data.var["SPDI"].values)
 

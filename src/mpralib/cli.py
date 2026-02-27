@@ -470,7 +470,7 @@ def get_variant_map(input_file: str, sequence_design_file: str, output_file: str
             {
                 "ID": np.concatenate(df_sequence_design["SPDI"].values),
                 "allele": np.concatenate(df_sequence_design["allele"].values),
-                "oligo": df_sequence_design.index.values.repeat(df_sequence_design["SPDI"].apply(lambda x: len(x))),
+                "oligo": df_sequence_design.index.values.repeat(df_sequence_design["SPDI"].apply(len)),
             }
         )
 
