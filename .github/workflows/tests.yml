@@ -49,6 +49,7 @@ jobs:
         uses: super-linter/super-linter@v8
         env:
           # To report GitHub Actions status checks
+          LINTER_RULES_PATH: .
           DEFAULT_BRANCH: master
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDATE_PYTHON_FLAKE8: true
