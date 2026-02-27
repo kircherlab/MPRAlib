@@ -39,6 +39,6 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.9",
+    python_requires=">=3.10",
     entry_points={"console_scripts": ["mpralib=mpralib.cli:main"]},
 )
