@@ -8,9 +8,7 @@ from Bio import SeqIO
 from mpralib.mpradata import MPRABarcodeData
 
 
-@click.group(
-    help="Command line interface to generate quality metrics from MPRAsnakeflow."
-)
+@click.group(help="Command line interface to generate quality metrics from MPRAsnakeflow.")
 def cli():
     pass
 
@@ -96,9 +94,7 @@ def experiment(barcode_file, assignment_file, bc_threshold, output_file):
     mpra_oligo_data = MPRABarcodeData.from_file(barcode_file).oligo_data
 
     # median_barcodes_passing_filtering
-    output["median_barcodes_passing_filtering"] = median_barcodes_passing_filtering(
-        mpra_oligo_data
-    )
+    output["median_barcodes_passing_filtering"] = median_barcodes_passing_filtering(mpra_oligo_data)
 
     # median_rna_read_count
     output["median_rna_read_count"] = median_rna_read_count(mpra_oligo_data)
@@ -113,9 +109,7 @@ def experiment(barcode_file, assignment_file, bc_threshold, output_file):
     assignment_df = pd.read_csv(assignment_file, sep="\t", header=None)
     assignment_grouped = assignment_df.groupby(1).size()
     assigned_oligos = len(assignment_grouped)
-    output["fraction_oligos_passing"] = round(
-        fraction_oligos_passing(mpra_oligo_data, assigned_oligos), 4
-    )
+    output["fraction_oligos_passing"] = round(fraction_oligos_passing(mpra_oligo_data, assigned_oligos), 4)
 
     # output
     json_string = json.dumps(output, indent=4)
@@ -132,8 +126,7 @@ def fraction_oligos_passing(mpra_oligo_data, assigned_oligos) -> float:
         replicate_data = mpra_oligo_data.data[replicate, :]
         replicate_data = replicate_data[
             :,
-            replicate_data.layers["barcode_counts"]
-            >= mpra_oligo_data.barcode_threshold,
+            replicate_data.layers["barcode_counts"] >= mpra_oligo_data.barcode_threshold,
         ]
         n_oligos_replicate += [len(replicate_data.var["oligo"])]
 
@@ -159,8 +152,7 @@ def median_barcodes_passing_filtering(mpra_oligo_data) -> int:
         replicate_data = mpra_oligo_data.data[replicate, :]
         replicate_data = replicate_data[
             :,
-            replicate_data.layers["barcode_counts"]
-            >= mpra_oligo_data.barcode_threshold,
+            replicate_data.layers["barcode_counts"] >= mpra_oligo_data.barcode_threshold,
         ]
         n_barcodes_replicate += [np.median(replicate_data.layers["barcode_counts"])]
 
@@ -173,8 +165,7 @@ def median_rna_read_count(mpra_oligo_data) -> int:
         replicate_data = mpra_oligo_data.data[replicate, :]
         replicate_data = replicate_data[
             :,
-            replicate_data.layers["barcode_counts"]
-            >= mpra_oligo_data.barcode_threshold,
+            replicate_data.layers["barcode_counts"] >= mpra_oligo_data.barcode_threshold,
         ]
         n_rna_replicate += [np.median(replicate_data.layers["rna"])]
 

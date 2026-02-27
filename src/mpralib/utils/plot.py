@@ -7,9 +7,7 @@ from matplotlib.figure import Figure
 from mpralib.mpradata import Modality, MPRABarcodeData, MPRAData, MPRAOligoData
 
 custom_params = {"axes.spines.right": False, "axes.spines.top": False}
-custom_palette = sns.color_palette(
-    ["#72ACBF", "#BF2675", "#2ecc71", "#f1c40f", "#9b59b6"]
-)
+custom_palette = sns.color_palette(["#72ACBF", "#BF2675", "#2ecc71", "#f1c40f", "#9b59b6"])
 sns.set_theme(style="white", rc=custom_params, palette=custom_palette)
 
 
@@ -27,9 +25,7 @@ def correlation(data: MPRAData, layer: Modality, replicates=None) -> sns.PairGri
     elif layer == Modality.ACTIVITY:
         counts = data.activity.copy()
 
-    counts = np.ma.masked_array(
-        counts, mask=[data.barcode_counts < data.barcode_threshold]
-    )
+    counts = np.ma.masked_array(counts, mask=[data.barcode_counts < data.barcode_threshold])
 
     if replicates:
         idx = np.array([data.obs_names.get_loc(rep) for rep in replicates])
@@ -74,9 +70,7 @@ def dna_vs_rna(data: MPRAData, replicates=None) -> sns.JointGrid:
     median_dna = np.ma.masked_equal(median_dna, 0)
     median_rna = np.ma.masked_equal(median_rna, 0)
 
-    df = pd.DataFrame(
-        {"DNA [log10]": np.log10(median_dna), "RNA [log10]": np.log10(median_rna)}
-    )
+    df = pd.DataFrame({"DNA [log10]": np.log10(median_dna), "RNA [log10]": np.log10(median_rna)})
 
     g = sns.jointplot(data=df, x="DNA [log10]", y="RNA [log10]", kind="scatter", s=3)
     g.ax_joint.plot(
@@ -194,11 +188,7 @@ def barcodes_outlier(data: MPRABarcodeData) -> Figure:
         labels=[str(i) for i in range(0, len(qs) - 1)],
     )
 
-    stats = (
-        counts.groupby("bin")
-        .agg(mean_diff=("ratio_diff", "mean"), sd_diff=("ratio_diff", "std"))
-        .reset_index()
-    )
+    stats = counts.groupby("bin").agg(mean_diff=("ratio_diff", "mean"), sd_diff=("ratio_diff", "std")).reset_index()
 
     # Get the last n categories of ordered categories
     # Plotting
@@ -207,10 +197,7 @@ def barcodes_outlier(data: MPRABarcodeData) -> Figure:
     if isinstance(sampled_counts, pd.Series):
         sampled_counts = sampled_counts.to_frame().T
     sns.scatterplot(data=sampled_counts, x="bin", y="ratio_diff", alpha=0.3)
-    filtered_counts = counts[
-        (counts["ratio_diff"] > 5)
-        & (counts["bin"].isin(counts["bin"].cat.categories[9:]))
-    ]
+    filtered_counts = counts[(counts["ratio_diff"] > 5) & (counts["bin"].isin(counts["bin"].cat.categories[9:]))]
     if isinstance(filtered_counts, pd.Series):
         filtered_counts = filtered_counts.to_frame().T
     sns.scatterplot(

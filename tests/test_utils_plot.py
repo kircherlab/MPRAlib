@@ -24,9 +24,7 @@ class DummyMPRAData(MPRAData):
         layers = {"rna": rna_counts, "dna": dna_counts}
         obs = pd.DataFrame(index=replicates)
         var = pd.DataFrame({"oligo": oligos}, index=barcodes)
-        super().__init__(
-            ad.AnnData(X=rna_counts, obs=obs, var=var, layers=layers), barcode_threshold
-        )
+        super().__init__(ad.AnnData(X=rna_counts, obs=obs, var=var, layers=layers), barcode_threshold)
         if barcode_counts:
             self.barcode_counts = pd.DataFrame(
                 barcode_counts,
@@ -51,11 +49,7 @@ def barcode_data():
     dna_counts = np.array([[10, 0, 5], [20, 1, 0]])
     rna_counts = np.array([[5, 0, 2], [10, 1, 0]])
     barcode_threshold = 1
-    return copy.deepcopy(
-        DummyMPRABarcodeData(
-            replicates, oligos, barcodes, dna_counts, rna_counts, barcode_threshold
-        )
-    )
+    return copy.deepcopy(DummyMPRABarcodeData(replicates, oligos, barcodes, dna_counts, rna_counts, barcode_threshold))
 
 
 @pytest.fixture

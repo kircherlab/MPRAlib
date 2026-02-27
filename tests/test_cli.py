@@ -23,9 +23,7 @@ def test_cli_group_help(runner):
 
 @pytest.fixture
 def files():
-    input_file = os.path.join(
-        os.path.dirname(__file__), "data", "reporter_experiment_barcode.input.tsv.gz"
-    )
+    input_file = os.path.join(os.path.dirname(__file__), "data", "reporter_experiment_barcode.input.tsv.gz")
     output_file = tempfile.NamedTemporaryFile(delete=False).name
     yield {"input": input_file, "output": output_file}
     os.remove(output_file)
@@ -54,9 +52,7 @@ def test_barcode_activities_bc1(runner, files):
     with open(files["output"]) as f:
         output_content = f.read()
 
-    expected_output_file = os.path.join(
-        os.path.dirname(__file__), "data", "reporter_experiment_barcode.input.tsv.gz"
-    )
+    expected_output_file = os.path.join(os.path.dirname(__file__), "data", "reporter_experiment_barcode.input.tsv.gz")
 
     with gzip.open(expected_output_file, "rt") as f:
         expected_content = f.read()
@@ -88,9 +84,7 @@ def test_activities_bc1(runner, files):
     with open(files["output"]) as f:
         output_content = f.read()
 
-    expected_output_file = os.path.join(
-        os.path.dirname(__file__), "data", "reporter_activity.bc1.output.tsv.gz"
-    )
+    expected_output_file = os.path.join(os.path.dirname(__file__), "data", "reporter_activity.bc1.output.tsv.gz")
 
     with gzip.open(expected_output_file, "rt") as f:
         expected_content = f.read()
@@ -122,9 +116,7 @@ def test_activities_bc10(runner, files):
     with open(files["output"]) as f:
         output_content = f.read()
 
-    expected_output_file = os.path.join(
-        os.path.dirname(__file__), "data", "reporter_activity.bc10.output.tsv.gz"
-    )
+    expected_output_file = os.path.join(os.path.dirname(__file__), "data", "reporter_activity.bc10.output.tsv.gz")
 
     with gzip.open(expected_output_file, "rt") as f:
         expected_content = f.read()
@@ -156,9 +148,7 @@ def test_activities_bc100(runner, files):
     with open(files["output"]) as f:
         output_content = f.read()
 
-    expected_output_file = os.path.join(
-        os.path.dirname(__file__), "data", "reporter_activity.bc100.output.tsv.gz"
-    )
+    expected_output_file = os.path.join(os.path.dirname(__file__), "data", "reporter_activity.bc100.output.tsv.gz")
 
     with gzip.open(expected_output_file, "rt") as f:
         expected_content = f.read()
@@ -206,10 +196,7 @@ def test_get_chr_not_found(logger):
     variant_id = "NC_000003.13:54321:G:C"
     result = _get_chr(map_df, variant_id, logger)
     assert result is None
-    assert any(
-        "Contig NC_000003.13 of SPDI NC_000003.13:54321:G:C not found" in msg
-        for msg in logger.messages
-    )
+    assert any("Contig NC_000003.13 of SPDI NC_000003.13:54321:G:C not found" in msg for msg in logger.messages)
 
 
 def test_get_chr_handles_empty_map(logger):
@@ -217,10 +204,7 @@ def test_get_chr_handles_empty_map(logger):
     variant_id = "NC_000004.14:11111:T:A"
     result = _get_chr(map_df, variant_id, logger)
     assert result is None
-    assert any(
-        "Contig NC_000004.14 of SPDI NC_000004.14:11111:T:A not found" in msg
-        for msg in logger.messages
-    )
+    assert any("Contig NC_000004.14 of SPDI NC_000004.14:11111:T:A not found" in msg for msg in logger.messages)
 
 
 def test_get_chr_with_multiple_matches(logger):

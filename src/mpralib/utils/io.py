@@ -11,20 +11,12 @@ from mpralib.mpradata import MPRABarcodeData, MPRAData, MPRAOligoData
 
 def chromosome_map() -> pd.DataFrame:
 
-    with files("mpralib.data").joinpath(
-        "hg19.chromAlias.txt"
-    ).open() as chromAlias_hg19:
-        df = pd.read_csv(
-            chromAlias_hg19, sep="\t", header=None, comment="#", dtype="category"
-        )
+    with files("mpralib.data").joinpath("hg19.chromAlias.txt").open() as chromAlias_hg19:
+        df = pd.read_csv(chromAlias_hg19, sep="\t", header=None, comment="#", dtype="category")
     df["release"] = "GRCh37"
 
-    with files("mpralib.data").joinpath(
-        "hg38.chromAlias.txt"
-    ).open() as chromAlias_hg38:
-        df_38 = pd.read_csv(
-            chromAlias_hg38, sep="\t", header=None, comment="#", dtype="category"
-        )
+    with files("mpralib.data").joinpath("hg38.chromAlias.txt").open() as chromAlias_hg38:
+        df_38 = pd.read_csv(chromAlias_hg38, sep="\t", header=None, comment="#", dtype="category")
     df_38["release"] = "GRCh38"
 
     df = pd.concat([df, df_38], ignore_index=True)
@@ -99,23 +91,16 @@ def export_activity_file(mpradata: MPRAOligoData, output_file_path: str) -> None
         replicate_data = mpradata.data[replicate, :]
         replicate_data = replicate_data[
             :,
-            np.asarray(replicate_data.layers["barcode_counts"])
-            >= np.asarray(mpradata.barcode_threshold),
+            np.asarray(replicate_data.layers["barcode_counts"]) >= np.asarray(mpradata.barcode_threshold),
         ]
         df = {
             "replicate": np.repeat(replicate, replicate_data.var_names.size),
             "oligo_name": replicate_data.var["oligo"],
             "dna_counts": np.asarray(replicate_data.layers["dna"])[0, :],
             "rna_counts": np.asarray(replicate_data.layers["rna"])[0, :],
-            "dna_normalized": np.round(
-                np.asarray(replicate_data.layers["dna_normalized"])[0, :], 4
-            ),
-            "rna_normalized": np.round(
-                np.asarray(replicate_data.layers["rna_normalized"])[0, :], 4
-            ),
-            "log2FoldChange": np.round(
-                np.asarray(replicate_data.layers["activity"])[0, :], 4
-            ),
+            "dna_normalized": np.round(np.asarray(replicate_data.layers["dna_normalized"])[0, :], 4),
+            "rna_normalized": np.round(np.asarray(replicate_data.layers["rna_normalized"])[0, :], 4),
+            "log2FoldChange": np.round(np.asarray(replicate_data.layers["activity"])[0, :], 4),
             "n_bc": np.asarray(replicate_data.layers["barcode_counts"])[0, :],
         }
         output = pd.concat([output, pd.DataFrame(df)], axis=0)
@@ -133,9 +118,7 @@ def export_barcode_file(mpradata: MPRABarcodeData, output_file_path: str) -> Non
         output_file_path (str): The file path where the output TSV file will be saved.
     """  # noqa: E501
 
-    output = pd.DataFrame(
-        {"barcode": mpradata.var_names, "oligo_name": mpradata.oligos}
-    )
+    output = pd.DataFrame({"barcode": mpradata.var_names, "oligo_name": mpradata.oligos})
 
     dna_counts = mpradata.dna_counts
     rna_counts = mpradata.rna_counts
@@ -157,9 +140,7 @@ def export_counts_file(
     elif isinstance(mpradata, MPRAOligoData):
         df = {"ID": mpradata.oligos}
     else:
-        raise MPRAlibException(
-            f"Invalid MPRA data type {type(mpradata)}. Expected MPRAOligoData or MPRABarcodeData."
-        )
+        raise MPRAlibException(f"Invalid MPRA data type {type(mpradata)}. Expected MPRAOligoData or MPRABarcodeData.")
 
     if normalized:
         dna_counts = mpradata.normalized_dna_counts.copy()
@@ -192,13 +173,9 @@ def export_counts_file(
     df = df[~nan_columns]
 
     if normalized:
-        df.to_csv(
-            output_file_path, sep="\t", index=True, na_rep="", float_format="%.6f"
-        )
+        df.to_csv(output_file_path, sep="\t", index=True, na_rep="", float_format="%.6f")
     else:
-        df.to_csv(
-            output_file_path, sep="\t", index=True, na_rep="", float_format="%.0f"
-        )
+        df.to_csv(output_file_path, sep="\t", index=True, na_rep="", float_format="%.0f")
 
 
 def read_sequence_design_file(file_path: str) -> pd.DataFrame:

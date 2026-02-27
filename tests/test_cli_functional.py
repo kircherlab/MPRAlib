@@ -29,9 +29,7 @@ def test_functional_filter_outliers_help(runner):
 
 @pytest.fixture
 def files():
-    input_file = os.path.join(
-        os.path.dirname(__file__), "data", "reporter_experiment_barcode.input.tsv.gz"
-    )
+    input_file = os.path.join(os.path.dirname(__file__), "data", "reporter_experiment_barcode.input.tsv.gz")
     output_file_activity = tempfile.NamedTemporaryFile(delete=False).name
     output_file_barcode = tempfile.NamedTemporaryFile(delete=False).name
     yield {
@@ -202,18 +200,14 @@ def test_functional_filter_outliers_global(runner, files):
 
     with open(files["output_barcode"]) as f:
         output_content = f.read()
-    expected_output_file = os.path.join(
-        os.path.dirname(__file__), "data", "reporter_experiment_barcode.input.tsv.gz"
-    )
+    expected_output_file = os.path.join(os.path.dirname(__file__), "data", "reporter_experiment_barcode.input.tsv.gz")
     with gzip.open(expected_output_file, "rt") as f:
         expected_content = f.read()
     assert output_content == expected_content
 
     with open(files["output_activity"]) as f:
         output_content = f.read()
-    expected_output_file = os.path.join(
-        os.path.dirname(__file__), "data", "reporter_activity.bc1.output.tsv.gz"
-    )
+    expected_output_file = os.path.join(os.path.dirname(__file__), "data", "reporter_activity.bc1.output.tsv.gz")
     with gzip.open(expected_output_file, "rt") as f:
         expected_content = f.read()
     assert output_content == expected_content
@@ -245,18 +239,14 @@ def test_functional_filter_outliers_large_expression(runner, files):
 
     with open(files["output_barcode"]) as f:
         output_content = f.read()
-    expected_output_file = os.path.join(
-        os.path.dirname(__file__), "data", "reporter_experiment_barcode.input.tsv.gz"
-    )
+    expected_output_file = os.path.join(os.path.dirname(__file__), "data", "reporter_experiment_barcode.input.tsv.gz")
     with gzip.open(expected_output_file, "rt") as f:
         expected_content = f.read()
     assert output_content == expected_content
 
     with open(files["output_activity"]) as f:
         output_content = f.read()
-    expected_output_file = os.path.join(
-        os.path.dirname(__file__), "data", "reporter_activity.bc1.output.tsv.gz"
-    )
+    expected_output_file = os.path.join(os.path.dirname(__file__), "data", "reporter_activity.bc1.output.tsv.gz")
     with gzip.open(expected_output_file, "rt") as f:
         expected_content = f.read()
     assert output_content == expected_content

@@ -73,9 +73,7 @@ def files():
                 "data",
                 "reporter_experiment_barcode_IGVFDS2165KBMD.input.head20000.tsv.gz",
             ),
-            "sequence_design": os.path.join(
-                base, "data", "reporter_sequence_design.example.tsv.gz"
-            ),
+            "sequence_design": os.path.join(base, "data", "reporter_sequence_design.example.tsv.gz"),
         },
         "output": output_file,
     }
@@ -159,9 +157,7 @@ def test_combine_get_variant_map(runner, files):
 
     with open(files["output"]) as f:
         output_content = f.read()
-    expected_output_file = os.path.join(
-        os.path.dirname(__file__), "data", "combine", "get_variant_map.output.tsv.gz"
-    )
+    expected_output_file = os.path.join(os.path.dirname(__file__), "data", "combine", "get_variant_map.output.tsv.gz")
 
     with gzip.open(expected_output_file, "rt") as f:
         expected_content = f.read()
