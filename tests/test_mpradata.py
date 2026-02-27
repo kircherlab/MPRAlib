@@ -385,7 +385,7 @@ def mpra_oligo_data_with_bc_filter():
 def test_oligo_normalize_counts(mpra_oligo_data):
     dna_normalized = mpra_oligo_data.normalized_dna_counts
     expected_dna_normalized = np.array(
-        [[3.333, 3.333, 3.333], [3.703, 2.592, 3.703], [1.167, 0.729,  8.102]]
+        [[3.333, 3.333, 3.333], [3.703, 2.592, 3.703], [1.167, 0.729, 8.102]]
     )
     np.testing.assert_almost_equal(dna_normalized, expected_dna_normalized, decimal=3)
     expected_rna_normalized = np.array(
