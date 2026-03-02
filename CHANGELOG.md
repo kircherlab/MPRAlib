@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.10.0](https://github.com/kircherlab/MPRAlib/compare/v0.9.1...v0.10.0) (2026-03-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* modification of normalization (over total counts not average per barcode per oligo) ([#87](https://github.com/kircherlab/MPRAlib/issues/87))
+
+### Bug Fixes
+
+* modification of normalization (over total counts not average per barcode per oligo) ([#87](https://github.com/kircherlab/MPRAlib/issues/87)) ([9c00463](https://github.com/kircherlab/MPRAlib/commit/9c00463e413dbf8aa705aef4fe510a52be3da83a))
+
 ## [0.9.1](https://github.com/kircherlab/MPRAlib/compare/v0.9.0...v0.9.1) (2026-01-08)
 
 
