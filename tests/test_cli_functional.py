@@ -1,4 +1,5 @@
 import gzip
+import hashlib
 import os
 import sys
 import tempfile
@@ -7,7 +8,6 @@ import pytest
 from click.testing import CliRunner
 
 from mpralib.cli import cli
-import hashlib
 
 
 @pytest.fixture(scope="module")
