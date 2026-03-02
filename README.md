@@ -15,13 +15,13 @@
 | tests/\_\_init\_\_.py                 |        0 |        0 |    100% |           |
 | tests/test\_cli.py                    |       93 |        0 |    100% |           |
 | tests/test\_cli\_combine.py           |       88 |        0 |    100% |           |
-| tests/test\_cli\_functional.py        |      129 |        1 |     99% |       363 |
+| tests/test\_cli\_functional.py        |      129 |        0 |    100% |           |
 | tests/test\_cli\_plot.py              |       50 |        0 |    100% |           |
 | tests/test\_cli\_validate\_file.py    |      111 |        0 |    100% |           |
 | tests/test\_mpradata.py               |      766 |        0 |    100% |           |
 | tests/test\_utils\_io.py              |      169 |        0 |    100% |           |
 | tests/test\_utils\_plot.py            |       90 |        0 |    100% |           |
-| **TOTAL**                             | **2854** |  **251** | **91%** |           |
+| **TOTAL**                             | **2854** |  **250** | **91%** |           |
 
 
 ## Setup coverage badge
