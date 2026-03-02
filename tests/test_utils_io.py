@@ -2,15 +2,17 @@ import copy
 import gzip
 import os
 import tempfile
-import pandas as pd
-import numpy as np
-from numpy.typing import NDArray
 from typing import Optional
-import pytest
+
 import anndata as ad
-from mpralib.utils.io import export_barcode_file, read_sequence_design_file, export_counts_file, chromosome_map
-from mpralib.exception import SequenceDesignException, MPRAlibException
-from mpralib.mpradata import MPRABarcodeData, MPRAOligoData, MPRAData
+import numpy as np
+import pandas as pd
+import pytest
+from numpy.typing import NDArray
+
+from mpralib.exception import MPRAlibException, SequenceDesignException
+from mpralib.mpradata import MPRABarcodeData, MPRAData, MPRAOligoData
+from mpralib.utils.io import chromosome_map, export_barcode_file, export_counts_file, read_sequence_design_file
 
 
 class DummyMPRAData(MPRAData):
@@ -60,7 +62,15 @@ def oligo_data():
     rna_counts = np.array([[5, 0, 2], [10, 1, 0]], dtype=np.int32)
     barcode_counts = np.array([[1, 0, 1], [1, 0, 1]], dtype=np.int32)
     barcode_threshold = 1
-    return DummyMPRAOligoData(replicates, oligos, barcodes, dna_counts, rna_counts, barcode_threshold, barcode_counts)
+    return DummyMPRAOligoData(
+        replicates,
+        oligos,
+        barcodes,
+        dna_counts,
+        rna_counts,
+        barcode_threshold,
+        barcode_counts,
+    )
 
 
 def test_export_counts_file_barcode(tmp_path, barcode_data):
@@ -239,7 +249,11 @@ def files():
     input_file = os.path.join(os.path.dirname(__file__), "data", "reporter_experiment_barcode.input.tsv.gz")
     output_file_activity = tempfile.NamedTemporaryFile(delete=False).name
     output_file_barcode = tempfile.NamedTemporaryFile(delete=False).name
-    yield {"input": input_file, "output_activity": output_file_activity, "output_barcode": output_file_barcode}
+    yield {
+        "input": input_file,
+        "output_activity": output_file_activity,
+        "output_barcode": output_file_barcode,
+    }
     os.remove(output_file_activity)
     os.remove(output_file_barcode)
 
@@ -248,10 +262,13 @@ def test_export_barcode_file(mpra_data, files):
     export_barcode_file(mpra_data, files["output_barcode"])
     assert os.path.exists(files["output_barcode"])
 
-    with open(files["output_barcode"], "r") as f:
+    with open(files["output_barcode"]) as f:
         output_content = f.read()
     expected_output_file = os.path.join(
-        os.path.dirname(__file__), "data", "io", "reporter_experiment_barcode.simple.out.tsv.gz"
+        os.path.dirname(__file__),
+        "data",
+        "io",
+        "reporter_experiment_barcode.simple.out.tsv.gz",
     )
 
     with gzip.open(expected_output_file, "rt") as f:
@@ -263,10 +280,13 @@ def test_export_barcode_file_var_filter(mpra_data_with_bc_filter, files):
     export_barcode_file(mpra_data_with_bc_filter, files["output_barcode"])
     assert os.path.exists(files["output_barcode"])
 
-    with open(files["output_barcode"], "r") as f:
+    with open(files["output_barcode"]) as f:
         output_content = f.read()
     expected_output_file = os.path.join(
-        os.path.dirname(__file__), "data", "io", "reporter_experiment_barcode.simple_with_bc_filter.out.tsv.gz"
+        os.path.dirname(__file__),
+        "data",
+        "io",
+        "reporter_experiment_barcode.simple_with_bc_filter.out.tsv.gz",
     )
 
     with gzip.open(expected_output_file, "rt") as f:

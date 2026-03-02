@@ -49,6 +49,7 @@ jobs:
         uses: super-linter/super-linter@v8
         env:
           # To report GitHub Actions status checks
+          LINTER_RULES_PATH: .
           DEFAULT_BRANCH: master
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDATE_PYTHON_FLAKE8: true
@@ -60,6 +61,10 @@ jobs:
   test:
     name: Run tests & display coverage
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
 
     permissions:
       # Gives the action the necessary permissions for publishing new
@@ -76,7 +81,8 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.11'  # or your project's version
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
 
       - name: Install package and dependencies
         run: |

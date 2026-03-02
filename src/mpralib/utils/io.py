@@ -1,10 +1,12 @@
-import pandas as pd
-import numpy as np
 import ast
 from importlib.resources import files
-from mpralib.mpradata import MPRABarcodeData, MPRAOligoData, MPRAData
-from mpralib.exception import SequenceDesignException, MPRAlibException
 from typing import Optional
+
+import numpy as np
+import pandas as pd
+
+from mpralib.exception import MPRAlibException, SequenceDesignException
+from mpralib.mpradata import MPRABarcodeData, MPRAData, MPRAOligoData
 
 
 def chromosome_map() -> pd.DataFrame:
@@ -88,7 +90,8 @@ def export_activity_file(mpradata: MPRAOligoData, output_file_path: str) -> None
     for replicate in mpradata.obs_names:
         replicate_data = mpradata.data[replicate, :]
         replicate_data = replicate_data[
-            :, np.asarray(replicate_data.layers["barcode_counts"]) >= np.asarray(mpradata.barcode_threshold)
+            :,
+            np.asarray(replicate_data.layers["barcode_counts"]) >= np.asarray(mpradata.barcode_threshold),
         ]
         df = {
             "replicate": np.repeat(replicate, replicate_data.var_names.size),
@@ -127,7 +130,10 @@ def export_barcode_file(mpradata: MPRABarcodeData, output_file_path: str) -> Non
 
 
 def export_counts_file(
-    mpradata: MPRAData, output_file_path: str, normalized: bool = False, filter: Optional[np.ndarray] = None
+    mpradata: MPRAData,
+    output_file_path: str,
+    normalized: bool = False,
+    filter: Optional[np.ndarray] = None,
 ) -> None:
     if isinstance(mpradata, MPRABarcodeData):
         df = {"ID": mpradata.var_names}

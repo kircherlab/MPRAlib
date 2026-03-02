@@ -1,11 +1,13 @@
-import pytest
+import gzip
 import os
 import tempfile
-from click.testing import CliRunner
-from mpralib.cli import cli, _get_chr
-import gzip
-import pandas as pd
 from logging import Logger
+
+import pandas as pd
+import pytest
+from click.testing import CliRunner
+
+from mpralib.cli import _get_chr, cli
 
 
 @pytest.fixture(scope="module")
@@ -47,7 +49,7 @@ def test_barcode_activities_bc1(runner, files):
     assert result.exit_code == 0
     assert os.path.exists(files["output"])
 
-    with open(files["output"], "r") as f:
+    with open(files["output"]) as f:
         output_content = f.read()
 
     expected_output_file = os.path.join(os.path.dirname(__file__), "data", "reporter_experiment_barcode.input.tsv.gz")
@@ -79,7 +81,7 @@ def test_activities_bc1(runner, files):
     assert result.exit_code == 0
     assert os.path.exists(files["output"])
 
-    with open(files["output"], "r") as f:
+    with open(files["output"]) as f:
         output_content = f.read()
 
     expected_output_file = os.path.join(os.path.dirname(__file__), "data", "reporter_activity.bc1.output.tsv.gz")
@@ -111,7 +113,7 @@ def test_activities_bc10(runner, files):
     assert result.exit_code == 0
     assert os.path.exists(files["output"])
 
-    with open(files["output"], "r") as f:
+    with open(files["output"]) as f:
         output_content = f.read()
 
     expected_output_file = os.path.join(os.path.dirname(__file__), "data", "reporter_activity.bc10.output.tsv.gz")
@@ -143,7 +145,7 @@ def test_activities_bc100(runner, files):
     assert result.exit_code == 0
     assert os.path.exists(files["output"])
 
-    with open(files["output"], "r") as f:
+    with open(files["output"]) as f:
         output_content = f.read()
 
     expected_output_file = os.path.join(os.path.dirname(__file__), "data", "reporter_activity.bc100.output.tsv.gz")
@@ -171,7 +173,11 @@ def logger():
 def test_get_chr_found(logger):
     # Prepare a chromosome map DataFrame
     map_df = pd.DataFrame(
-        {"refseq": ["NC_000001.11", "NC_000002.12"], "ucsc": ["chr1", "chr2"], "release": ["GRCh38", "GRCh38"]}
+        {
+            "refseq": ["NC_000001.11", "NC_000002.12"],
+            "ucsc": ["chr1", "chr2"],
+            "release": ["GRCh38", "GRCh38"],
+        }
     )
     variant_id = "NC_000001.11:12345:A:T"
     result = _get_chr(map_df, variant_id, logger)
@@ -181,7 +187,11 @@ def test_get_chr_found(logger):
 
 def test_get_chr_not_found(logger):
     map_df = pd.DataFrame(
-        {"refseq": ["NC_000001.11", "NC_000002.12"], "ucsc": ["chr1", "chr2"], "release": ["GRCh38", "GRCh38"]}
+        {
+            "refseq": ["NC_000001.11", "NC_000002.12"],
+            "ucsc": ["chr1", "chr2"],
+            "release": ["GRCh38", "GRCh38"],
+        }
     )
     variant_id = "NC_000003.13:54321:G:C"
     result = _get_chr(map_df, variant_id, logger)
@@ -200,7 +210,11 @@ def test_get_chr_handles_empty_map(logger):
 def test_get_chr_with_multiple_matches(logger):
     # Should return the first match if multiple rows match
     map_df = pd.DataFrame(
-        {"refseq": ["NC_000005.15", "NC_000005.15"], "ucsc": ["chr5a", "chr5b"], "release": ["GRCh38", "GRCh37"]}
+        {
+            "refseq": ["NC_000005.15", "NC_000005.15"],
+            "ucsc": ["chr5a", "chr5b"],
+            "release": ["GRCh38", "GRCh37"],
+        }
     )
     variant_id = "NC_000005.15:22222:C:G"
     result = _get_chr(map_df, variant_id, logger)

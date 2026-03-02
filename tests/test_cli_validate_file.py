@@ -1,7 +1,9 @@
 import os
 import tempfile
+
 import pytest
 from click.testing import CliRunner
+
 from mpralib.cli import cli
 from mpralib.utils.file_validation import ValidationSchema
 
