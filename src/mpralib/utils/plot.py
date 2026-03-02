@@ -1,9 +1,10 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
-from mpralib.mpradata import MPRAData, Modality, MPRAOligoData, MPRABarcodeData
+
+from mpralib.mpradata import Modality, MPRABarcodeData, MPRAData, MPRAOligoData
 
 custom_params = {"axes.spines.right": False, "axes.spines.top": False}
 custom_palette = sns.color_palette(["#72ACBF", "#BF2675", "#2ecc71", "#f1c40f", "#9b59b6"])
@@ -28,9 +29,17 @@ def correlation(data: MPRAData, layer: Modality, replicates=None) -> sns.PairGri
 
     if replicates:
         idx = np.array([data.obs_names.get_loc(rep) for rep in replicates])
-        counts = pd.DataFrame(counts[idx].T, columns=[f"Replicate {i}" for i in data.obs_names[idx]], index=data.var_names)
+        counts = pd.DataFrame(
+            counts[idx].T,
+            columns=[f"Replicate {i}" for i in data.obs_names[idx]],
+            index=data.var_names,
+        )
     else:
-        counts = pd.DataFrame(counts.T, columns=[f"Replicate {i}" for i in data.obs_names], index=data.var_names)
+        counts = pd.DataFrame(
+            counts.T,
+            columns=[f"Replicate {i}" for i in data.obs_names],
+            index=data.var_names,
+        )
 
     g = sns.PairGrid(counts)
     g.map_upper(sns.scatterplot, s=1)
@@ -85,11 +94,17 @@ def barcodes_per_oligo(data: MPRAOligoData, replicates=None) -> sns.FacetGrid:
     if replicates:
         idx = np.array([data.obs_names.get_loc(rep) for rep in replicates])
         bc_counts = pd.DataFrame(
-            bc_counts[idx].T, columns=[f"Replicate {i}" for i in data.obs_names[idx]], index=data.var_names
+            bc_counts[idx].T,
+            columns=[f"Replicate {i}" for i in data.obs_names[idx]],
+            index=data.var_names,
         )
     else:
         replicates = data.obs_names
-        bc_counts = pd.DataFrame(bc_counts.T, columns=[f"Replicate {i}" for i in data.obs_names], index=data.var_names)
+        bc_counts = pd.DataFrame(
+            bc_counts.T,
+            columns=[f"Replicate {i}" for i in data.obs_names],
+            index=data.var_names,
+        )
 
     bc_counts = bc_counts.melt(var_name="replicate", value_name="n_bc")
 
@@ -103,8 +118,20 @@ def barcodes_per_oligo(data: MPRAOligoData, replicates=None) -> sns.FacetGrid:
         ax.axvline(x=intercept_median[i], color="red", linestyle="--")
         ax.axvline(x=intercept_mean[i], color="blue", linestyle="--")
         ax.set_title(f"Replicate {replicates[i]}")
-        ax.text(ax.get_xlim()[1] * 0.5, ax.get_ylim()[1] * 0.9, f"{intercept_median[i]:.0f}", color="red", ha="left")
-        ax.text(ax.get_xlim()[1] * 0.5, ax.get_ylim()[1] * 0.8, f"{intercept_mean[i]:.2f}", color="blue", ha="left")
+        ax.text(
+            ax.get_xlim()[1] * 0.5,
+            ax.get_ylim()[1] * 0.9,
+            f"{intercept_median[i]:.0f}",
+            color="red",
+            ha="left",
+        )
+        ax.text(
+            ax.get_xlim()[1] * 0.5,
+            ax.get_ylim()[1] * 0.8,
+            f"{intercept_mean[i]:.2f}",
+            color="blue",
+            ha="left",
+        )
         i = i + 1
     g.set_axis_labels("Frequency", "Barcodes per oligo")
 
@@ -155,7 +182,10 @@ def barcodes_outlier(data: MPRABarcodeData) -> Figure:
     nbin = 20
     qs = np.quantile(np.log10(counts["dna"]), np.arange(0, nbin + 1) / nbin)
     counts["bin"] = pd.cut(
-        np.log10(counts["dna"]), bins=qs, include_lowest=True, labels=[str(i) for i in range(0, len(qs) - 1)]
+        np.log10(counts["dna"]),
+        bins=qs,
+        include_lowest=True,
+        labels=[str(i) for i in range(0, len(qs) - 1)],
     )
 
     stats = counts.groupby("bin").agg(mean_diff=("ratio_diff", "mean"), sd_diff=("ratio_diff", "std")).reset_index()
@@ -177,7 +207,14 @@ def barcodes_outlier(data: MPRABarcodeData) -> Figure:
         alpha=1,
         color="red",
     )
-    plt.errorbar(x=stats["bin"], y=stats["mean_diff"], yerr=2 * stats["sd_diff"], fmt="o", color="dodgerblue", linewidth=1)
+    plt.errorbar(
+        x=stats["bin"],
+        y=stats["mean_diff"],
+        yerr=2 * stats["sd_diff"],
+        fmt="o",
+        color="dodgerblue",
+        linewidth=1,
+    )
     plt.axhline(y=5, color="red")
     plt.xlabel("Bin")
     plt.ylabel("Ratio Difference")

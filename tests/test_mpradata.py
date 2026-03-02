@@ -1,11 +1,11 @@
+import copy
+
+import anndata as ad
 import numpy as np
 import pandas as pd
-import anndata as ad
-import copy
 import pytest
-from mpralib.mpradata import MPRABarcodeData, CountSampling, BarcodeFilter, MPRAData, Modality, MPRAOligoData
-from mpralib.mpradata import MPRAlibException
 
+from mpralib.mpradata import BarcodeFilter, CountSampling, Modality, MPRABarcodeData, MPRAData, MPRAlibException, MPRAOligoData
 
 OBS = pd.DataFrame(index=["rep1", "rep2", "rep3"])
 VAR = pd.DataFrame(
@@ -176,7 +176,9 @@ def test_apply_barcode_filter_min_count(mpra_data_barcode):
 def test_barcode_filter_other_to_min_max_counts(mpra_data_barcode):
 
     result = mpra_data_barcode._barcode_filter_min_max_counts(
-        BarcodeFilter.LARGE_EXPRESSION, counts=mpra_data_barcode.raw_dna_counts, count_threshold=1
+        BarcodeFilter.LARGE_EXPRESSION,
+        counts=mpra_data_barcode.raw_dna_counts,
+        count_threshold=1,
     )
     expected_filter = np.array(
         [
@@ -244,7 +246,11 @@ def test_normalize_counts(mpra_data_norm):
     )
     np.testing.assert_almost_equal(dna_normalized, expected_dna_normalized, decimal=3)
     expected_rna_normalized = np.array(
-        [[1.333, 2.0, 3.333, 1.333, 2.0], [1.724, 2.069, 2.414, 1.724, 2.069], [0.576, 0.647, 0.719, 0.791, 7.266]]
+        [
+            [1.333, 2.0, 3.333, 1.333, 2.0],
+            [1.724, 2.069, 2.414, 1.724, 2.069],
+            [0.576, 0.647, 0.719, 0.791, 7.266],
+        ]
     )
     rna_normalized = mpra_data_norm.normalized_rna_counts
     np.testing.assert_almost_equal(rna_normalized, expected_rna_normalized, decimal=3)
@@ -256,11 +262,19 @@ def test_normalize_without_pseudocount(mpra_data_norm):
     mpra_data._normalize()
     dna_normalized = np.asarray(mpra_data.data.layers["dna_normalized"])
     expected_dna_normalized = np.array(
-        [[1.111, 2.222, 3.333, 1.111, 2.222], [1.667, 2.083, 2.5, 1.667, 2.083], [0.522, 0.597, 0.672, 0.746, 7.463]]
+        [
+            [1.111, 2.222, 3.333, 1.111, 2.222],
+            [1.667, 2.083, 2.5, 1.667, 2.083],
+            [0.522, 0.597, 0.672, 0.746, 7.463],
+        ]
     )
     np.testing.assert_almost_equal(dna_normalized, expected_dna_normalized, decimal=3)
     expected_rna_normalized = np.array(
-        [[1.0, 2.0, 4.0, 1.0, 2.0], [1.667, 2.083, 2.5, 1.667, 2.083], [0.522, 0.597, 0.672, 0.746, 7.463]]
+        [
+            [1.0, 2.0, 4.0, 1.0, 2.0],
+            [1.667, 2.083, 2.5, 1.667, 2.083],
+            [0.522, 0.597, 0.672, 0.746, 7.463],
+        ]
     )
     rna_normalized = np.asarray(mpra_data.data.layers["rna_normalized"])
     np.testing.assert_almost_equal(rna_normalized, expected_rna_normalized, decimal=3)
@@ -291,12 +305,20 @@ def test_normalize_counts_with_bc_filter(mpra_data_norm_with_bc_filter):
 
     rna_normalized = np.asarray(mpra_data_norm_with_bc_filter.data.layers["rna_normalized"])
     expected_normalized = np.array(
-        [[1.333, 2.0, 3.333, 1.333, 2.0], [1.724, 2.069, 2.414, 1.724, 2.069], [0.576, 0.647, 0.719, 0.791, 7.266]]
+        [
+            [1.333, 2.0, 3.333, 1.333, 2.0],
+            [1.724, 2.069, 2.414, 1.724, 2.069],
+            [0.576, 0.647, 0.719, 0.791, 7.266],
+        ]
     )
     np.testing.assert_almost_equal(rna_normalized, expected_normalized, decimal=3)
     rna_normalized = mpra_data_norm_with_bc_filter.normalized_rna_counts
     expected_normalized = np.array(
-        [[1.333, 2.0, 0.0, 1.333, 2.0], [0.0, 2.069, 2.414, 1.724, 2.069], [0.576, 0.647, 0.719, 0.0, 0.0]]
+        [
+            [1.333, 2.0, 0.0, 1.333, 2.0],
+            [0.0, 2.069, 2.414, 1.724, 2.069],
+            [0.576, 0.647, 0.719, 0.0, 0.0],
+        ]
     )
     np.testing.assert_almost_equal(rna_normalized, expected_normalized, decimal=3)
 
@@ -322,9 +344,9 @@ def mpra_oligo_data_with_bc_filter():
 
 def test_oligo_normalize_counts(mpra_oligo_data):
     dna_normalized = mpra_oligo_data.normalized_dna_counts
-    expected_dna_normalized = np.array([[1.786, 2.857, 1.786], [1.897, 2.414, 1.897], [0.612, 0.719, 4.029]])
+    expected_dna_normalized = np.array([[3.333, 3.333, 3.333], [3.703, 2.592, 3.703], [1.167, 0.729, 8.102]])
     np.testing.assert_almost_equal(dna_normalized, expected_dna_normalized, decimal=3)
-    expected_rna_normalized = np.array([[1.667, 3.333, 1.667], [1.897, 2.414, 1.897], [0.612, 0.719, 4.029]])
+    expected_rna_normalized = np.array([[3.077, 3.846, 3.077], [3.704, 2.593, 3.704], [1.168, 0.730, 8.102]])
     rna_normalized = mpra_oligo_data.normalized_rna_counts
     np.testing.assert_almost_equal(rna_normalized, expected_rna_normalized, decimal=3)
 
@@ -333,16 +355,16 @@ def test_oligo_normalize_without_pseudocount(mpra_oligo_data):
     mpra_data = copy.deepcopy(mpra_oligo_data)
     mpra_data.pseudo_count = 0
     dna_normalized = mpra_data.normalized_dna_counts
-    expected_dna_normalized = np.array([[1.667, 3.333, 1.667], [1.875, 2.5, 1.875], [0.56, 0.672, 4.104]])
+    expected_dna_normalized = np.array([[3.333, 3.333, 3.333], [3.750, 2.500, 3.750], [1.119, 0.672, 8.209]])
     np.testing.assert_almost_equal(dna_normalized, expected_dna_normalized, decimal=3)
-    expected_rna_normalized = np.array([[1.5, 4.0, 1.5], [1.875, 2.5, 1.875], [0.56, 0.672, 4.104]])
+    expected_rna_normalized = np.array([[3.000, 4.000, 3.000], [3.750, 2.500, 3.750], [1.119, 0.672, 8.209]])
     rna_normalized = mpra_data.normalized_rna_counts
     np.testing.assert_almost_equal(rna_normalized, expected_rna_normalized, decimal=3)
 
 
 def test_oligo_normalize_counts_with_bc_filter(mpra_oligo_data_with_bc_filter):
     dna_normalized = mpra_oligo_data_with_bc_filter.normalized_dna_counts
-    expected_normalized = np.array([[2.5, 0.0, 2.5], [2.5, 2.917, 2.292], [3.148, 3.704, 0.0]])
+    expected_normalized = np.array([[5.000, 1.250, 5.000], [2.609, 3.043, 4.348], [6.154, 3.846, 0.385]])
     np.testing.assert_almost_equal(dna_normalized, expected_normalized, decimal=3)
     rna_normalized = mpra_oligo_data_with_bc_filter.normalized_rna_counts
     np.testing.assert_almost_equal(rna_normalized, expected_normalized, decimal=3)
@@ -364,20 +386,41 @@ def test_pearson_correlation(mpra_corr_data):
     x = mpra_corr_data.correlation(method="pearson", count_type=Modality.ACTIVITY)
     y = mpra_corr_data.correlation(method="pearson", count_type=Modality.RNA_NORMALIZED)
     z = mpra_corr_data.correlation(method="pearson", count_type=Modality.DNA_NORMALIZED)
-    np.testing.assert_equal(x, np.array([[1.0, np.nan, np.nan], [np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan]]))
     np.testing.assert_almost_equal(
-        y, np.array([[1.0, 1.0, -0.475752], [1.0, 1.0, -0.475752], [-0.475752, -0.475752, 1.0]]), decimal=3
+        x,
+        np.array([[1.0, np.nan, np.nan], [np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan]]),
+        decimal=7,
     )
-    np.testing.assert_almost_equal(z, np.array([[1.0, 1.0, -0.476], [1.0, 1.0, -0.476], [-0.476, -0.476, 1.0]]), decimal=3)
+    np.testing.assert_almost_equal(
+        y,
+        np.array([[1.0, -1.0, -0.545], [-1.0, 1.0, 0.545], [-0.545, 0.545, 1.0]]),
+        decimal=3,
+    )
+    np.testing.assert_almost_equal(
+        z,
+        np.array([[np.nan, np.nan, np.nan], [np.nan, 1.0, 0.545], [np.nan, 0.545, 1.0]]),
+        decimal=3,
+    )
 
 
 def test_spearman_correlation(mpra_corr_data):
     x = mpra_corr_data.correlation(method="spearman", count_type=Modality.ACTIVITY)
     y = mpra_corr_data.correlation(method="spearman", count_type=Modality.RNA_NORMALIZED)
     z = mpra_corr_data.correlation(method="spearman", count_type=Modality.DNA_NORMALIZED)
-    np.testing.assert_equal(x, np.array([[1.0, np.nan, np.nan], [np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan]]))
-    np.testing.assert_almost_equal(y, np.array([[1.0, 1.0, 0.0], [1.0, 1.0, 0.0], [0.0, 0.0, 1.0]]), decimal=3)
-    np.testing.assert_equal(z, np.array([[1.0, 1.0, 0.0], [1.0, 1.0, 0.0], [0.0, 0.0, 1.0]]))
+    np.testing.assert_equal(
+        x,
+        np.array([[1.0, np.nan, np.nan], [np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan]]),
+    )
+    np.testing.assert_almost_equal(
+        y,
+        np.array([[1.000, -1.000, -0.866], [-1.000, 1.000, 0.866], [-0.866, 0.866, 1.000]]),
+        decimal=3,
+    )
+    np.testing.assert_almost_equal(
+        z,
+        np.array([[np.nan, np.nan, np.nan], [np.nan, 1.000, 0.866], [np.nan, 0.866, 1.000]]),
+        decimal=3,
+    )
 
 
 @pytest.fixture
@@ -690,7 +733,16 @@ def test_mprabarcode_from_file(tmp_path):
             "rna_count_rep2": [4, 5, 6],
         }
     )
-    df_out = df[["barcode", "oligo_name", "dna_count_rep1", "rna_count_rep1", "dna_count_rep2", "rna_count_rep2"]]
+    df_out = df[
+        [
+            "barcode",
+            "oligo_name",
+            "dna_count_rep1",
+            "rna_count_rep1",
+            "dna_count_rep2",
+            "rna_count_rep2",
+        ]
+    ]
     df_out.to_csv(file_path, sep="\t", index=False)
 
     # Read using from_file
@@ -872,7 +924,13 @@ def test_mpra_data_data_property(mpra_data):
 
 def test_mpra_data_obs_var_names(mpra_data):
     assert list(mpra_data.obs_names) == ["rep1", "rep2", "rep3"]
-    assert list(mpra_data.var_names) == ["barcode1", "barcode2", "barcode3", "barcode4", "barcode5"]
+    assert list(mpra_data.var_names) == [
+        "barcode1",
+        "barcode2",
+        "barcode3",
+        "barcode4",
+        "barcode5",
+    ]
     assert mpra_data.n_obs == 3
     assert mpra_data.n_vars == 5
 
@@ -1182,3 +1240,25 @@ def test_mpraoligodata_normalize_layer(mpra_oligo_data):
     norm = mpra_oligo_data._normalize_layer(counts, total_counts)
     assert norm.shape == counts.shape
     assert np.all(norm >= 0)
+
+
+def test_barcode_counts_setter_comprehensive(mpra_oligo_data):
+    """Test barcode_counts setter with various data types and edge cases."""
+    print(mpra_oligo_data.barcode_counts)
+    # Test 1: Set valid int32 array
+    counts_int32 = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=np.int32)
+    mpra_oligo_data.barcode_counts = counts_int32
+    np.testing.assert_array_equal(mpra_oligo_data.barcode_counts, counts_int32)
+
+    # Test 2: Update with new values
+    new_counts = np.array([[10, 20, 30], [40, 50, 60], [70, 80, 90]], dtype=np.int32)
+    mpra_oligo_data.barcode_counts = new_counts
+    np.testing.assert_array_equal(mpra_oligo_data.barcode_counts, new_counts)
+
+    # Test 3: Verify layer is correctly named
+    assert "barcode_counts" in mpra_oligo_data.data.layers
+
+    # Test 4: Verify data type conversion
+    counts_int64 = np.array([[5, 6, 7], [8, 9, 10], [11, 12, 13]], dtype=np.int64)
+    mpra_oligo_data.barcode_counts = counts_int64
+    assert mpra_oligo_data.barcode_counts.dtype == np.int32

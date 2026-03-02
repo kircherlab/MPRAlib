@@ -1,7 +1,9 @@
 import os
 import tempfile
+
 import pytest
 from click.testing import CliRunner
+
 from mpralib.cli import cli
 
 
@@ -47,7 +49,11 @@ def files():
     output_file = tempfile.NamedTemporaryFile(delete=False).name
     yield {
         "input": {
-            "barcode_counts": os.path.join(base, "data", "reporter_experiment_barcode_IGVFDS2165KBMD.input.head20000.tsv.gz"),
+            "barcode_counts": os.path.join(
+                base,
+                "data",
+                "reporter_experiment_barcode_IGVFDS2165KBMD.input.head20000.tsv.gz",
+            ),
         },
         "output": output_file,
     }

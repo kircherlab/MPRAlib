@@ -1,12 +1,19 @@
-import click
-from typing import Optional
+import ast
+import json
 import logging
-import pandas as pd
-import numpy as np
 import math
+from builtins import filter as buildins_filter
+from typing import Optional
+
+import click
+import numpy as np
+import pandas as pd
 import pysam
 from sklearn.preprocessing import MinMaxScaler
-from mpralib.mpradata import MPRABarcodeData, BarcodeFilter, Modality
+
+import mpralib.utils.plot as plt
+from mpralib.mpradata import BarcodeFilter, Modality, MPRABarcodeData
+from mpralib.utils.file_validation import ValidationSchema, validate_tsv_with_schema
 from mpralib.utils.io import (
     chromosome_map,
     export_activity_file,
@@ -14,11 +21,6 @@ from mpralib.utils.io import (
     export_counts_file,
     read_sequence_design_file,
 )
-import mpralib.utils.plot as plt
-from mpralib.utils.file_validation import validate_tsv_with_schema, ValidationSchema
-import ast
-import json
-from builtins import filter as buildins_filter
 
 pd.options.mode.copy_on_write = True
 
@@ -286,7 +288,11 @@ def compute_correlation(input_file: str, bc_threshold: int, correlation_on: str,
     mpradata.barcode_threshold = bc_threshold
 
     if correlation_on == "all":
-        correlation_on_mode = [Modality.DNA_NORMALIZED, Modality.RNA_NORMALIZED, Modality.ACTIVITY]
+        correlation_on_mode = [
+            Modality.DNA_NORMALIZED,
+            Modality.RNA_NORMALIZED,
+            Modality.ACTIVITY,
+        ]
     else:
         correlation_on_mode = [Modality.from_string(correlation_on)]
 
@@ -464,18 +470,25 @@ def get_variant_map(input_file: str, sequence_design_file: str, output_file: str
             {
                 "ID": np.concatenate(df_sequence_design["SPDI"].values),
                 "allele": np.concatenate(df_sequence_design["allele"].values),
-                "oligo": df_sequence_design.index.values.repeat(df_sequence_design["SPDI"].apply(lambda x: len(x))),
+                "oligo": df_sequence_design.index.values.repeat(df_sequence_design["SPDI"].apply(len)),
             }
         )
 
         variant_map["REF"] = np.where(
-            variant_map["allele"] == "ref", variant_map["oligo"], np.full(len(variant_map["allele"]), None, dtype=object)
+            variant_map["allele"] == "ref",
+            variant_map["oligo"],
+            np.full(len(variant_map["allele"]), None, dtype=object),
         )
         variant_map["ALT"] = np.where(
-            variant_map["allele"] == "alt", variant_map["oligo"], np.full(len(variant_map["allele"]), None, dtype=object)
+            variant_map["allele"] == "alt",
+            variant_map["oligo"],
+            np.full(len(variant_map["allele"]), None, dtype=object),
         )
         variant_map = variant_map.groupby("ID").agg(
-            {"REF": lambda x: list(buildins_filter(None, x)), "ALT": lambda x: list(buildins_filter(None, x))}
+            {
+                "REF": lambda x: list(buildins_filter(None, x)),
+                "ALT": lambda x: list(buildins_filter(None, x)),
+            }
         )
 
     print("Prepair output file...")
@@ -513,6 +526,22 @@ def get_variant_map(input_file: str, sequence_design_file: str, output_file: str
     help="Using a barcode threshold for output.",
 )
 @click.option(
+    "--scaling-factor",
+    "scaling_factor",
+    required=False,
+    default=1e6,
+    type=float,
+    help="Scaling factor for normalized counts.",
+)
+@click.option(
+    "--pseudo-count",
+    "pseudo_count",
+    required=False,
+    default=1,
+    type=int,
+    help="Pseudocount added during normalization to avoid division by zero.",
+)
+@click.option(
     "--oligos/--barcodes",
     "use_oligos",
     required=False,
@@ -548,6 +577,8 @@ def get_counts(
     sequence_design_file: str,
     bc_threshold: int,
     normalized_counts: bool,
+    scaling_factor: float,
+    pseudo_count: int,
     use_oligos: bool,
     elements_only: bool,
     output_file: str,
@@ -560,11 +591,15 @@ def get_counts(
         sequence_design_file (str): Sequence design file.
         bc_threshold (int): Using a barcode threshold for output.
         normalized_counts (bool): Getting counts or normalized counts.
+        scaling_factor (float): Scaling factor for normalized counts.
+        pseudo_count (int): Pseudocount added during normalization to avoid division by zero.
         use_oligos (bool): Return counts per oligo or per barcode.
         elements_only (bool): Only return count data for elements and ref sequence of variants.
         output_file (str): Output file of all non zero counts.
     """
     mpradata = MPRABarcodeData.from_file(input_file)
+    mpradata.scaling = scaling_factor
+    mpradata.pseudo_count = pseudo_count
 
     mpradata.barcode_threshold = bc_threshold
 
@@ -616,6 +651,22 @@ def get_counts(
     help="Getting counts or normalized counts.",
 )
 @click.option(
+    "--scaling-factor",
+    "scaling_factor",
+    required=False,
+    default=1e6,
+    type=float,
+    help="Scaling factor for normalized counts.",
+)
+@click.option(
+    "--pseudo-count",
+    "pseudo_count",
+    required=False,
+    default=1,
+    type=int,
+    help="Pseudocount added during normalization to avoid division by zero.",
+)
+@click.option(
     "--oligos/--barcodes",
     "use_oligos",
     required=False,
@@ -631,7 +682,14 @@ def get_counts(
     help="Output file of all non zero counts, divided by ref and alt.",
 )
 def get_variant_counts(
-    input_file: str, sequence_design_file: str, bc_threshold: int, normalized_counts: bool, use_oligos: bool, output_file: str
+    input_file: str,
+    sequence_design_file: str,
+    bc_threshold: int,
+    normalized_counts: bool,
+    scaling_factor: float,
+    pseudo_count: int,
+    use_oligos: bool,
+    output_file: str,
 ) -> None:
     """Processes MPRA (Massively Parallel Reporter Assay) data to generate variant-level count tables.
 
@@ -640,6 +698,8 @@ def get_variant_counts(
         sequence_design_file (str): Path to the sequence design file mapping barcodes to variants/oligos.
         bc_threshold (int): Minimum barcode count threshold for filtering.
         normalized_counts (bool): If True, use normalized counts; otherwise, use raw counts.
+        scaling_factor (float): Scaling factor for normalized counts.
+        pseudo_count (int): Pseudocount added during normalization to avoid division by zero.
         use_oligos (bool): If True, aggregate counts at the oligo level and map to variants; otherwise, export counts directly.
         output_file (str): Path to the output file where the variant count table will be saved.
 
@@ -653,6 +713,8 @@ def get_variant_counts(
         - Variants with all-zero counts or counts only on reference or alternate are removed from the output.
     """
     mpradata = MPRABarcodeData.from_file(input_file)
+    mpradata.scaling = scaling_factor
+    mpradata.pseudo_count = pseudo_count
 
     mpradata.add_sequence_design(read_sequence_design_file(sequence_design_file), sequence_design_file)
 
@@ -679,11 +741,19 @@ def get_variant_counts(
         not_observed_mask = ~mpradata.observed
         lower_bc_mask = mpradata.barcode_counts < mpradata.barcode_threshold
         not_variant_mask = ~np.repeat(
-            np.array(mpradata.data.var["category"] == "variant")[np.newaxis, :], mpradata.n_obs, axis=0
+            np.array(mpradata.data.var["category"] == "variant")[np.newaxis, :],
+            mpradata.n_obs,
+            axis=0,
         )
 
-        dna_counts = np.ma.masked_array(dna_counts, mask=np.any([not_observed_mask, lower_bc_mask, not_variant_mask], axis=0))
-        rna_counts = np.ma.masked_array(rna_counts, mask=np.any([not_observed_mask, lower_bc_mask, not_variant_mask], axis=0))
+        dna_counts = np.ma.masked_array(
+            dna_counts,
+            mask=np.any([not_observed_mask, lower_bc_mask, not_variant_mask], axis=0),
+        )
+        rna_counts = np.ma.masked_array(
+            rna_counts,
+            mask=np.any([not_observed_mask, lower_bc_mask, not_variant_mask], axis=0),
+        )
 
         for spdi, row in variant_map.iterrows():
 
@@ -725,7 +795,11 @@ def get_variant_counts(
             mpradata,
             output_file,
             normalized=normalized_counts,
-            filter=~np.repeat(np.array(mpradata.data.var["category"] == "variant")[np.newaxis, :], mpradata.n_obs, axis=0),
+            filter=~np.repeat(
+                np.array(mpradata.data.var["category"] == "variant")[np.newaxis, :],
+                mpradata.n_obs,
+                axis=0,
+            ),
         )
 
 
@@ -767,7 +841,11 @@ def get_variant_counts(
     help="Output file of MPRA data object.",
 )
 def get_reporter_elements(
-    input_file: str, sequence_design_file: str, statistics_file: str, bc_threshold: int, output_reporter_elements_file: str
+    input_file: str,
+    sequence_design_file: str,
+    statistics_file: str,
+    bc_threshold: int,
+    output_reporter_elements_file: str,
 ) -> None:
     """
     Generate reporter element file from counts, sequence design and quantification statistics.
@@ -854,7 +932,11 @@ def get_reporter_elements(
     help="Output file of MPRA data object.",
 )
 def get_reporter_variants(
-    input_file: str, sequence_design_file: str, statistics_file: str, bc_threshold: int, output_reporter_variants_file: str
+    input_file: str,
+    sequence_design_file: str,
+    statistics_file: str,
+    bc_threshold: int,
+    output_reporter_variants_file: str,
 ) -> None:
     """
     Generate reporter variant file from counts, sequence design and quantification statistics.
@@ -1285,7 +1367,12 @@ def plot() -> None:
     help="Output plot file.",
 )
 def correlation(
-    input_file: str, use_oligos: bool, bc_threshold: int, modality: str, replicates: Optional[list], output_file: str
+    input_file: str,
+    use_oligos: bool,
+    bc_threshold: int,
+    modality: str,
+    replicates: Optional[list],
+    output_file: str,
 ) -> None:
     """
     Scatter plot to see correlations between replicates (activity, DNA or RNA).
@@ -1356,7 +1443,13 @@ def correlation(
     type=click.Path(writable=True),
     help="Output plot file.",
 )
-def dna_vs_rna(input_file: str, use_oligos: bool, bc_threshold: int, replicates: Optional[list], output_file: str) -> None:
+def dna_vs_rna(
+    input_file: str,
+    use_oligos: bool,
+    bc_threshold: int,
+    replicates: Optional[list],
+    output_file: str,
+) -> None:
     """
     Plotting the DNA vs RNA counts (log10, median on multiple replicates).
 

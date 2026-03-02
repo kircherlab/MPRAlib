@@ -1,15 +1,17 @@
-from enum import Enum
-import json
-from importlib.resources import files
-import jsonschema
+import ast
 import csv
 import gzip
-import ast
-from mpralib.utils.io import is_compressed_file
-import tqdm
+import json
 import logging
 import re
+from enum import Enum
+from importlib.resources import files
 from typing import Optional
+
+import jsonschema
+import tqdm
+
+from mpralib.utils.io import is_compressed_file
 
 
 class ValidationSchema(Enum):
@@ -43,7 +45,10 @@ class SchemaToFileNameMap:
 
 schemaFilemap = SchemaToFileNameMap()
 schemaFilemap.set(ValidationSchema.REPORTER_SEQUENCE_DESIGN, "reporter_sequence_design.json")
-schemaFilemap.set(ValidationSchema.REPORTER_BARCODE_TO_ELEMENT_MAPPING, "reporter_barcode_to_element_mapping.json")
+schemaFilemap.set(
+    ValidationSchema.REPORTER_BARCODE_TO_ELEMENT_MAPPING,
+    "reporter_barcode_to_element_mapping.json",
+)
 schemaFilemap.set(ValidationSchema.REPORTER_EXPERIMENT_BARCODE, "reporter_experiment_barcode.json")
 schemaFilemap.set(ValidationSchema.REPORTER_EXPERIMENT, "reporter_experiment.json")
 schemaFilemap.set(ValidationSchema.REPORTER_ELEMENT, "reporter_element.json")
