@@ -10,8 +10,8 @@ MPRAlib is a Python library and CLI tool for processing Massively Parallel Repor
 
 The library uses **AnnData** objects as the fundamental data structure:
 - **`MPRAData`** (abstract base class) - Foundation for all MPRA data types with shared normalization, filtering, and correlation methods
-  - **`MPRABarcodeData`** (line [587](src/mpralib/mpradata.py#L587)) - Barcode-level data with multiple filtering strategies and ability to aggregate to oligo-level
-  - **`MPRAOligoData`** (line [1087](src/mpralib/mpradata.py#L1087)) - Aggregated oligo-level data (created from barcode data)
+  - **`MPRABarcodeData`** (line [597](src/mpralib/mpradata.py#L597)) - Barcode-level data with multiple filtering strategies and ability to aggregate to oligo-level
+  - **`MPRAOligoData`** (line [1136](src/mpralib/mpradata.py#L1136)) - Aggregated oligo-level data (created from barcode data)
 
 **Key data structure**:
 - `obs` (observations) = experiment replicates
