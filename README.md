@@ -5,12 +5,12 @@
 | Name                                  |    Stmts |     Miss |   Cover |   Missing |
 |-------------------------------------- | -------: | -------: | ------: | --------: |
 | src/mpralib/\_\_init\_\_.py           |        1 |        0 |    100% |           |
-| src/mpralib/cli.py                    |      448 |      206 |     54% |111, 168, 286-306, 453-467, 715-794, 860-885, 951-1004, 1087-1148, 1215-1305, 1400, 1465-1477, 1517, 1568 |
+| src/mpralib/cli.py                    |      444 |      204 |     54% |109, 166, 284-304, 451-465, 713-792, 858-883, 949-1002, 1085-1145, 1212-1301, 1396, 1461-1473, 1513, 1564 |
 | src/mpralib/exception.py              |       12 |        0 |    100% |           |
-| src/mpralib/mpradata.py               |      578 |       33 |     94% |348, 352, 361, 369, 388, 433, 492, 738, 866-900, 911-914, 924-928, 998, 1158 |
+| src/mpralib/mpradata.py               |      579 |       33 |     94% |349, 353, 362, 370, 389, 434, 493, 739, 867-901, 912-915, 925-929, 999, 1159 |
 | src/mpralib/utils/\_\_init\_\_.py     |        0 |        0 |    100% |           |
-| src/mpralib/utils/file\_validation.py |      113 |        9 |     92% |34, 36, 43, 118-121, 135, 193 |
-| src/mpralib/utils/io.py               |       96 |        0 |    100% |           |
+| src/mpralib/utils/file\_validation.py |      112 |        9 |     92% |33, 35, 42, 117-120, 134, 192 |
+| src/mpralib/utils/io.py               |       95 |        0 |    100% |           |
 | src/mpralib/utils/plot.py             |      110 |        2 |     98% |  198, 202 |
 | tests/\_\_init\_\_.py                 |        0 |        0 |    100% |           |
 | tests/test\_cli.py                    |       93 |        0 |    100% |           |
@@ -19,9 +19,9 @@
 | tests/test\_cli\_plot.py              |       50 |        0 |    100% |           |
 | tests/test\_cli\_validate\_file.py    |      111 |        0 |    100% |           |
 | tests/test\_mpradata.py               |      766 |        0 |    100% |           |
-| tests/test\_utils\_io.py              |      169 |        0 |    100% |           |
+| tests/test\_utils\_io.py              |      168 |        0 |    100% |           |
 | tests/test\_utils\_plot.py            |       90 |        0 |    100% |           |
-| **TOTAL**                             | **2854** |  **250** | **91%** |           |
+| **TOTAL**                             | **2848** |  **248** | **91%** |           |
 
 
 ## Setup coverage badge
