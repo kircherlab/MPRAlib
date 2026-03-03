@@ -6,7 +6,6 @@ import logging
 import re
 from enum import Enum
 from importlib.resources import files
-from typing import Optional
 
 import jsonschema
 import tqdm
@@ -138,7 +137,7 @@ def _load_schema(schema_type: ValidationSchema):
         return json.load(f)
 
 
-def _get_header_for_schema(schema_type: ValidationSchema) -> Optional[list]:
+def _get_header_for_schema(schema_type: ValidationSchema) -> list | None:
     if schema_type == ValidationSchema.REPORTER_BARCODE_TO_ELEMENT_MAPPING:
         return ["barcode", "oligoName"]
     elif schema_type == ValidationSchema.REPORTER_GENOMIC_ELEMENT:

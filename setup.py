@@ -12,7 +12,6 @@ setup(
     install_requires=[
         "numpy",
         "pandas",
-        "pysam",
         "click",
         "scikit-learn",
         "scipy",

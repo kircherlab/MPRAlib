@@ -1,6 +1,5 @@
 import ast
 from importlib.resources import files
-from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -133,7 +132,7 @@ def export_counts_file(
     mpradata: MPRAData,
     output_file_path: str,
     normalized: bool = False,
-    filter: Optional[np.ndarray] = None,
+    filter: np.ndarray | None = None,
 ) -> None:
     if isinstance(mpradata, MPRABarcodeData):
         df = {"ID": mpradata.var_names}

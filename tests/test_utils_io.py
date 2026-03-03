@@ -2,7 +2,6 @@ import copy
 import gzip
 import os
 import tempfile
-from typing import Optional
 
 import anndata as ad
 import numpy as np
@@ -24,7 +23,7 @@ class DummyMPRAData(MPRAData):
         dna_counts: NDArray[np.int32],
         rna_counts: NDArray[np.int32],
         barcode_threshold: int,
-        barcode_counts: Optional[NDArray[np.int32]] = None,
+        barcode_counts: NDArray[np.int32] | None = None,
     ):
         layers = {"rna": rna_counts, "dna": dna_counts}
         obs = pd.DataFrame(index=replicates)
