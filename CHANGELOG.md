@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.1](https://github.com/kircherlab/MPRAlib/compare/v0.10.0...v0.10.1) (2026-03-03)
+
+
+### Bug Fixes
+
+* remove pysam library for better compatibility ([#96](https://github.com/kircherlab/MPRAlib/issues/96)) ([8e92c38](https://github.com/kircherlab/MPRAlib/commit/8e92c38bf850ff57d35d280251481c7c5992443a))
+
 ## [0.10.0](https://github.com/kircherlab/MPRAlib/compare/v0.9.1...v0.10.0) (2026-03-02)
 
 
