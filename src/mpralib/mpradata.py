@@ -1,8 +1,9 @@
 import logging
 import os
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from enum import Enum
-from typing import Any, Callable, Optional
+from typing import Any
 
 import anndata as ad
 import numpy as np
@@ -333,7 +334,7 @@ class MPRAData(ABC):
         return np.asarray(self.data.varm["var_filter"], dtype=np.bool_)
 
     @var_filter.setter
-    def var_filter(self, new_data: Optional[NDArray[np.bool_]]) -> None:
+    def var_filter(self, new_data: NDArray[np.bool_] | None) -> None:
         if new_data is None:
             self.data.varm["var_filter"] = np.full((self.data.n_vars, self.data.n_obs), False)
             if "var_filter" in self.data.uns:
@@ -541,7 +542,7 @@ class MPRAData(ABC):
         else:
             self.data.uns[key] = value
 
-    def _get_metadata(self, key) -> Optional[Any]:
+    def _get_metadata(self, key) -> Any | None:
         if key in self.data.uns:
             return self.data.uns[key]
         else:
@@ -902,7 +903,7 @@ class MPRABarcodeData(MPRAData):
     def _barcode_filter_random(
         self,
         proportion: float = 1.0,
-        total: Optional[int] = None,
+        total: int | None = None,
         aggegate_over_replicates: bool = True,
     ) -> NDArray[np.bool_]:
 
@@ -930,13 +931,13 @@ class MPRABarcodeData(MPRAData):
         return mask
 
     def _barcode_filter_min_count(
-        self, rna_min_count: Optional[int] = None, dna_min_count: Optional[int] = None
+        self, rna_min_count: int | None = None, dna_min_count: int | None = None
     ) -> NDArray[np.bool_]:
 
         return self._barcode_filter_min_max_count(BarcodeFilter.MIN_COUNT, rna_min_count, dna_min_count)
 
     def _barcode_filter_max_count(
-        self, rna_max_count: Optional[int] = None, dna_max_count: Optional[int] = None
+        self, rna_max_count: int | None = None, dna_max_count: int | None = None
     ) -> NDArray[np.bool_]:
 
         return self._barcode_filter_min_max_count(BarcodeFilter.MAX_COUNT, rna_max_count, dna_max_count)
@@ -957,8 +958,8 @@ class MPRABarcodeData(MPRAData):
     def _barcode_filter_min_max_count(
         self,
         barcode_filter: BarcodeFilter,
-        rna_count: Optional[int] = None,
-        dna_count: Optional[int] = None,
+        rna_count: int | None = None,
+        dna_count: int | None = None,
     ) -> NDArray[np.bool_]:
         mask = np.full((self.n_vars, self.n_obs), False)
         if rna_count is not None:
@@ -1021,8 +1022,8 @@ class MPRABarcodeData(MPRAData):
 
     def _calculate_proportions(
         self,
-        proportion: Optional[float],
-        total: Optional[int],
+        proportion: float | None,
+        total: int | None,
         aggregate_over_replicates: bool,
         counts: NDArray[np.int32],
         replicates: int,
@@ -1051,9 +1052,9 @@ class MPRABarcodeData(MPRAData):
         self,
         layer_name: str,
         counts: NDArray[np.int32],
-        proportion: Optional[float],
-        total: Optional[int],
-        max_value: Optional[int],
+        proportion: float | None,
+        total: int | None,
+        max_value: int | None,
         aggregate_over_replicates: bool,
     ) -> None:
 
@@ -1076,9 +1077,9 @@ class MPRABarcodeData(MPRAData):
     def apply_count_sampling(
         self,
         count_type: CountSampling,
-        proportion: Optional[float] = None,
-        total: Optional[int] = None,
-        max_value: Optional[int] = None,
+        proportion: float | None = None,
+        total: int | None = None,
+        max_value: int | None = None,
         aggregate_over_replicates: bool = False,
     ) -> None:
         """Applies count sampling to RNA and/or DNA count data according to the specified parameters.

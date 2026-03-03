@@ -3,12 +3,10 @@ import json
 import logging
 import math
 from builtins import filter as buildins_filter
-from typing import Optional
 
 import click
 import numpy as np
 import pandas as pd
-import pysam
 from sklearn.preprocessing import MinMaxScaler
 
 import mpralib.utils.plot as plt
@@ -355,8 +353,8 @@ def filter(
     method: str,
     method_values: str,
     bc_threshold: int,
-    output_activity_file: Optional[str],
-    output_barcode_file: Optional[str],
+    output_activity_file: str | None,
+    output_barcode_file: str | None,
 ) -> None:
     """
     Filters barcodes from MPRA barcode data using different methods.
@@ -1144,8 +1142,7 @@ def get_reporter_genomic_elements(
         ]
     ].sort_values(by=["chr", "start", "end"])
 
-    with pysam.BGZFile(output_reporter_genomic_elements_file, "ab", None) as f:
-        f.write(out_df.to_csv(sep="\t", index=False, header=False, float_format="%.4f").encode())
+    out_df.to_csv(output_reporter_genomic_elements_file, sep="\t", index=False, header=False, float_format="%.4f")
 
 
 @combine.command(help="Generate reporter genomic variants file from counts, sequence design and quantification statistics.")
@@ -1301,11 +1298,10 @@ def get_reporter_genomic_variants(
         ]
     ].sort_values(by=["chr", "start", "end"])
 
-    with pysam.BGZFile(output_reporter_genomic_variants_file, "ab", None) as f:
-        f.write(df.to_csv(sep="\t", index=False, header=False, float_format="%.4f").encode())
+    df.to_csv(output_reporter_genomic_variants_file, sep="\t", index=False, header=False, float_format="%.4f")
 
 
-def _get_chr(map: pd.DataFrame, variant_id: str, logger: logging.Logger) -> Optional[str]:
+def _get_chr(map: pd.DataFrame, variant_id: str, logger: logging.Logger) -> str | None:
     variant_contig = variant_id.split(":")[0]
     if variant_contig in map["refseq"].values:
         return map[map["refseq"] == variant_contig].loc[:, "ucsc"].values[0]
@@ -1371,7 +1367,7 @@ def correlation(
     use_oligos: bool,
     bc_threshold: int,
     modality: str,
-    replicates: Optional[list],
+    replicates: list | None,
     output_file: str,
 ) -> None:
     """
@@ -1447,7 +1443,7 @@ def dna_vs_rna(
     input_file: str,
     use_oligos: bool,
     bc_threshold: int,
-    replicates: Optional[list],
+    replicates: list | None,
     output_file: str,
 ) -> None:
     """
@@ -1500,7 +1496,7 @@ def dna_vs_rna(
     type=click.Path(writable=True),
     help="Output plot file.",
 )
-def barcodes_per_oligo(input_file: str, replicates: Optional[list], output_file: str) -> None:
+def barcodes_per_oligo(input_file: str, replicates: list | None, output_file: str) -> None:
     """
     Histogramm of barcodes per oligo
 
