@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.2](https://github.com/kircherlab/MPRAlib/compare/v0.10.1...v0.10.2) (2026-03-04)
+
+
+### Bug Fixes
+
+* replace None with pd.NA in variant map processing for better compatibility ([#98](https://github.com/kircherlab/MPRAlib/issues/98)) ([c58769a](https://github.com/kircherlab/MPRAlib/commit/c58769a3c0125b7a8cab3475d64e27d58534b4f9))
+
 ## [0.10.1](https://github.com/kircherlab/MPRAlib/compare/v0.10.0...v0.10.1) (2026-03-03)
 
 
