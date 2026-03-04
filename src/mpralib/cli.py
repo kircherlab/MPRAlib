@@ -2,7 +2,6 @@ import ast
 import json
 import logging
 import math
-from builtins import filter as buildins_filter
 
 import click
 import numpy as np
@@ -475,22 +474,23 @@ def get_variant_map(input_file: str, sequence_design_file: str, output_file: str
         variant_map["REF"] = np.where(
             variant_map["allele"] == "ref",
             variant_map["oligo"],
-            np.full(len(variant_map["allele"]), None, dtype=object),
+            np.full(len(variant_map["allele"]), pd.NA, dtype=object),
         )
         variant_map["ALT"] = np.where(
             variant_map["allele"] == "alt",
             variant_map["oligo"],
-            np.full(len(variant_map["allele"]), None, dtype=object),
+            np.full(len(variant_map["allele"]), pd.NA, dtype=object),
         )
         variant_map = variant_map.groupby("ID").agg(
             {
-                "REF": lambda x: list(buildins_filter(None, x)),
-                "ALT": lambda x: list(buildins_filter(None, x)),
+                "REF": lambda x: [val for val in x if pd.notna(val)],
+                "ALT": lambda x: [val for val in x if pd.notna(val)],
             }
         )
 
     print("Prepair output file...")
     for key in ["REF", "ALT"]:
+
         # TODO: what happens a variant has multiple alt alleles?
         # Right now joined by comma. But maybe I hould use one row per ref/alt pai?
         variant_map.loc[:, key] = variant_map[key].apply(lambda x: ",".join(x))
