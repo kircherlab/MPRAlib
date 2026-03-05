@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.10.3](https://github.com/kircherlab/MPRAlib/compare/v0.10.2...v0.10.3) (2026-03-05)
+
+
+### Bug Fixes
+
+* replace None with pd.NA in MPRAData allele processing for improv… ([1c724b2](https://github.com/kircherlab/MPRAlib/commit/1c724b25831679a9b81c2b71339de310c74f4dd1))
+* replace None with pd.NA in MPRAData allele processing for improved compatibility ([8ec5372](https://github.com/kircherlab/MPRAlib/commit/8ec5372ba64064bcaf7e1f59af3644ecca7edebf))
+
 ## [0.10.2](https://github.com/kircherlab/MPRAlib/compare/v0.10.1...v0.10.2) (2026-03-04)
 
 
