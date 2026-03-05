@@ -395,12 +395,20 @@ class MPRAData(ABC):
         alleles = np.concatenate(self.data.var["allele"].values)
 
         df = pd.DataFrame({"ID": spdis, "allele": alleles, "oligo": oligos})
-        df["REF"] = df["oligo"].where(df["allele"] == "ref", None)
-        df["ALT"] = df["oligo"].where(df["allele"] == "alt", None)
+        df["REF"] = np.where(
+            df["allele"] == "ref",
+            df["oligo"],
+            np.full(len(df["allele"]), pd.NA, dtype=object),
+        )
+        df["ALT"] = np.where(
+            df["allele"] == "alt",
+            df["oligo"],
+            np.full(len(df["allele"]), pd.NA, dtype=object),
+        )
         df = df.groupby("ID").agg(
             {
-                "REF": lambda x: list(filter(None, x)),
-                "ALT": lambda x: list(filter(None, x)),
+                "REF": lambda x: [val for val in x if pd.notna(val)],
+                "ALT": lambda x: [val for val in x if pd.notna(val)],
             }
         )
         df = df[(df["REF"].apply(len) >= 1) & (df["ALT"].apply(len) >= 1)]
