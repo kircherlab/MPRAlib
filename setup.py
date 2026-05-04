@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="mpralib",
-    version="0.10.3",
+    version="0.10.4",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     include_package_data=True,
