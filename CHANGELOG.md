@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.4](https://github.com/kircherlab/MPRAlib/compare/v0.10.3...v0.10.4) (2026-05-04)
+
+
+### Bug Fixes
+
+* Set reporter (genomic) varints empty ref/alt allele to 0 ([3c39029](https://github.com/kircherlab/MPRAlib/commit/3c390296b12abbf400604c6d27fc42e65aa9a00c))
+
 ## [0.10.3](https://github.com/kircherlab/MPRAlib/compare/v0.10.2...v0.10.3) (2026-03-05)
 
 
