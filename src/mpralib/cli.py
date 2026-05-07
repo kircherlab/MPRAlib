@@ -22,6 +22,14 @@ from mpralib.utils.io import (
 pd.options.mode.copy_on_write = True
 
 
+def _safe_sigmoid(x: float) -> float:
+    """Compute sigmoid while safely handling extreme values."""
+    try:
+        return math.exp(x) / (1 + math.exp(x))
+    except OverflowError:
+        return 1.0 if x > 0 else 0.0
+
+
 @click.group(help="Command line interface of MPRAlib, a library for MPRA data analysis.")
 def cli() -> None:
     pass
@@ -993,7 +1001,7 @@ def get_reporter_variants(
         },
         inplace=True,
     )
-    df["postProbEffect"] = df["B"].apply(lambda x: math.exp(x) / (1 + math.exp(x)))
+    df["postProbEffect"] = df["B"].apply(_safe_sigmoid)
     df["variant_id"] = df.index
 
     def _extract_allele_or_zero(variant_id, idx):
@@ -1270,7 +1278,7 @@ def get_reporter_genomic_variants(
         },
         inplace=True,
     )
-    df["postProbEffect"] = df["B"].apply(lambda x: math.exp(x) / (1 + math.exp(x)))
+    df["postProbEffect"] = df["B"].apply(_safe_sigmoid)
     df["variant_id"] = df.index
 
     def _extract_allele_or_zero(variant_id, idx):
