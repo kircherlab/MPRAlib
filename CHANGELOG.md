@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.5](https://github.com/kircherlab/MPRAlib/compare/v0.10.4...v0.10.5) (2026-05-07)
+
+
+### Bug Fixes
+
+* **cli:** :bug: Implemented an overflow-safe fix for the sigmoid calculation on postProbEffect ([#108](https://github.com/kircherlab/MPRAlib/issues/108)) ([0c694c6](https://github.com/kircherlab/MPRAlib/commit/0c694c6589dc0456f39a703e067df67ef3b98d2b))
+
 ## [0.10.4](https://github.com/kircherlab/MPRAlib/compare/v0.10.3...v0.10.4) (2026-05-04)
 
 
