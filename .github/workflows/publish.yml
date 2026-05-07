@@ -2,10 +2,8 @@
 name: Publish Python Package
 
 on: # yamllint disable-line rule:truthy
-  push:
-    tags:
-      - 'v*.*.*'
-  workflow_dispatch:
+  release:
+    types: [published, edited]
 
 jobs:
   build:
