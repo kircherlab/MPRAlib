@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.10.6](https://github.com/kircherlab/MPRAlib/compare/v0.10.5...v0.10.6) (2026-06-25)
+
+
+### Bug Fixes
+
+* **cli:** :bug: supportig 0 alleles ([#112](https://github.com/kircherlab/MPRAlib/issues/112)) ([144c085](https://github.com/kircherlab/MPRAlib/commit/144c08568112ed173f6efd493c7dd1c1a69d5385))
+
+
+### Documentation
+
+* update citation ([861fef9](https://github.com/kircherlab/MPRAlib/commit/861fef9b02751c271cc7809b174d18701d63f38a))
+
 ## [0.10.5](https://github.com/kircherlab/MPRAlib/compare/v0.10.4...v0.10.5) (2026-05-07)
 
 
