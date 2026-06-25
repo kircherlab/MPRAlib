@@ -1004,17 +1004,6 @@ def get_reporter_variants(
     df["postProbEffect"] = df["B"].apply(_safe_sigmoid)
     df["variant_id"] = df.index
 
-    def _extract_allele_or_zero(variant_id, idx):
-        if pd.isna(variant_id):
-            return 0
-        parts = str(variant_id).split(":")
-        if len(parts) <= idx:
-            return 0
-        allele = parts[idx]
-        if pd.isna(allele) or allele == "":
-            return 0
-        return allele
-
     df["refAllele"] = df["variant_id"].apply(lambda x: _extract_allele_or_zero(x, 2))
     df["altAllele"] = df["variant_id"].apply(lambda x: _extract_allele_or_zero(x, 3))
     df["variantPos"] = df["variantPos"].astype(int)
@@ -1281,21 +1270,10 @@ def get_reporter_genomic_variants(
     df["postProbEffect"] = df["B"].apply(_safe_sigmoid)
     df["variant_id"] = df.index
 
-    def _extract_allele_or_zero(variant_id, idx):
-        if pd.isna(variant_id):
-            return 0
-        parts = str(variant_id).split(":")
-        if len(parts) <= idx:
-            return 0
-        allele = parts[idx]
-        if pd.isna(allele) or allele == "":
-            return 0
-        return allele
-
     df["refAllele"] = df["variant_id"].apply(lambda x: _extract_allele_or_zero(x, 2))
     df["altAllele"] = df["variant_id"].apply(lambda x: _extract_allele_or_zero(x, 3))
     df["start"] = df["variant_id"].apply(lambda x: x.split(":")[1]).astype(int)
-    df["end"] = df["start"] + df["refAllele"].apply(lambda x: len(x)).astype(int)
+    df["end"] = df["start"] + df["refAllele"].apply(lambda x: len(str(x)) if isinstance(x, str) else 1).astype(int)
 
     map = chromosome_map()
     map = map[map["release"] == reference]
@@ -1340,6 +1318,16 @@ def _get_chr(map: pd.DataFrame, variant_id: str, logger: logging.Logger) -> str 
     else:
         logger.warning(f"Contig {variant_contig} of SPDI {variant_id} not found in chromosome map. Returning None.")
         return None
+
+
+def _extract_allele_or_zero(variant_id: str, idx: int) -> str | int:
+    parts = variant_id.split(":")
+    if len(parts) <= idx:
+        return 0
+    allele = parts[idx]
+    if pd.isna(allele) or allele == "":
+        return 0
+    return allele
 
 
 @cli.group(help="Plotting functions.")
