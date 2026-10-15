@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.11.0](https://github.com/kircherlab/MPRAlib/compare/v0.10.6...v0.11.0) (2026-10-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cli:** variant map REF/ALT anre nots eparated by comma. Only REF or ALT is defined with oe ID. Other contain empty string.
+
+### Bug Fixes
+
+* **cli:** :bug: resolves `combine get-variant-map` issue with multiple REFs or ALTs per variant ([73ce603](https://github.com/kircherlab/MPRAlib/commit/73ce603f145220699565d3b245fd0be81479fe34))
+* **cli:** derive strand and variantPos from all REF and ALT oligos in genomic variants ([81f1a3b](https://github.com/kircherlab/MPRAlib/commit/81f1a3b48f9391ca0646322e01d340355cefd077))
+* **cli:** derive strand and variantPos from all REF and ALT oligos in genomic variants ([0b67511](https://github.com/kircherlab/MPRAlib/commit/0b675112080e69633fa45f70eebf45ecf7c684e6))
+
 ## [0.10.6](https://github.com/kircherlab/MPRAlib/compare/v0.10.5...v0.10.6) (2026-06-25)
 
 
