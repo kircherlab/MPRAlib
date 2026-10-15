@@ -497,15 +497,27 @@ def get_variant_map(input_file: str, sequence_design_file: str, output_file: str
         )
 
     print("Prepair output file...")
-    for key in ["REF", "ALT"]:
 
-        # TODO: what happens a variant has multiple alt alleles?
-        # Right now joined by comma. But maybe I hould use one row per ref/alt pai?
-        variant_map.loc[:, key] = variant_map[key].apply(lambda x: ",".join(x))
+    # variant_map has variant IDs as its index and lists in REF / ALT.
+    mapping = variant_map[["REF", "ALT"]].rename_axis("ID").reset_index()
 
-    variant_map = variant_map[variant_map.apply(lambda x: all(x != ""), axis=1)]
+    # Expand each allele independently, preserving complete identifiers.
+    ref_rows = mapping[["ID", "REF"]].explode("REF").dropna(subset=["REF"])
+    ref_rows = ref_rows.loc[ref_rows["REF"] != ""].copy()
+    ref_rows["ALT"] = pd.NA
 
-    variant_map.to_csv(output_file, sep="\t", index=True)
+    alt_rows = mapping[["ID", "ALT"]].explode("ALT").dropna(subset=["ALT"])
+    alt_rows = alt_rows.loc[alt_rows["ALT"] != ""].copy()
+    alt_rows["REF"] = pd.NA
+
+    output_map = pd.concat([ref_rows, alt_rows], ignore_index=True)[["ID", "REF", "ALT"]].drop_duplicates()
+
+    output_map.to_csv(
+        output_file,
+        sep="\t",
+        index=False,
+        na_rep="",
+    )
 
 
 @combine.command(help="Return DNA and RNA counts for all oligos or only thosed tagges as elements/ref snvs.")
