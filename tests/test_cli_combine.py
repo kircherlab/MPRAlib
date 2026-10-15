@@ -204,6 +204,7 @@ def _run_genomic_variants(runner, files, tmp_path, ref_strand, alt_strand, ref_p
         sep="\t",
         index_col=0,
     )
+    variant_map = variant_map.groupby(level=0).first().dropna(subset=["REF", "ALT"])
     spdi, row = variant_map.index[0], variant_map.iloc[0]
 
     counts_file = tmp_path / "counts.tsv.gz"
