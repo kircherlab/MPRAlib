@@ -985,9 +985,9 @@ def get_reporter_variants(
             df.loc[str(spdi), "inputCountAlt"] = dna_counts_alt.mean()
             df.loc[str(spdi), "outputCountRef"] = rna_counts_ref.mean()
             df.loc[str(spdi), "outputCountAlt"] = rna_counts_alt.mean()
-            df.loc[str(spdi), "variantPos"] = int(
-                mpradata.data.var["variant_pos"][mpradata.oligos.isin(row["REF"])].values[0][0]
-            )
+            positions = {int(pos) for oligo_pos in mpradata.data.var["variant_pos"][mask_ref | mask_alt] for pos in oligo_pos}
+            # -1 denotes an aggregated effect over multiple positions
+            df.loc[str(spdi), "variantPos"] = positions.pop() if len(positions) == 1 else -1
 
     df.loc[df["P.Value"] == 0, "P.Value"] = np.finfo(float).eps
     df.loc[df["adj.P.Val"] == 0, "adj.P.Val"] = np.finfo(float).eps
@@ -1249,10 +1249,11 @@ def get_reporter_genomic_variants(
             df.loc[str(spdi), "inputCountAlt"] = dna_counts_alt.mean()
             df.loc[str(spdi), "outputCountRef"] = rna_counts_ref.mean()
             df.loc[str(spdi), "outputCountAlt"] = rna_counts_alt.mean()
-            df.loc[str(spdi), "variantPos"] = int(
-                mpradata.data.var["variant_pos"][mpradata.oligos.isin(row["REF"])].values[0][0]
-            )
-            df.loc[str(spdi), "strand"] = mpradata.data.var["strand"][mpradata.oligos.isin(row["REF"])].values[0]
+            strands = set(mpradata.data.var["strand"][mask_ref | mask_alt].astype(str))
+            positions = {int(pos) for oligo_pos in mpradata.data.var["variant_pos"][mask_ref | mask_alt] for pos in oligo_pos}
+            # -1 denotes an aggregated effect over multiple positions or oligos of mixed strands
+            df.loc[str(spdi), "variantPos"] = positions.pop() if len(positions) == 1 and len(strands) == 1 else -1
+            df.loc[str(spdi), "strand"] = strands.pop() if strands in ({"+"}, {"-"}) else "."
 
     df["variantPos"] = df["variantPos"].astype(int)
     df.loc[df["P.Value"] == 0, "P.Value"] = np.finfo(float).eps
