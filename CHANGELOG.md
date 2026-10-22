@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.1](https://github.com/kircherlab/MPRAlib/compare/v0.11.0...v0.11.1) (2026-10-22)
+
+
+### Features
+
+* **mpradata:** add MPRAOligoData.from_barcode_file and add_activity_summary ([#125](https://github.com/kircherlab/MPRAlib/issues/125)) ([b81f049](https://github.com/kircherlab/MPRAlib/commit/b81f04903ddc8e39e71dabe72d8ef8ca48c81f9c))
+
 ## [0.11.0](https://github.com/kircherlab/MPRAlib/compare/v0.10.6...v0.11.0) (2026-10-15)
 
 
