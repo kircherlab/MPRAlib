@@ -1262,3 +1262,44 @@ def test_barcode_counts_setter_comprehensive(mpra_oligo_data):
     counts_int64 = np.array([[5, 6, 7], [8, 9, 10], [11, 12, 13]], dtype=np.int64)
     mpra_oligo_data.barcode_counts = counts_int64
     assert mpra_oligo_data.barcode_counts.dtype == np.int32
+
+
+BARCODE_FILE = "tests/data/reporter_experiment_barcode_IGVFDS2165KBMD.input.head20000.tsv.gz"
+
+
+@pytest.mark.parametrize("chunksize", [7, 1000, 2_000_000])
+def test_oligo_data_from_barcode_file_matches_barcode_route(chunksize):
+    expected = MPRABarcodeData.from_file(BARCODE_FILE).oligo_data
+    got = MPRAOligoData.from_barcode_file(BARCODE_FILE, chunksize=chunksize)
+    # the order of the oligos is not part of the contract (the barcode route names the vars after the first barcode)
+    got.data = got.data[:, list(expected.oligos.astype(str))].copy()
+
+    assert list(got.obs_names) == list(expected.obs_names)
+    for layer in ("rna", "dna", "barcode_counts"):
+        np.testing.assert_array_equal(
+            np.asarray(got.data.layers[layer]), np.asarray(expected.data.layers[layer]), err_msg=layer
+        )
+    np.testing.assert_allclose(got.activity, expected.activity, equal_nan=True)
+
+
+def test_oligo_data_from_barcode_file_chunk_callback():
+    seen = []
+    MPRAOligoData.from_barcode_file(BARCODE_FILE, chunksize=5000, chunk_callback=lambda c: seen.append(len(c)))
+    assert sum(seen) == len(pd.read_csv(BARCODE_FILE, sep="\t")) and max(seen) <= 5000
+
+
+def test_oligo_activity_summary(mpra_oligo_data):
+    mpra_oligo_data.barcode_counts = np.array([[2, 1, 1], [2, 0, 1], [2, 1, 1]], dtype=np.int32)
+    mpra_oligo_data.add_activity_summary(min_barcodes=1)
+    var = mpra_oligo_data.data.var
+    activity = np.asarray(mpra_oligo_data.activity, dtype=np.float64)
+    np.testing.assert_allclose(var["activity_mean"].iloc[0], np.nanmean(activity[:, 0]))
+    np.testing.assert_allclose(var["activity_se"].iloc[0], np.nanstd(activity[:, 0], ddof=1) / np.sqrt(3))
+    assert list(var["n_replicates"]) == [3, 2, 3]  # oligo 2 has no barcode in replicate 2
+    assert list(var["n_barcodes"]) == [2, 1, 1]
+    np.testing.assert_array_equal(var["dna_total"], mpra_oligo_data.raw_dna_counts.sum(axis=0))
+
+    mpra_oligo_data.add_activity_summary(min_barcodes=2)
+    assert list(mpra_oligo_data.data.var["n_replicates"]) == [3, 0, 0]
+    assert np.isnan(mpra_oligo_data.data.var["activity_mean"].iloc[1])
+    assert np.isnan(mpra_oligo_data.data.var["activity_se"].iloc[1])

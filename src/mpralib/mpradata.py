@@ -1,5 +1,6 @@
 import logging
 import os
+import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from enum import Enum
@@ -1170,6 +1171,101 @@ class MPRAOligoData(MPRAData):
     def from_file(cls, file_path: str) -> "MPRAOligoData":
 
         return MPRAOligoData(ad.read_h5ad(file_path))
+
+    @classmethod
+    def from_barcode_file(
+        cls,
+        file_path: str,
+        chunksize: int = 2_000_000,
+        chunk_callback: Callable[[pd.DataFrame], None] | None = None,
+    ) -> "MPRAOligoData":
+        """Create oligo-level data from a reporter experiment barcode file without loading the barcode matrix.
+
+        The file is read in chunks and the DNA and RNA counts and the number of observed barcodes (DNA + RNA > 0) are
+        summed per oligo. The result is identical to ``MPRABarcodeData.from_file(file_path).oligo_data`` (without a
+        barcode filter) but needs memory only for one chunk plus the oligo table, which makes it usable for large
+        files.
+
+        Args:
+            file_path (str): Path to the reporter experiment barcode file.
+            chunksize (int, optional): Number of barcodes (rows) per chunk. Defaults to 2,000,000.
+            chunk_callback (Callable[[pd.DataFrame], None], optional): Called with every chunk as read (NaN counts
+                already replaced by 0, barcode as index) so that callers can export barcode-level data in the same pass.
+
+        Returns:
+            MPRAOligoData: Oligo-level data with the layers ``rna``, ``dna`` and ``barcode_counts``.
+        """
+        header = pd.read_csv(file_path, sep="\t", header=0, index_col=0, nrows=0)
+        replicate_columns_dna = header.columns[1::2]
+        replicate_columns_rna = header.columns[2::2]
+        replicates = pd.Index([c.split("_")[2] for c in replicate_columns_dna])
+        if not replicates.equals(pd.Index([c.split("_")[2] for c in replicate_columns_rna])):
+            raise MPRAlibException("DNA and RNA replicate columns do not match.")
+
+        parts = []
+        for chunk in pd.read_csv(file_path, sep="\t", header=0, index_col=0, chunksize=chunksize):
+            chunk = chunk.fillna(0)
+            if chunk_callback is not None:
+                chunk_callback(chunk)
+            dna = chunk[replicate_columns_dna].to_numpy(dtype=np.int64)
+            rna = chunk[replicate_columns_rna].to_numpy(dtype=np.int64)
+            summed = pd.DataFrame(
+                np.hstack([dna, rna, (dna + rna) > 0]),
+                columns=[f"{name}_{r}" for name in ("dna", "rna", "barcode_counts") for r in replicates],
+            )
+            summed["oligo"] = chunk["oligo_name"].to_numpy()
+            parts.append(summed.groupby("oligo", sort=False).sum())
+
+        counts = pd.concat(parts).groupby(level=0, sort=False).sum()
+
+        def layer(name: str) -> NDArray[np.int32]:
+            return counts[[f"{name}_{r}" for r in replicates]].to_numpy().T.astype(np.int32)
+
+        adata = ad.AnnData(pd.DataFrame(layer("rna"), index=replicates, columns=counts.index.astype(str)))
+        adata.layers["rna"] = layer("rna")
+        adata.layers["dna"] = layer("dna")
+        adata.layers["barcode_counts"] = layer("barcode_counts")
+        adata.var["oligo"] = pd.Categorical(counts.index.astype(str))
+        adata.uns["file_path"] = file_path
+        adata.uns["date"] = pd.to_datetime("today").strftime("%Y-%m-%d")
+        adata.uns["SCALING"] = cls._SCALING
+        adata.uns["PSEUDOCOUNT"] = cls._PSEUDOCOUNT
+        adata.uns["correlation_activity"] = False
+        adata.uns["correlation_rna_normalized"] = False
+        adata.uns["correlation_dna_normalized"] = False
+        adata.varm["var_filter"] = pd.DataFrame(
+            np.full((adata.n_vars, adata.n_obs), False),
+            index=adata.var_names,
+            columns=adata.obs_names,
+        )
+        return cls(adata)
+
+    def add_activity_summary(self, min_barcodes: int = 1) -> None:
+        """Summarize the oligo activity over replicates and store it in ``data.var``.
+
+        Replicates in which an oligo has fewer than ``min_barcodes`` observed barcodes are ignored. The columns are:
+        ``activity_mean`` (mean activity over the used replicates), ``activity_se`` (standard error of the mean over
+        the used replicates, NaN with fewer than two), ``n_replicates`` (number of used replicates),
+        ``n_barcodes`` (maximum number of observed barcodes over the replicates), and ``dna_total`` and ``rna_total``
+        (raw counts summed over all replicates).
+
+        Args:
+            min_barcodes (int, optional): Minimum number of observed barcodes of an oligo in a replicate. Defaults to 1.
+        """
+        activity = np.array(self.activity, dtype=np.float64)
+        barcodes = self.barcode_counts
+        activity[barcodes < min_barcodes] = np.nan
+        n = np.sum(~np.isnan(activity), axis=0)
+        with np.errstate(invalid="ignore", divide="ignore"), warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            mean = np.nanmean(activity, axis=0)
+            se = np.nanstd(activity, axis=0, ddof=1) / np.sqrt(n)
+        self.data.var["activity_mean"] = mean
+        self.data.var["activity_se"] = np.where(n >= 2, se, np.nan)
+        self.data.var["n_replicates"] = n
+        self.data.var["n_barcodes"] = barcodes.max(axis=0)
+        self.data.var["dna_total"] = self.raw_dna_counts.sum(axis=0)
+        self.data.var["rna_total"] = self.raw_rna_counts.sum(axis=0)
 
     def _normalize_layer(
         self,
