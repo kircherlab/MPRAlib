@@ -1303,3 +1303,31 @@ def test_oligo_activity_summary(mpra_oligo_data):
     assert list(mpra_oligo_data.data.var["n_replicates"]) == [3, 0, 0]
     assert np.isnan(mpra_oligo_data.data.var["activity_mean"].iloc[1])
     assert np.isnan(mpra_oligo_data.data.var["activity_se"].iloc[1])
+
+
+def _write_barcode_file(path, rna_value):
+    pd.DataFrame(
+        {
+            "barcode": ["b1", "b2"],
+            "oligo_name": ["o1", "o1"],
+            "dna_count_1": [3, 5],
+            "rna_count_1": [rna_value, 4],
+        }
+    ).to_csv(path, sep="\t", index=False)
+
+
+def test_barcode_from_file_integer_counts_stay_int32(tmp_path):
+    path = tmp_path / "counts.tsv"
+    _write_barcode_file(path, 2)
+    data = MPRABarcodeData.from_file(str(path))
+    assert data.raw_rna_counts.dtype == np.int32
+    assert data.raw_dna_counts.dtype == np.int32
+
+
+def test_barcode_from_file_non_integer_counts_are_kept(tmp_path):
+    path = tmp_path / "counts.tsv"
+    _write_barcode_file(path, 2.5)
+    data = MPRABarcodeData.from_file(str(path))
+    assert data.raw_rna_counts.dtype == np.float64
+    assert data.raw_rna_counts[0, 0] == 2.5
+    assert data.total_rna_counts[0] == 6.5

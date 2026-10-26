@@ -654,15 +654,20 @@ class MPRABarcodeData(MPRAData):
         replicate_columns_rna = data.columns[2::2]
         replicate_columns_dna = data.columns[1::2]
 
-        anndata_replicate_rna = data[replicate_columns_rna].transpose().astype(np.int32)
-        anndata_replicate_dna = data[replicate_columns_dna].transpose().astype(np.int32)
+        # Integer counts stay int32 (unchanged behaviour); only truly non-integer counts (e.g. model
+        # predictions) switch to float64.
+        count_values = data[list(replicate_columns_rna) + list(replicate_columns_dna)].to_numpy()
+        count_dtype = np.int32 if np.all(count_values == np.rint(count_values)) else np.float64
+
+        anndata_replicate_rna = data[replicate_columns_rna].transpose().astype(count_dtype)
+        anndata_replicate_dna = data[replicate_columns_dna].transpose().astype(count_dtype)
 
         anndata_replicate_rna.index = pd.Index([replicate.split("_")[2] for replicate in replicate_columns_rna])
         anndata_replicate_dna.index = pd.Index([replicate.split("_")[2] for replicate in replicate_columns_dna])
 
         adata = ad.AnnData(anndata_replicate_rna)
-        adata.layers["rna"] = np.array(adata.X, dtype=np.int32)
-        adata.layers["dna"] = np.asarray(anndata_replicate_dna.values, dtype=np.int32)
+        adata.layers["rna"] = np.array(adata.X, dtype=count_dtype)
+        adata.layers["dna"] = np.asarray(anndata_replicate_dna.values, dtype=count_dtype)
 
         adata.var["oligo"] = data["oligo_name"].astype("category")
 
