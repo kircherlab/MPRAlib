@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.2](https://github.com/kircherlab/MPRAlib/compare/v0.11.1...v0.11.2) (2026-10-27)
+
+
+### Features
+
+* **mpradata:** keep non-integer barcode counts as float64 ([#127](https://github.com/kircherlab/MPRAlib/issues/127)) ([4aedc99](https://github.com/kircherlab/MPRAlib/commit/4aedc998771abb2ff394e14eba1613a3291e3167))
+
 ## [0.11.1](https://github.com/kircherlab/MPRAlib/compare/v0.11.0...v0.11.1) (2026-10-22)
 
 
