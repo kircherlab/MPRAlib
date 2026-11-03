@@ -804,10 +804,14 @@ def get_variant_counts(
         nan_columns = df.loc[:, ref_columns].isna().all(axis=1) | df.loc[:, alt_columns].isna().all(axis=1)
         df = df[~nan_columns]
 
-        if normalized_counts:
-            df.to_csv(output_file, sep="\t", index=True, na_rep="", float_format="%.6f")
-        else:
+        if (
+            not normalized_counts
+            and np.issubdtype(dna_counts.dtype, np.integer)
+            and np.issubdtype(rna_counts.dtype, np.integer)
+        ):
             df.to_csv(output_file, sep="\t", index=True, na_rep="", float_format="%.0f")
+        else:
+            df.to_csv(output_file, sep="\t", index=True, na_rep="", float_format="%.17g")
     else:
         export_counts_file(
             mpradata,
