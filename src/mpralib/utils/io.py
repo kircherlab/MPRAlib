@@ -172,11 +172,11 @@ def export_counts_file(
     df = df[~nan_columns]
 
     if normalized:
-        df.to_csv(output_file_path, sep="\t", index=True, na_rep="", float_format="%.6f")
+        df.to_csv(output_file_path, sep="\t", index=True, na_rep="", float_format="%.17g")
     elif np.issubdtype(dna_counts.dtype, np.integer) and np.issubdtype(rna_counts.dtype, np.integer):
         df.to_csv(output_file_path, sep="\t", index=True, na_rep="", float_format="%.0f")
     else:
-        df.to_csv(output_file_path, sep="\t", index=True, na_rep="", float_format="%.6f")
+        df.to_csv(output_file_path, sep="\t", index=True, na_rep="", float_format="%.17g")
 
 
 def read_sequence_design_file(file_path: str) -> pd.DataFrame:

@@ -13,6 +13,11 @@
 
 MPRAlib is a Python library and CLI for processing MPRA (Massively Parallel Reporter Assay) data.
 
+Count exports preserve floating-point counts using 17 significant digits,
+including normalized counts and REF/ALT aggregates. Integer raw-count exports
+retain integer formatting. This avoids rounding small fractional counts to
+zero or changing predicted counts before downstream barcode-level analysis.
+
 ## Citation
 
 If you use MPRAlib in your work, please cite:

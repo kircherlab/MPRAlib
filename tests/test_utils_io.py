@@ -106,6 +106,22 @@ def test_export_counts_file_normalized(tmp_path, barcode_data):
     assert all(df.filter(like="dna_count").apply(lambda x: isinstance(x, float) or pd.isna(x)))
 
 
+@pytest.mark.parametrize("normalized", [False, True])
+def test_fractional_count_export_preserves_float64(tmp_path, normalized):
+    path = tmp_path / "input.tsv"
+    values = np.array([1.2345678901234567, 1e-12, 12345678.123456789])
+    pd.DataFrame(
+        {"barcode": ["b1", "b2", "b3"], "oligo_name": ["o1", "o2", "o3"], "dna_count_1": [3, 5, 7], "rna_count_1": values}
+    ).to_csv(path, sep="\t", index=False, float_format="%.17g")
+    data = MPRABarcodeData.from_file(str(path))
+    np.testing.assert_array_equal(data.rna_counts[0], values)
+    output = tmp_path / "output.tsv.gz"
+    export_counts_file(data, str(output), normalized=normalized)
+    exported = pd.read_csv(output, sep="\t", float_precision="round_trip")
+    expected = data.normalized_rna_counts[0] if normalized else values
+    np.testing.assert_array_equal(exported.rna_count_1.to_numpy(), expected)
+
+
 def test_export_counts_file_with_filter(tmp_path, barcode_data):
     out_path = tmp_path / "counts_filt.tsv"
     # Mask out the first entry

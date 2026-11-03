@@ -2,6 +2,8 @@ import gzip
 import os
 import tempfile
 
+import numpy as np
+import pandas as pd
 import pytest
 from click.testing import CliRunner
 
@@ -54,6 +56,44 @@ def test_combine_get_variant_counts_option_required(runner):
     result = runner.invoke(cli, ["combine", "get-variant-counts"])
     assert result.exit_code != 0
     assert "Missing option '--input'" in result.output
+
+
+@pytest.mark.parametrize("normalized", [False, True])
+def test_variant_aggregate_keeps_fractional_counts(tmp_path, runner, normalized):
+    from mpralib.mpradata import MPRABarcodeData
+    from tests.test_utils_io import VALID_TSV
+
+    design = tmp_path / "design.tsv"
+    design.write_text(VALID_TSV.lstrip())
+    counts = tmp_path / "counts.tsv"
+    values = np.array([1.2345678901234567, 1e-12])
+    pd.DataFrame(
+        {"barcode": ["b1", "b2"], "oligo_name": ["oligo1", "oligo3"], "dna_count_1": [3, 5], "rna_count_1": values}
+    ).to_csv(counts, sep="\t", index=False, float_format="%.17g")
+    output = tmp_path / "output.tsv"
+    result = runner.invoke(
+        cli,
+        [
+            "combine",
+            "get-variant-counts",
+            "--input",
+            str(counts),
+            "--sequence-design",
+            str(design),
+            "--bc-threshold",
+            "1",
+            "--normalized-counts" if normalized else "--counts",
+            "--output",
+            str(output),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    exported = pd.read_csv(output, sep="\t", float_precision="round_trip")
+    expected = values
+    if normalized:
+        data = MPRABarcodeData.from_file(str(counts)).oligo_data
+        expected = data.normalized_rna_counts[0]
+    np.testing.assert_array_equal(exported[["rna_count_1_REF", "rna_count_1_ALT"]].to_numpy()[0], expected)
 
 
 def test_combine_get_variant_map_option_required(runner):

@@ -648,7 +648,7 @@ class MPRABarcodeData(MPRAData):
     @classmethod
     def from_file(cls, file_path: str) -> "MPRABarcodeData":
 
-        data = pd.read_csv(file_path, sep="\t", header=0, index_col=0)
+        data = pd.read_csv(file_path, sep="\t", header=0, index_col=0, float_precision="round_trip")
         data = data.fillna(0)
 
         replicate_columns_rna = data.columns[2::2]
@@ -1208,7 +1208,9 @@ class MPRAOligoData(MPRAData):
             raise MPRAlibException("DNA and RNA replicate columns do not match.")
 
         parts = []
-        for chunk in pd.read_csv(file_path, sep="\t", header=0, index_col=0, chunksize=chunksize):
+        for chunk in pd.read_csv(
+            file_path, sep="\t", header=0, index_col=0, chunksize=chunksize, float_precision="round_trip"
+        ):
             chunk = chunk.fillna(0)
             if chunk_callback is not None:
                 chunk_callback(chunk)
