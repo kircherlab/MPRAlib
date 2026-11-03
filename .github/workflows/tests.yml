@@ -46,7 +46,7 @@ jobs:
           fetch-depth: 0
 
       - name: Super-linter
-        uses: super-linter/super-linter@v8
+        uses: super-linter/super-linter@v9
         env:
           # To report GitHub Actions status checks
           LINTER_RULES_PATH: .
