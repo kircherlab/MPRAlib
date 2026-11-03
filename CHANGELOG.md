@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.3](https://github.com/kircherlab/MPRAlib/compare/v0.11.2...v0.11.3) (2026-11-03)
+
+
+### Bug Fixes
+
+* **io:** preserve float64 precision in count exports ([#132](https://github.com/kircherlab/MPRAlib/issues/132)) ([af41181](https://github.com/kircherlab/MPRAlib/commit/af41181887e50e936326a8b11466d31308dd3dc0))
+
 ## [0.11.2](https://github.com/kircherlab/MPRAlib/compare/v0.11.1...v0.11.2) (2026-10-27)
 
 
